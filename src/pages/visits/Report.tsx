@@ -58,6 +58,12 @@ export default function Report() {
         }
     };
 
+    const getDynamicFileName = (extension: string) => {
+        const start = appliedFilter.start_date || 'All';
+        const end = appliedFilter.end_date || 'All';
+        return `VISITOR CIS, ${start} - ${end}.${extension}`;
+    };
+
     const handleExport = async () => {
         setExportLoading(true);
         try {
@@ -76,15 +82,7 @@ export default function Report() {
             const link = document.createElement('a');
             link.href = url;
 
-            const disposition = res.headers['content-disposition'];
-            let fileName = 'visits.xlsx';
-            if (disposition && disposition.indexOf('attachment') !== -1) {
-                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-                const matches = filenameRegex.exec(disposition);
-                if (matches != null && matches[1]) {
-                    fileName = matches[1].replace(/['"]/g, '');
-                }
-            }
+            const fileName = getDynamicFileName('xlsx');
 
             link.setAttribute('download', fileName);
             document.body.appendChild(link);
@@ -115,7 +113,10 @@ export default function Report() {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', 'visitor-report.pdf');
+            
+            const fileName = getDynamicFileName('pdf');
+            
+            link.setAttribute('download', fileName);
             document.body.appendChild(link);
             link.click();
             link.parentNode?.removeChild(link);
