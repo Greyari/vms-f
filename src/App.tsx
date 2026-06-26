@@ -13,6 +13,7 @@ import Cards from './pages/master/Cards';
 import VehicleCards from './pages/master/VehicleCards';
 import Users from './pages/settings/Users';
 import Profile from './pages/settings/Profile';
+import Visitors from './pages/master/Visitors';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
               <Route path="visits/create" element={<CreateVisit />} />
               <Route path="visits/report" element={<Report />} />
               
+              <Route path="master/visitors" element={<Visitors />} />
               <Route path="master/staffs" element={<Staffs />} />
               <Route path="master/cards" element={<Cards />} />
               <Route path="master/vehicle-cards" element={<VehicleCards />} />
