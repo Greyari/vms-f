@@ -62,8 +62,7 @@ export default function AppLayout() {
                                 <div className="space-y-1">
                                     {visibleItems.map((item, j) => {
                                         const Icon = item.icon;
-                                        // Simple active state check
-                                        const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+                                        const isActive = location.pathname === item.path;
 
                                         return (
                                             <Link
