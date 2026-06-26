@@ -44,7 +44,7 @@ export default function Login() {
                         </div>
                     )}
                     
-                    <div className="space-y-4 rounded-md shadow-sm">
+                    <div className="space-y-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium leading-none text-zinc-700 dark:text-zinc-300">Email Address</label>
                             <input
