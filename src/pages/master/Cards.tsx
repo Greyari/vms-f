@@ -427,7 +427,7 @@ export default function Cards() {
       </AlertDialog>
 
       <Dialog open={trashedModalOpen} onOpenChange={setTrashedModalOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Deleted Visitor Cards</DialogTitle>
           </DialogHeader>
