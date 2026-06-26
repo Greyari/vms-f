@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
     Users,
@@ -10,19 +10,15 @@ import {
     CreditCard,
     UserCircle,
     Car,
-    MoreVertical // Import icon titik tiga vertikal
+    MoreVertical
 } from 'lucide-react';
 
 export default function AppLayout() {
     const { user, logout, hasRole } = useAuth();
     const location = useLocation();
-    const navigate = useNavigate();
-    
-    // State untuk kontrol popup dropdown profile
     const [profileOpen, setProfileOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Menutup dropdown jika user klik di luar area dropdown
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
