@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/axios';
-
+import { Upload, Download, FileDown } from 'lucide-react'; 
 import {
   Table,
   TableBody,
@@ -36,6 +36,12 @@ export default function Visitors() {
   const navigate = useNavigate();
   const [visitors, setVisitors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoMessage, setInfoMessage] = useState("");
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
 
   // Edit Modal States
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -56,21 +62,17 @@ export default function Visitors() {
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<number | null>(null);
 
-  // Error Dialog States
-  const [errorOpen, setErrorOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-
-  const showError = (message: string) => {
-    setErrorMessage(message);
-    setErrorOpen(true);
-  };
-
   // Advanced Table States
   const [search, setSearch] = useState("");
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  const showInfo = (message: string) => {
+    setInfoMessage(message);
+    setInfoOpen(true);
+  };
+  
   const fetchVisitors = async () => {
     setLoading(true);
     try {
@@ -114,7 +116,7 @@ export default function Visitors() {
     } catch (error: any) {
       console.error(error);
       const msg = error.response?.data?.message || 'Failed to update visitor';
-      showError(msg);
+      showInfo(msg);
     } finally {
       setEditSubmitting(false);
     }
@@ -177,7 +179,7 @@ export default function Visitors() {
     } catch (error: any) {
       console.error(error);
       const msg = error.response?.data?.message || 'Failed to blacklist visitor';
-      showError(msg);
+      showInfo(msg);
     } finally {
       setSubmitting(false);
     }
@@ -196,7 +198,7 @@ export default function Visitors() {
     } catch (error: any) {
       console.error(error);
       const msg = error.response?.data?.message || 'Failed to remove visitor from blacklist';
-      showError(msg);
+      showInfo(msg);
     } finally {
       setUnblacklistAlertOpen(false);
       setSelectedUnblacklistId(null);
@@ -216,10 +218,62 @@ export default function Visitors() {
     } catch (error: any) {
       console.error(error);
       const msg = error.response?.data?.message || 'Failed to delete visitor';
-      showError(msg);
+      showInfo(msg);
     } finally {
       setDeleteAlertOpen(false);
       setSelectedDeleteId(null);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const res = await api.get('/visitors/export', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'visitors.xlsx';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      showInfo('Failed to export visitors');
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    setIsDownloadingTemplate(true);
+    try {
+      const res = await api.get('/visitors/template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'visitor_template.xlsx';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      showInfo('Failed to download template');
+    } finally {
+      setIsDownloadingTemplate(false);
+    }
+  };
+
+  const handleImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importFile) return;
+    setImporting(true);
+    const formData = new FormData();
+    formData.append('file', importFile);
+    try {
+      const res = await api.post('/visitors/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setImportModalOpen(false);
+      setImportFile(null);
+      showInfo(res.data.message);
+      fetchVisitors();
+    } catch (error: any) {
+      showInfo(error.response?.data?.message || 'Import failed');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -227,12 +281,21 @@ export default function Visitors() {
     <div className="p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold">Visitor Management</h1>
-        <Button variant="outline" onClick={() => navigate('/master/visitors/blacklist')}>
-          <Ban className="h-4 w-4 mr-2" />
-          View Blacklist
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => setImportModalOpen(true)} disabled={importing}>
+            <Upload className="h-4 w-4 mr-2" />
+            Import Excel
+          </Button>
+          <Button  onClick={handleExport} className="bg-green-600 hover:bg-green-700 text-white">
+            <Download className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/master/visitors/blacklist')}>
+            <Ban className="h-4 w-4 mr-2" />
+            View Blacklist
+          </Button>
+        </div>
       </div>
-
       <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
         <div className="flex justify-between items-center mb-4">
           <div className="relative w-full md:w-1/3">
@@ -412,6 +475,46 @@ export default function Visitors() {
         </DialogContent>
       </Dialog>
 
+      {/* Import Visitor Modal */}
+      <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Visitor Data</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 border border-zinc-200 dark:border-zinc-800 rounded-md bg-zinc-50 dark:bg-zinc-900">
+              <div className="text-sm">
+                <p className="font-medium text-zinc-900 dark:text-zinc-50">Download Template</p>
+                <p className="text-zinc-500">Use this Excel template to format your data correctly.</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleDownloadTemplate} disabled={isDownloadingTemplate}>
+                {isDownloadingTemplate
+                  ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  : <FileDown className="w-4 h-4 mr-2" />}
+                {isDownloadingTemplate ? 'Downloading...' : 'Download'}
+              </Button>
+            </div>
+            <form onSubmit={handleImport} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Upload Excel File</Label>
+                <Input
+                  type="file"
+                  accept=".xlsx,.csv"
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setImportModalOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={!importFile || importing}>
+                  {importing ? 'Importing...' : 'Upload & Import'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Blacklist Form Modal */}
       <Dialog open={blacklistModalOpen} onOpenChange={setBlacklistModalOpen}>
         <DialogContent>
@@ -475,16 +578,14 @@ export default function Visitors() {
       </AlertDialog>
 
       {/* Error Dialog */}
-      <AlertDialog open={errorOpen} onOpenChange={setErrorOpen}>
+      <AlertDialog open={infoOpen} onOpenChange={setInfoOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>An Error Occurred</AlertDialogTitle>
-            <AlertDialogDescription>
-              {errorMessage}
-            </AlertDialogDescription>
+            <AlertDialogTitle>Notice</AlertDialogTitle>
+            <AlertDialogDescription>{infoMessage}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setErrorOpen(false)}>Close</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setInfoOpen(false)}>Close</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
