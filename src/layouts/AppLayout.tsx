@@ -34,7 +34,7 @@ export default function AppLayout() {
             title: 'Visitor Management',
             items: [
                 { name: 'Add Visit', path: '/visits/create', icon: ClipboardList, show: true },
-                { name: 'Active Visitors', path: '/visits', icon: Users, show: true },
+                { name: 'Active Visitors', path: '/visits/activate', icon: Users, show: true },
                 { name: 'Report', path: '/visits/report', icon: FileText, show: true },
             ]
         },
@@ -77,7 +77,7 @@ export default function AppLayout() {
                                 <div className="space-y-1">
                                     {visibleItems.map((item, j) => {
                                         const Icon = item.icon;
-                                        const isActive = location.pathname === item.path;
+                                        const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');;
 
                                         return (
                                             <Link

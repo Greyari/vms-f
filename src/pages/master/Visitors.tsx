@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '@/lib/axios';
 
 import {
@@ -29,9 +30,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Loader2, ArrowUpDown, ChevronLeft, ChevronRight, ShieldOff, ShieldCheck, Trash2 } from "lucide-react";
+import { Search, Loader2, ArrowUpDown, ChevronLeft, ChevronRight, ShieldOff, ShieldCheck, Trash2, Ban } from "lucide-react";
 
 export default function Visitors() {
+  const navigate = useNavigate();
   const [visitors, setVisitors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -225,6 +227,10 @@ export default function Visitors() {
     <div className="p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold">Visitor Management</h1>
+        <Button variant="outline" onClick={() => navigate('/master/visitors/blacklist')}>
+          <Ban className="h-4 w-4 mr-2" />
+          View Blacklist
+        </Button>
       </div>
 
       <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
@@ -258,7 +264,6 @@ export default function Visitors() {
                     <div className="flex items-center">Total Visits <ArrowUpDown className="ml-2 h-4 w-4" /></div>
                   </TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Blacklist Reason</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -289,15 +294,6 @@ export default function Visitors() {
                           <span className="inline-flex items-center w-fit rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                             Active
                           </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-[220px]">
-                        {visitor.is_blacklisted && visitor.blacklist_reason ? (
-                          <span className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2" title={visitor.blacklist_reason}>
-                            {visitor.blacklist_reason}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-zinc-400">-</span>
                         )}
                       </TableCell>
                       <TableCell className="text-center space-x-2">

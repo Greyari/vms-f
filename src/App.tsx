@@ -14,6 +14,7 @@ import VehicleCards from './pages/master/VehicleCards';
 import Users from './pages/settings/Users';
 import Profile from './pages/settings/Profile';
 import Visitors from './pages/master/Visitors';
+import BlacklistedVisitors from './pages/master/Blacklistedvisitors';
 
 function App() {
   return (
@@ -31,10 +32,11 @@ function App() {
           <Route path="/" element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route index element={<Navigate to="/visits" replace />} />
-              <Route path="visits" element={<ActiveVisits />} />
+              <Route path="visits/activate" element={<ActiveVisits />} />
               <Route path="visits/create" element={<CreateVisit />} />
               <Route path="visits/report" element={<Report />} />
-              
+              <Route path="master/visitors/blacklist" element={<BlacklistedVisitors />} />
+
               <Route path="master/visitors" element={<Visitors />} />
               <Route path="master/staffs" element={<Staffs />} />
               <Route path="master/cards" element={<Cards />} />
