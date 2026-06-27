@@ -198,7 +198,7 @@ export default function ActiveVisits() {
                                             {visit.ticket_number || '-'}
                                         </TableCell>
                                         <TableCell className="font-medium text-zinc-900 dark:text-white">
-                                            {visit.visitor_card?.card_no || '-'}
+                                            {visit.visitor_cards?.map((c: any) => c.card_no).join(', ') || '-'}
                                         </TableCell>
                                         <TableCell className="font-semibold py-2">
                                             <span>{visit.visitor?.name}</span> <br/>
