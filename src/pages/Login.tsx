@@ -21,7 +21,7 @@ export default function Login() {
         try {
             const res = await api.post('/login', credentials);
             login(res.data.access_token, res.data.user);
-            navigate('/visits/activate');
+            navigate('/visits/create');
         } catch (err: any) {
             setError(err.response?.data?.message || 'Login failed. Check credentials/API URL.');
         } finally {
