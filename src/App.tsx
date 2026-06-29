@@ -15,6 +15,7 @@ import Users from './pages/settings/Users';
 import Profile from './pages/settings/Profile';
 import Visitors from './pages/master/Visitors';
 import BlacklistedVisitors from './pages/master/Blacklistedvisitors';
+import Dashboard from './pages/dahsboard/Dashboard';
 
 function App() {
   return (
@@ -31,7 +32,8 @@ function App() {
           {/* Main Application Routes inside Sidebar Layout */}
           <Route path="/" element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
-              <Route index element={<Navigate to="/visits" replace />} />
+              <Route index element={<Dashboard />} />
+
               <Route path="visits/activate" element={<ActiveVisits />} />
               <Route path="visits/create" element={<CreateVisit />} />
               <Route path="visits/report" element={<Report />} />

@@ -10,7 +10,8 @@ import {
     CreditCard,
     UserCircle,
     Car,
-    MoreVertical
+    MoreVertical,
+    LayoutDashboard 
 } from 'lucide-react';
 
 export default function AppLayout() {
@@ -30,6 +31,12 @@ export default function AppLayout() {
     }, []);
 
     const menuItems = [
+        {
+            title: 'Overview',
+            items: [
+                { name: 'Dashboard', path: '/', icon: LayoutDashboard, show: true },
+            ],
+        },
         {
             title: 'Visitor Management',
             items: [
