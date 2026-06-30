@@ -233,7 +233,10 @@ export default function Cards() {
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <h1 className="text-2xl font-bold">Card Management</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Visitor Cards</h1>
+          <p className="text-muted-foreground">Manage your visitor card master data and statuses.</p>
+        </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="secondary" onClick={() => { fetchTrashedCards(); setTrashedModalOpen(true); }}>
             View Deleted
