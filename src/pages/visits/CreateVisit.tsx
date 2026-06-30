@@ -7,12 +7,15 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverAnchor, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandGroup, CommandItem, CommandList, CommandInput, CommandEmpty } from "@/components/ui/command"
-import { Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Check, ChevronsUpDown, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function CreateVisit() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    
+    const [rfidScanned, setRfidScanned] = useState(false);
+    const idInputRef = useRef<HTMLInputElement>(null);
 
     // Autocomplete states
     const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -50,6 +53,11 @@ export default function CreateVisit() {
             }
         };
         fetchMasterData();
+
+        // Auto focus
+        if (idInputRef.current) {
+            idInputRef.current.focus();
+        }
 
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
@@ -110,6 +118,11 @@ export default function CreateVisit() {
             try {
                 const res = await api.get(`/visits/search?q=${query}`);
                 setSuggestions(res.data);
+                
+                if ((source === 'ktp' || form.id_type === 'sim') && query.length >= 8) {
+                    setRfidScanned(true);
+                    setTimeout(() => setRfidScanned(false), 2000);
+                }
             } catch (err) {
                 console.error(err);
             } finally {
@@ -151,7 +164,6 @@ export default function CreateVisit() {
     };
 
     return (
-        
         <div className="mx-auto max-w-3xl bg-white p-6 rounded-lg shadow-sm border border-zinc-200 dark:bg-zinc-950 dark:border-zinc-800 relative">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
@@ -160,7 +172,7 @@ export default function CreateVisit() {
                 </div>
             </div>
 
-            <div className="absolute top-6 right-6 text-right">
+            <div className="absolute top-6 right-6 text-right hidden sm:block">
                 <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Current Time</p>
                 <div className="text-2xl font-mono text-zinc-900 dark:text-zinc-50 font-bold bg-zinc-100 dark:bg-zinc-900 px-3 py-1 rounded inline-block mt-1">
                     {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -173,111 +185,138 @@ export default function CreateVisit() {
                     <div className="space-y-2">
                         <Label>ID Type</Label>
                         <select
-                        value={form.id_type}
-                        onChange={(e) => setForm({ ...form, id_type: e.target.value })}
-                        className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-800 dark:bg-zinc-950"
+                            value={form.id_type}
+                            onChange={(e) => setForm({ ...form, id_type: e.target.value })}
+                            className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-800 dark:bg-zinc-950"
                         >
-                        <option value="ktp">KTP</option>
-                        <option value="sim">SIM</option>
-                        <option value="passport">Passport</option>
+                            <option value="ktp">KTP</option>
+                            <option value="sim">SIM</option>
+                            <option value="passport">Passport</option>
                         </select>
                     </div>
 
-                    {/* ID Number */}
-                    <div className="space-y-2">
-                        <Label>ID Number</Label>
+                    {/* ID Number / RFID Reader */}
+                    <div className="space-y-2 md:col-span-2">
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="id_number">ID Number</Label>
+                            {(form.id_type === 'ktp' || form.id_type === 'sim') && (
+                                <span className={cn(
+                                    "text-xs flex items-center gap-1 font-medium transition-colors",
+                                    rfidScanned ? "text-emerald-600 dark:text-emerald-400" : "text-amber-500"
+                                )}>
+                                    <Radio className={cn("w-3.5 h-3.5", !rfidScanned && "animate-pulse")} />
+                                    {rfidScanned 
+                                        ? `${form.id_type.toUpperCase()} Scanned!` 
+                                        : `Ready for ${form.id_type.toUpperCase()} scan...`
+                                    }
+                                </span>
+                            )}
+                        </div>
                         <Popover open={openKtp} onOpenChange={setOpenKtp}>
-                        <PopoverAnchor asChild>
-                            <Input
-                            id="id_number"
-                            name="id_number"
-                            value={form.id_number}
-                            onChange={(e) => {
-                                handleChange(e);
-                                searchVisitor(e.target.value, 'ktp');
-                            }}
-                            onFocus={() => {
-                                if (form.id_number.length >= 2) setOpenKtp(true);
-                            }}
-                            required
-                            autoComplete="off"
-                            placeholder="Select or Type ID..."
-                            />
-                        </PopoverAnchor>
-                        <PopoverContent className="p-0 w-[350px]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
-                            <Command shouldFilter={false}>
-                            <CommandList>
-                                <CommandGroup>
-                                {searching ? (
-                                    <div className="p-4 flex items-center justify-center text-sm text-zinc-500">
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Searching...
-                                    </div>
-                                ) : suggestions.length > 0 ? (
-                                    suggestions.map(s => (
-                                    <CommandItem key={s.id} value={s.id_number} onSelect={() => selectVisitor(s)}>
-                                        <div className="flex flex-col">
-                                        <span className="font-semibold">{s.id_number}</span>
-                                        <span className="text-xs text-zinc-500">{s.name} - {s.company || 'No Company'}</span>
-                                        </div>
-                                    </CommandItem>
-                                    ))
-                                ) : (
-                                    <div className="p-4 text-center text-sm text-zinc-500">No visitors found. Type to save as new.</div>
-                                )}
-                                </CommandGroup>
-                            </CommandList>
-                            </Command>
-                        </PopoverContent>
+                            <PopoverAnchor asChild>
+                                <Input
+                                    ref={idInputRef}
+                                    id="id_number"
+                                    name="id_number"
+                                    value={form.id_number}
+                                    onChange={(e) => {
+                                        handleChange(e);
+                                        searchVisitor(e.target.value, 'ktp');
+                                    }}
+                                    onFocus={() => {
+                                        if (form.id_number.length >= 2) setOpenKtp(true);
+                                    }}
+                                    required
+                                    autoComplete="off"
+                                    placeholder={
+                                        form.id_type === 'ktp' 
+                                            ? "Tap KTP on scanner or type here..." 
+                                            : form.id_type === 'sim'
+                                            ? "Scan SIM barcode or type here..."
+                                            : "Type Passport ID Number..."
+                                    }
+                                    className={cn(
+                                        "transition-all duration-300",
+                                        rfidScanned && "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10 dark:bg-emerald-950/20",
+                                        /* Beri efek border amber jika mode scan aktif (KTP/SIM) dan belum di-scan */
+                                        (form.id_type === 'ktp' || form.id_type === 'sim') && !rfidScanned && "focus-visible:ring-amber-500/30 focus-visible:border-amber-500"
+                                    )}
+                                />
+                            </PopoverAnchor>
+                            <PopoverContent className="p-0 w-[350px]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                                <Command shouldFilter={false}>
+                                    <CommandList>
+                                        <CommandGroup>
+                                            {searching ? (
+                                                <div className="p-4 flex items-center justify-center text-sm text-zinc-500">
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Searching visitor database...
+                                                </div>
+                                            ) : suggestions.length > 0 ? (
+                                                suggestions.map(s => (
+                                                    <CommandItem key={s.id} value={s.id_number} onSelect={() => selectVisitor(s)}>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold">{s.id_number}</span>
+                                                            <span className="text-xs text-zinc-500">{s.name} - {s.company || 'No Company'}</span>
+                                                        </div>
+                                                    </CommandItem>
+                                                ))
+                                            ) : (
+                                                <div className="p-4 text-center text-sm text-zinc-500">New visitor detected. Fill out the rest of form to save.</div>
+                                            )}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
                         </Popover>
                     </div>
+                </div>
 
-                    {/* Visitor Name */}
-                    <div className="space-y-2">
-                        <Label>Visitor Name</Label>
-                        <Popover open={openName} onOpenChange={setOpenName}>
+                {/* Visitor Name */}
+                <div className="space-y-2">
+                    <Label htmlFor="name">Visitor Name</Label>
+                    <Popover open={openName} onOpenChange={setOpenName}>
                         <PopoverAnchor asChild>
                             <Input
-                            id="name"
-                            name="name"
-                            value={form.name}
-                            onChange={(e) => {
-                                handleChange(e);
-                                searchVisitor(e.target.value, 'name');
-                            }}
-                            onFocus={() => {
-                                if (form.name.length >= 2) setOpenName(true);
-                            }}
-                            required
-                            autoComplete="off"
-                            placeholder="Select or Type Name..."
+                                id="name"
+                                name="name"
+                                value={form.name}
+                                onChange={(e) => {
+                                    handleChange(e);
+                                    searchVisitor(e.target.value, 'name');
+                                }}
+                                onFocus={() => {
+                                    if (form.name.length >= 2) setOpenName(true);
+                                }}
+                                required
+                                autoComplete="off"
+                                placeholder="Type Name..."
                             />
                         </PopoverAnchor>
                         <PopoverContent className="p-0 w-[350px]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                             <Command shouldFilter={false}>
-                            <CommandList>
-                                <CommandGroup>
-                                {searching ? (
-                                    <div className="p-4 flex items-center justify-center text-sm text-zinc-500">
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Searching...
-                                    </div>
-                                ) : suggestions.length > 0 ? (
-                                    suggestions.map(s => (
-                                    <CommandItem key={s.id} value={s.id_number} onSelect={() => selectVisitor(s)}>
-                                        <div className="flex flex-col">
-                                        <span className="font-semibold">{s.name}</span>
-                                        <span className="text-xs text-zinc-500">{s.id_number} - {s.company || 'No Company'}</span>
-                                        </div>
-                                    </CommandItem>
-                                    ))
-                                ) : (
-                                    <div className="p-4 text-center text-sm text-zinc-500">No visitors found. Type to save as new.</div>
-                                )}
-                                </CommandGroup>
-                            </CommandList>
+                                <CommandList>
+                                    <CommandGroup>
+                                        {searching ? (
+                                            <div className="p-4 flex items-center justify-center text-sm text-zinc-500">
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Searching...
+                                            </div>
+                                        ) : suggestions.length > 0 ? (
+                                            suggestions.map(s => (
+                                                <CommandItem key={s.id} value={s.id_number} onSelect={() => selectVisitor(s)}>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-semibold">{s.name}</span>
+                                                        <span className="text-xs text-zinc-500">{s.id_number} - {s.company || 'No Company'}</span>
+                                                    </div>
+                                                </CommandItem>
+                                            ))
+                                        ) : (
+                                            <div className="p-4 text-center text-sm text-zinc-500">No visitors found. Type to save as new.</div>
+                                        )}
+                                    </CommandGroup>
+                                </CommandList>
                             </Command>
                         </PopoverContent>
-                        </Popover>
-                    </div>
+                    </Popover>
                 </div>
 
                 <div className="space-y-2">
