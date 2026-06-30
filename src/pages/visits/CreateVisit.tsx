@@ -151,15 +151,21 @@ export default function CreateVisit() {
     };
 
     return (
+        
         <div className="mx-auto max-w-3xl bg-white p-6 rounded-lg shadow-sm border border-zinc-200 dark:bg-zinc-950 dark:border-zinc-800 relative">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold">Add New Visit</h1>
+                    <p className="text-muted-foreground">Add visitor data to the input below.</p>
+                </div>
+            </div>
+
             <div className="absolute top-6 right-6 text-right">
                 <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Current Time</p>
                 <div className="text-2xl font-mono text-zinc-900 dark:text-zinc-50 font-bold bg-zinc-100 dark:bg-zinc-900 px-3 py-1 rounded inline-block mt-1">
                     {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </div>
             </div>
-
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-6">Add New Visit</h1>
 
             <form onSubmit={handleSubmit} className="space-y-6 mt-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
