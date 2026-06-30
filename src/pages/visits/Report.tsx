@@ -133,7 +133,10 @@ export default function Report() {
     return (
         <div className="p-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <h1 className="text-2xl font-bold">Visitor Reports</h1>
+                <div>
+                    <h1 className="text-2xl font-bold">Report</h1>
+                    <p className="text-muted-foreground">Check the visit report.</p>
+                </div>
             </div>
 
             <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
