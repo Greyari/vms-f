@@ -42,7 +42,12 @@ export default function Dashboard() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold">Dashboard</h1>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold">Dashboard</h1>
+                    <p className="text-muted-foreground">Check out all the visitor data and charts for this week.</p>
+                </div>
+            </div>
 
             {/* Stat Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
