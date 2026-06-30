@@ -226,7 +226,8 @@ export default function Report() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>KTP</TableHead>
+                                <TableHead>ID Type</TableHead>
+                                <TableHead>ID Number</TableHead>
                                 <TableHead>Visitor Name</TableHead>
                                 <TableHead>Company</TableHead>
                                 <TableHead>Staff</TableHead>
@@ -239,16 +240,29 @@ export default function Report() {
                         <TableBody>
                             {records.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center h-24">No history data found. Apply filter to search.</TableCell>
+                                    <TableCell colSpan={9} className="text-center h-24">No history data found. Apply filter to search.</TableCell>
                                 </TableRow>
                             ) : (
                                 records.map((record) => (
                                     <TableRow key={record.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                                        <TableCell className="font-medium">{record.visitor?.ktp_number}</TableCell>
+                                        <TableCell>
+                                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                record.visitor?.id_type === 'ktp' ? 'bg-blue-100 text-blue-700' :
+                                                record.visitor?.id_type === 'sim' ? 'bg-orange-100 text-orange-700' :
+                                                'bg-purple-100 text-purple-700'
+                                            }`}>
+                                                {record.visitor?.id_type?.toUpperCase() || 'KTP'}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="font-medium">{record.visitor?.id_number}</TableCell>
                                         <TableCell className="font-semibold">{record.visitor?.name}</TableCell>
                                         <TableCell>{record.visitor?.company || '-'}</TableCell>
                                         <TableCell>{record.staff?.name}</TableCell>
-                                        <TableCell>{record.visitor_card?.card_no}</TableCell>
+                                        <TableCell>
+                                            {record.visitor_cards?.length
+                                                ? record.visitor_cards.map((card: any) => card.card_no).join(", ")
+                                                : "-"}
+                                        </TableCell>
                                         <TableCell>{record.date}</TableCell>
                                         <TableCell>{record.time_in}</TableCell>
                                         <TableCell>{record.time_out || '-'}</TableCell>

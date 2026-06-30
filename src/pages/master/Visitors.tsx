@@ -45,7 +45,13 @@ export default function Visitors() {
 
   // Edit Modal States
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ id: null as number | null, ktp_number: '', name: '', company: '', rfid_uid: '' });
+  const [editForm, setEditForm] = useState({ 
+    id: null as number | null, 
+    id_type: 'ktp',
+    id_number: '',
+    name: '', 
+    company: '', 
+  });
   const [editSubmitting, setEditSubmitting] = useState(false);
 
   // Blacklist Modal States
@@ -92,10 +98,10 @@ export default function Visitors() {
   const openEditForm = (visitor: any) => {
     setEditForm({
       id: visitor.id,
-      ktp_number: visitor.ktp_number || '',
+      id_type: visitor.id_type || 'ktp',
+      id_number: visitor.id_number || '',
       name: visitor.name || '',
       company: visitor.company || '',
-      rfid_uid: visitor.rfid_uid || '',
     });
     setEditModalOpen(true);
   };
@@ -106,10 +112,10 @@ export default function Visitors() {
     setEditSubmitting(true);
     try {
       await api.put(`/visitors/${editForm.id}`, {
-        ktp_number: editForm.ktp_number,
+        id_type: editForm.id_type,
+        id_number: editForm.id_number,
         name: editForm.name,
         company: editForm.company,
-        rfid_uid: editForm.rfid_uid,
       });
       setEditModalOpen(false);
       fetchVisitors();
@@ -136,7 +142,7 @@ export default function Visitors() {
     if (search) {
       result = result.filter(item =>
         (item.name || '').toLowerCase().includes(search.toLowerCase()) ||
-        (item.ktp_number || '').toLowerCase().includes(search.toLowerCase()) ||
+        (item.id_number || '').toLowerCase().includes(search.toLowerCase()) ||
         (item.company || '').toLowerCase().includes(search.toLowerCase())
       );
     }
@@ -314,8 +320,11 @@ export default function Visitors() {
             <Table>
               <TableHeader className="bg-zinc-50 dark:bg-zinc-900 border-b">
                 <TableRow>
-                  <TableHead onClick={() => handleSort('ktp_number')} className="cursor-pointer">
-                    <div className="flex items-center">KTP Number <ArrowUpDown className="ml-2 h-4 w-4" /></div>
+                  <TableHead onClick={() => handleSort('id_type')} className="cursor-pointer">
+                    <div className="flex items-center">Type <ArrowUpDown className="ml-2 h-4 w-4" /></div>
+                  </TableHead>
+                  <TableHead onClick={() => handleSort('id_number')} className="cursor-pointer">
+                    <div className="flex items-center">ID Number <ArrowUpDown className="ml-2 h-4 w-4" /></div>
                   </TableHead>
                   <TableHead onClick={() => handleSort('name')} className="cursor-pointer">
                     <div className="flex items-center">Name <ArrowUpDown className="ml-2 h-4 w-4" /></div>
@@ -344,7 +353,18 @@ export default function Visitors() {
                 ) : (
                   paginatedData.map((visitor) => (
                     <TableRow key={visitor.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
-                      <TableCell className="font-medium">{visitor.ktp_number}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                          visitor.id_type === 'ktp' ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400' :
+                          visitor.id_type === 'sim' ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400' :
+                          'bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-400'
+                        }`}>
+                          {visitor.id_type?.toUpperCase() || 'KTP'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {visitor.id_number}
+                      </TableCell>
                       <TableCell>{visitor.name}</TableCell>
                       <TableCell>{visitor.company || '-'}</TableCell>
                       <TableCell>{visitor.visits_count}</TableCell>
@@ -436,10 +456,22 @@ export default function Visitors() {
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>KTP Number</Label>
+              <Label>ID Type</Label>
+              <select
+                value={editForm.id_type}
+                onChange={(e) => setEditForm({ ...editForm, id_type: e.target.value })}
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-800"
+              >
+                <option value="ktp">KTP</option>
+                <option value="sim">SIM</option>
+                <option value="passport">Passport</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>ID Number</Label>
               <Input
-                value={editForm.ktp_number}
-                onChange={(e) => setEditForm({ ...editForm, ktp_number: e.target.value })}
+                value={editForm.id_number}
+                onChange={(e) => setEditForm({ ...editForm, id_number: e.target.value })}
                 required
               />
             </div>
@@ -456,13 +488,6 @@ export default function Visitors() {
               <Input
                 value={editForm.company}
                 onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>RFID UID</Label>
-              <Input
-                value={editForm.rfid_uid}
-                onChange={(e) => setEditForm({ ...editForm, rfid_uid: e.target.value })}
               />
             </div>
             <div className="flex justify-end gap-2 mt-4">
@@ -524,7 +549,7 @@ export default function Visitors() {
           <form onSubmit={handleBlacklistSubmit} className="space-y-4">
             <div className="space-y-1">
               <p className="text-sm text-zinc-500">Visitor</p>
-              <p className="font-medium">{blacklistTarget?.name} — {blacklistTarget?.ktp_number}</p>
+              <p className="font-medium">{blacklistTarget?.name} — {blacklistTarget?.id_number}</p>
             </div>
             <div className="space-y-2">
               <Label>Reason</Label>

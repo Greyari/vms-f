@@ -67,8 +67,8 @@ export default function PrintVisit() {
                                         <span className="uppercase">: {visit.visitor?.name}</span>
                                     </div>
                                     <div className="flex border-b border-gray-300 pb-0 mb-0">
-                                        <span className="w-32 inline-block font-bold">KTP / NIK</span>
-                                        <span className="uppercase">: {visit.visitor?.ktp_number}</span>
+                                        <span className="w-32 inline-block font-bold">{visit.visitor?.id_type?.toUpperCase() || 'KTP'}</span>
+                                        <span className="uppercase">: {visit.visitor?.id_number}</span>
                                     </div>
                                     <div className="flex border-b border-gray-300 pb-0 mb-0">
                                         <span className="w-32 inline-block font-bold">COMPANY</span>
@@ -165,7 +165,7 @@ export default function PrintVisit() {
                     {/* Return button if viewing outside print context */}
                     <div className="mt-8 text-center print:hidden">
                         <button
-                            onClick={() => navigate('/visits')}
+                            onClick={() => navigate('/visits/create')}
                             className="bg-black hover:bg-zinc-800 transition-colors text-white px-6 py-2 rounded font-bold select-none text-sm cursor-pointer"
                         >
                             Return to Dashboard

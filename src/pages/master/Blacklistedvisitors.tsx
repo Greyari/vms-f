@@ -87,7 +87,7 @@ export default function BlacklistedVisitors() {
     if (search) {
       result = result.filter(item =>
         (item.name || '').toLowerCase().includes(search.toLowerCase()) ||
-        (item.ktp_number || '').toLowerCase().includes(search.toLowerCase()) ||
+        (item.id_number || '').toLowerCase().includes(search.toLowerCase()) ||
         (item.company || '').toLowerCase().includes(search.toLowerCase())
       );
     }
@@ -234,8 +234,11 @@ export default function BlacklistedVisitors() {
             <Table>
               <TableHeader className="bg-zinc-50 dark:bg-zinc-900 border-b">
                 <TableRow>
-                  <TableHead onClick={() => handleSort('ktp_number')} className="cursor-pointer">
-                    <div className="flex items-center">KTP Number <ArrowUpDown className="ml-2 h-4 w-4" /></div>
+                  <TableHead onClick={() => handleSort('id_type')} className="cursor-pointer">
+                    <div className="flex items-center">Type <ArrowUpDown className="ml-2 h-4 w-4" /></div>
+                  </TableHead>
+                  <TableHead onClick={() => handleSort('id_number')} className="cursor-pointer">
+                    <div className="flex items-center">ID Number <ArrowUpDown className="ml-2 h-4 w-4" /></div>
                   </TableHead>
                   <TableHead onClick={() => handleSort('name')} className="cursor-pointer">
                     <div className="flex items-center">Name <ArrowUpDown className="ml-2 h-4 w-4" /></div>
@@ -251,18 +254,29 @@ export default function BlacklistedVisitors() {
               <TableBody>
                 {loading && visitors.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-zinc-400" />
                     </TableCell>
                   </TableRow>
                 ) : paginatedData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-zinc-500">No blacklisted visitors found.</TableCell>
+                    <TableCell colSpan={7} className="h-24 text-center text-zinc-500">No blacklisted visitors found.</TableCell>
                   </TableRow>
                 ) : (
                   paginatedData.map((visitor) => (
                     <TableRow key={visitor.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
-                      <TableCell className="font-medium">{visitor.ktp_number}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                          visitor.id_type === 'ktp' ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400' :
+                          visitor.id_type === 'sim' ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400' :
+                          'bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-400'
+                        }`}>
+                          {visitor.id_type?.toUpperCase() || 'KTP'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {visitor.id_number}
+                      </TableCell>
                       <TableCell>{visitor.name}</TableCell>
                       <TableCell>{visitor.company || '-'}</TableCell>
                       <TableCell>
