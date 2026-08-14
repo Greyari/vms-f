@@ -13,6 +13,7 @@ import {
   MoreVertical,
   LayoutDashboard,
   ShieldOff,
+  History,
 } from "lucide-react"
 
 export default function AppLayout() {
@@ -112,6 +113,12 @@ export default function AppLayout() {
           path: "/settings/users",
           icon: Settings,
           show: hasPermission("view_users"),
+        },
+        {
+          name: "Activity Logs",
+          path: "/settings/logs",
+          icon: History,
+          show: hasPermission("view_logs"),
         },
         {
           name: "My Profile",

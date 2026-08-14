@@ -13,6 +13,7 @@ import Cards from "./pages/master/Cards"
 import VehicleCards from "./pages/master/VehicleCards"
 import Users from "./pages/settings/Users"
 import Profile from "./pages/settings/Profile"
+import ActivityLogs from "./pages/settings/ActivityLogs"
 import Visitors from "./pages/master/Visitors"
 import BlacklistedVisitors from "./pages/master/BlacklistedVisitors"
 import Dashboard from "./pages/dashboard/Dashboard"
@@ -48,6 +49,7 @@ function App() {
               <Route path="master/vehicle-cards" element={<VehicleCards />} />
 
               <Route path="settings/users" element={<Users />} />
+              <Route path="settings/logs" element={<ActivityLogs />} />
               <Route path="settings/profile" element={<Profile />} />
             </Route>
           </Route>
