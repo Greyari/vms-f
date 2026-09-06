@@ -25,6 +25,9 @@ name: Deploy to Azure Static Web Apps
 on:
   push:
     branches: [production]
+  # Supaya deploy bisa diulang tanpa commit kosong -- misalnya setelah secret
+  # deployment token diperbaiki.
+  workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches: [production]
