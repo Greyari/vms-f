@@ -1,0 +1,73 @@
+# Deploy SPA ke Azure Static Web Apps.
+#
+# Ini BISA jalan di runner GitHub biasa. Static Web Apps tidak punya private
+# endpoint dan tidak pakai image: action mengunggah berkas statis hasil build
+# lewat API publik SWA. Hanya deploy backend yang butuh jalur ke dalam VNet.
+#
+# VITE_API_URL sengaja TIDAK di-set di mana pun. swa-vms-bt-apps punya linked backend ke
+# as-api-vms-bt-apps, jadi `/api/*` di domain SWA diproksikan same-origin ke App Service.
+# Mengisi VITE_API_URL dengan hostname App Service justru mengirim browser
+# lintas-origin dan merusak itu -- error CORS di produksi, mulus di lokal.
+#
+# Prasyarat sekali-saja: deployment token dari resource SWA
+#   az staticwebapp secrets list --name swa-vms-bt-apps \
+#     --resource-group rg-init-bt-apps --query properties.apiKey -o tsv
+# disimpan sebagai repository secret AZURE_STATIC_WEB_APPS_API_TOKEN.
+
+name: Deploy to Azure Static Web Apps
+
+on:
+  push:
+    branches: [production]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches: [production]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: deploy-vms-web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_deploy:
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # `npm run build` adalah `tsc -b && vite build`, jadi langkah ini sekaligus
+      # gerbang typecheck -- error tipe menggagalkan deploy, bukan ikut terkirim.
+      - run: npm run build
+
+      - name: Deploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: '/'
+          output_location: 'dist'
+          skip_app_build: true
+
+  # PR ke `production` dapat preview environment gratis; job ini merobohkannya
+  # saat PR ditutup.
+  close_pull_request:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close preview environment
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: close
