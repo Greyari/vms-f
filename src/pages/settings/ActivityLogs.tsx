@@ -37,7 +37,6 @@ import {
   User,
   Globe,
   Clock,
-  ArrowRight,
 } from "lucide-react"
 
 type LogRow = {
@@ -402,7 +401,6 @@ export default function ActivityLogs() {
                         {changedFields(selectedLog).map((field) => {
                           const oldVal = selectedLog.old_values?.[field]
                           const newVal = selectedLog.new_values?.[field]
-                          const isDifferent = oldVal !== newVal
 
                           return (
                             <TableRow key={field} className="align-top">
