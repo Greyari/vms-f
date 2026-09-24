@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
 
@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import {
   Select,
   SelectContent,
@@ -23,6 +24,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -39,390 +41,526 @@ import {
 import {
   Search,
   Loader2,
-  ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   UserPlus,
+  Pencil,
+  Trash2,
+  Shield,
 } from "lucide-react"
 
-export default function Users() {
-  const [users, setUsers] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [modalOpen, setModalOpen] = useState(false)
+export interface UserRole {
+  id: number | string
+  name: string
+}
 
+export interface UserItem {
+  id: string
+  name: string
+  username?: string | null
+  email?: string | null
+  is_active: boolean
+  roles?: UserRole[]
+}
+
+export default function Users() {
+  const [users, setUsers] = useState<UserItem[]>([])
+  const [rolesOptions, setRolesOptions] = useState<UserRole[]>([])
+  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  // Search & Pagination
+  const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
+  const perPage = 10
+
+  // Modal form states
+  const [modalOpen, setModalOpen] = useState(false)
+  const [validationError, setValidationError] = useState("")
   const [form, setForm] = useState({
     id: null as string | null,
     name: "",
+    username: "",
     email: "",
     password: "",
-    roles: [] as string[],
+    role: "security",
+    is_active: true,
   })
-  const [rolesOptions, setRolesOptions] = useState<any[]>([])
 
-  // Alert Dialog States
+  // Delete dialog states
   const [alertOpen, setAlertOpen] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
-  // Advanced Table States
-  const [search, setSearch] = useState("")
-  const [sortConfig, setSortConfig] = useState<{
-    key: string
-    direction: "asc" | "desc"
-  } | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true)
     try {
       const res = await api.get("/users")
-      setUsers(res.data)
+      const rows: UserItem[] = Array.isArray(res.data)
+        ? res.data
+        : (res.data?.data ?? [])
+      setUsers(rows)
     } catch (error) {
       console.error(error)
+      toast.error("Gagal memuat daftar pengguna.")
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const fetchRoles = async () => {
+  const fetchRoles = useCallback(async () => {
     try {
       const res = await api.get("/roles")
-      setRolesOptions(res.data)
+      const roles: UserRole[] = Array.isArray(res.data)
+        ? res.data
+        : (res.data?.data ?? [])
+      setRolesOptions(roles)
     } catch (error) {
       console.error(error)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchUsers()
     fetchRoles()
-  }, [])
+  }, [fetchUsers, fetchRoles])
 
-  const openForm = (user: any = null) => {
-    if (user) {
-      setForm({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        password: "",
-        roles: user.roles ? user.roles.map((r: any) => r.name) : [],
-      })
-    } else {
-      setForm({ id: null, name: "", email: "", password: "", roles: [] })
-    }
+  // Filtered & Paginated
+  const filteredUsers = useMemo(() => {
+    if (!search.trim()) return users
+    const q = search.toLowerCase()
+    return users.filter(
+      (u) =>
+        u.name.toLowerCase().includes(q) ||
+        (u.username && u.username.toLowerCase().includes(q)) ||
+        (u.email && u.email.toLowerCase().includes(q))
+    )
+  }, [users, search])
+
+  const totalPages = Math.ceil(filteredUsers.length / perPage) || 1
+  const displayedUsers = useMemo(() => {
+    const start = (page - 1) * perPage
+    return filteredUsers.slice(start, start + perPage)
+  }, [filteredUsers, page, perPage])
+
+  const handleOpenCreate = () => {
+    setForm({
+      id: null,
+      name: "",
+      username: "",
+      email: "",
+      password: "",
+      role: rolesOptions[0]?.name || "security",
+      is_active: true,
+    })
+    setValidationError("")
     setModalOpen(true)
   }
 
-  const handleSort = (key: string) => {
-    let direction: "asc" | "desc" = "asc"
-    if (
-      sortConfig &&
-      sortConfig.key === key &&
-      sortConfig.direction === "asc"
-    ) {
-      direction = "desc"
-    }
-    setSortConfig({ key, direction })
+  const handleOpenEdit = (user: UserItem) => {
+    const primaryRole = user.roles?.[0]?.name || "security"
+    setForm({
+      id: user.id,
+      name: user.name,
+      username: user.username || "",
+      email: user.email || "",
+      password: "",
+      role: primaryRole,
+      is_active: user.is_active ?? true,
+    })
+    setValidationError("")
+    setModalOpen(true)
   }
 
-  const filteredAndSorted = useMemo(() => {
-    let result = [...users]
-    if (search) {
-      result = result.filter(
-        (item) =>
-          item.name.toLowerCase().includes(search.toLowerCase()) ||
-          item.email.toLowerCase().includes(search.toLowerCase())
-      )
-    }
-    if (sortConfig !== null) {
-      result.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key])
-          return sortConfig.direction === "asc" ? -1 : 1
-        if (a[sortConfig.key] > b[sortConfig.key])
-          return sortConfig.direction === "asc" ? 1 : -1
-        return 0
-      })
-    }
-    return result
-  }, [users, search, sortConfig])
-
-  const totalPages = Math.ceil(filteredAndSorted.length / itemsPerPage)
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage
-    return filteredAndSorted.slice(start, start + itemsPerPage)
-  }, [filteredAndSorted, currentPage])
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setValidationError("")
+
+    if (!form.name.trim()) {
+      setValidationError("Nama pengguna tidak boleh kosong.")
+      return
+    }
+
+    if (!form.username.trim() && !form.email.trim()) {
+      setValidationError("Minimal satu dari Username atau Email wajib diisi.")
+      return
+    }
+
+    if (!form.id && !form.password) {
+      setValidationError("Password wajib diisi untuk pengguna baru.")
+      return
+    }
+
+    setSubmitting(true)
     try {
-      if (form.id) {
-        const payload: Record<string, any> = { ...form }
-        if (!payload.password) delete payload.password // Don't send empty password
-        await api.put(`/users/${form.id}`, payload)
-      } else {
-        await api.post("/users", form)
+      const payload: Record<string, any> = {
+        name: form.name.trim(),
+        username: form.username.trim() ? form.username.trim().toUpperCase() : null,
+        email: form.email.trim() ? form.email.trim().toLowerCase() : null,
+        role: form.role,
+        is_active: form.is_active,
       }
+
+      if (form.password) {
+        payload.password = form.password
+      }
+
+      if (form.id) {
+        await api.put(`/users/${form.id}`, payload)
+        toast.success("Pengguna berhasil diperbarui.")
+      } else {
+        await api.post("/users", payload)
+        toast.success("Pengguna baru berhasil ditambahkan.")
+      }
+
       setModalOpen(false)
-      toast.success("User saved")
       fetchUsers()
-    } catch (error: any) {
-      console.error(error)
-      toast.error(
-        error.response?.data?.message ||
-          "Failed to save user. Check if email is duplicate."
-      )
+    } catch (err: any) {
+      console.error(err)
+      const msg = err.response?.data?.message || "Gagal menyimpan pengguna."
+      setValidationError(msg)
+      toast.error(msg)
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
-  const confirmDelete = (id: string) => {
-    setSelectedUserId(id)
-    setAlertOpen(true)
-  }
-
-  const executeDelete = async () => {
+  const handleConfirmDelete = async () => {
     if (!selectedUserId) return
     try {
       await api.delete(`/users/${selectedUserId}`)
-      toast.success("User deleted")
-      fetchUsers()
-    } catch (error: any) {
-      console.error(error)
-      toast.error(error.response?.data?.message || "Failed to delete user")
-    } finally {
+      toast.success("Pengguna berhasil dihapus.")
       setAlertOpen(false)
       setSelectedUserId(null)
+      fetchUsers()
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.response?.data?.message || "Gagal menghapus pengguna.")
     }
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <h1 className="text-2xl font-bold">System Users</h1>
-        <Button onClick={() => openForm()}>
-          <UserPlus className="mr-2 h-4 w-4" /> Add User
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+            Manajemen Pengguna (System Users)
+          </h1>
+          <p className="text-sm text-zinc-500">
+            Kelola akun petugas pos keamanan, supervisor gerbang, dan administrator sistem.
+          </p>
+        </div>
+
+        <Button onClick={handleOpenCreate} className="gap-2">
+          <UserPlus className="h-4 w-4" />
+          Tambah Pengguna
         </Button>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="relative w-full md:w-1/3">
-            <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />
-            <Input
-              placeholder="Search user name or email..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value)
-                setCurrentPage(1)
-              }}
-              className="pl-8"
-            />
-          </div>
+      {/* Filter / Search Bar */}
+      <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
+          <Input
+            placeholder="Cari nama, username, atau email..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
+            className="pl-8 h-9 text-sm"
+          />
         </div>
+      </div>
 
-        <div className="overflow-hidden rounded-md border">
+      {/* Table Data */}
+      <div className="rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden">
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
+            <TableHeader className="bg-zinc-50 dark:bg-zinc-900/50">
               <TableRow>
-                <TableHead
-                  onClick={() => handleSort("name")}
-                  className="cursor-pointer"
-                >
-                  <div className="flex items-center">
-                    Name <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead
-                  onClick={() => handleSort("email")}
-                  className="cursor-pointer"
-                >
-                  <div className="flex items-center">
-                    Email <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="w-12 text-center">No</TableHead>
+                <TableHead>Nama Pengguna</TableHead>
+                <TableHead>Username</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role Hak Akses</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-28 text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading && users.length === 0 ? (
+              {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={7} className="h-32 text-center text-zinc-500">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
+                    <span className="mt-2 block text-xs">Memuat daftar pengguna...</span>
                   </TableCell>
                 </TableRow>
-              ) : paginatedData.length === 0 ? (
+              ) : displayedUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="h-24 text-center text-zinc-500"
-                  >
-                    No users found.
+                  <TableCell colSpan={7} className="h-32 text-center text-zinc-500 text-xs">
+                    Tidak ada pengguna yang cocok dengan pencarian.
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedData.map((user) => (
-                  <TableRow
-                    key={user.id}
-                    className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-                  >
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`rounded px-2 py-1 text-xs font-medium ${user.roles?.some((r: any) => r.name === "administrator") ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300" : "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300"}`}
-                      >
-                        {user.roles?.map((r: any) => r.name).join(", ") ||
-                          "No Role"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="space-x-2 text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openForm(user)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => confirmDelete(user.id)}
-                      >
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                displayedUsers.map((u, index) => {
+                  const roleName = u.roles?.[0]?.name || "security"
+                  return (
+                    <TableRow key={u.id} className="text-xs">
+                      <TableCell className="text-center text-zinc-500 font-mono">
+                        {(page - 1) * perPage + index + 1}
+                      </TableCell>
+                      <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">
+                        {u.name}
+                      </TableCell>
+                      <TableCell className="font-mono font-medium text-zinc-800 dark:text-zinc-200">
+                        {u.username ? `@${u.username}` : "-"}
+                      </TableCell>
+                      <TableCell className="text-zinc-600 dark:text-zinc-400">
+                        {u.email || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            roleName === "administrator"
+                              ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400"
+                              : roleName === "supervisor"
+                                ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400"
+                                : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-400"
+                          }
+                        >
+                          <Shield className="mr-1 h-3 w-3" />
+                          {roleName}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {u.is_active ? (
+                          <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+                            Aktif
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-zinc-200 bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                            Nonaktif
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Edit Pengguna"
+                            onClick={() => handleOpenEdit(u)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Hapus Pengguna"
+                            onClick={() => {
+                              setSelectedUserId(u.id)
+                              setAlertOpen(true)
+                            }}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
               )}
             </TableBody>
           </Table>
         </div>
 
-        {/* Pagination */}
-        <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-zinc-500">
-            Showing{" "}
-            {filteredAndSorted.length > 0
-              ? (currentPage - 1) * itemsPerPage + 1
-              : 0}{" "}
-            to {Math.min(currentPage * itemsPerPage, filteredAndSorted.length)}{" "}
-            of {filteredAndSorted.length} entries
+        {/* Pagination Footer */}
+        <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800">
+          <div>
+            Total <strong className="text-zinc-900 dark:text-zinc-100">{filteredUsers.length}</strong> pengguna
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <span>
+              Halaman {page} dari {totalPages}
+            </span>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1 || loading}
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              className="h-7 w-7 p-0"
+              aria-label="Previous Page"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={
-                currentPage === totalPages || totalPages === 0 || loading
-              }
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage((prev) => prev + 1)}
+              className="h-7 w-7 p-0"
+              aria-label="Next Page"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
       </div>
 
+      {/* Form Modal (Create / Edit) */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{form.id ? "Edit User" : "Add User"}</DialogTitle>
+            <DialogTitle>
+              {form.id ? "Edit Pengguna" : "Tambah Pengguna Baru"}
+            </DialogTitle>
+            <DialogDescription>
+              Kelola kredensial login, username, email, dan peran RBAC pengguna sistem.
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Name</Label>
+
+          <form onSubmit={handleSubmitForm} className="space-y-4 pt-2">
+            {validationError && (
+              <div className="rounded-md bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/30 dark:text-red-400">
+                {validationError}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="user-name-input" className="text-xs">Nama Lengkap</Label>
               <Input
+                id="user-name-input"
+                placeholder="cth. Ahmad Dahlan"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="h-9 text-sm"
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
-              />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="user-username-input" className="text-xs">
+                  Username Login
+                </Label>
+                <Input
+                  id="user-username-input"
+                  placeholder="cth. POS1"
+                  value={form.username}
+                  onChange={(e) => setForm({ ...form, username: e.target.value })}
+                  className="h-9 text-sm font-mono uppercase"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="user-email-input" className="text-xs">
+                  Alamat Email
+                </Label>
+                <Input
+                  id="user-email-input"
+                  type="email"
+                  placeholder="petugas@vms.local"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="h-9 text-sm"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>
-                Password {form.id && "(Leave empty to keep current)"}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="user-password-input" className="text-xs">
+                Password {form.id && <span className="text-zinc-400 font-normal">(kosongkan jika tidak diubah)</span>}
               </Label>
               <Input
+                id="user-password-input"
                 type="password"
+                placeholder="Minimal 6 karakter..."
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required={!form.id}
+                className="h-9 text-sm"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Role Hak Akses (RBAC)</Label>
               <Select
-                value={form.roles[0] || ""}
-                onValueChange={(val) => setForm({ ...form, roles: [val] })}
+                value={form.role}
+                onValueChange={(val) => setForm({ ...form, role: val })}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Role" />
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Pilih Role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {rolesOptions.map((r) => (
-                    <SelectItem key={r.id} value={r.name}>
-                      {r.name}
-                    </SelectItem>
-                  ))}
-                  {rolesOptions.length === 0 && (
-                    <SelectItem value="user" disabled>
-                      Loading Roles...
-                    </SelectItem>
+                  {rolesOptions.length > 0 ? (
+                    rolesOptions.map((r) => (
+                      <SelectItem key={r.id} value={r.name}>
+                        {r.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <>
+                      <SelectItem value="security">security</SelectItem>
+                      <SelectItem value="supervisor">supervisor</SelectItem>
+                      <SelectItem value="administrator">administrator</SelectItem>
+                    </>
                   )}
                 </SelectContent>
               </Select>
             </div>
-            <div className="mt-4 flex justify-end gap-2">
+
+            <div className="flex items-center space-x-2 pt-2">
+              <input
+                id="user-active-checkbox"
+                type="checkbox"
+                checked={form.is_active}
+                onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+                className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-700"
+              />
+              <Label htmlFor="user-active-checkbox" className="text-sm font-medium cursor-pointer">
+                Akun Pengguna Aktif
+              </Label>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={() => setModalOpen(false)}
               >
-                Cancel
+                Batal
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : "Save"}
+              <Button type="submit" size="sm" disabled={submitting}>
+                {submitting && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                {form.id ? "Simpan Perubahan" : "Simpan Pengguna"}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Alert Dialog */}
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Konfirmasi Hapus Pengguna</AlertDialogTitle>
             <AlertDialogDescription>
-              This action will permanently delete this user account. The user
-              will no longer be able to access the system.
+              Apakah Anda yakin ingin menghapus akun pengguna ini? Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setAlertOpen(false)}>
+              Batal
+            </AlertDialogCancel>
             <AlertDialogAction
-              onClick={executeDelete}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              onClick={handleConfirmDelete}
+              className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700"
             >
-              Delete Permanently
+              Hapus Akun
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

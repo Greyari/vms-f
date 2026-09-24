@@ -29,20 +29,20 @@ import {
 } from "@/components/ui/dialog"
 import {
   Search,
+  RotateCcw,
   Loader2,
   ChevronLeft,
   ChevronRight,
   Eye,
   History,
-  User,
-  Globe,
-  Clock,
+  ShieldAlert,
 } from "lucide-react"
 
-type LogRow = {
+export interface LogRow {
   id: string
   causer_id: string | null
   causer_name: string | null
+  causer_username: string | null
   causer_email: string | null
   action: string
   subject_type: string | null
@@ -88,342 +88,392 @@ export default function ActivityLogs() {
   const [search, setSearch] = useState("")
   const [actionFilter, setActionFilter] = useState(ALL)
   const [subjectFilter, setSubjectFilter] = useState(ALL)
+  const [appliedFilters, setAppliedFilters] = useState<Record<string, any>>({})
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
   const [lastPage, setLastPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const perPage = 25
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedLog, setSelectedLog] = useState<LogRow | null>(null)
 
-  const loadLogs = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await api.get("/activity-logs", {
-        params: {
-          page: currentPage,
-          search: search || undefined,
-          action: actionFilter !== ALL ? actionFilter : undefined,
-          subject_type: subjectFilter !== ALL ? subjectFilter : undefined,
-          per_page: 15,
-        },
-      })
-      setLogs(res.data.data ?? [])
-      setLastPage(res.data.last_page ?? 1)
-      setTotal(res.data.total ?? 0)
-    } catch (error) {
-      console.error(error)
-      toast.error("Failed to fetch activity logs.")
-    } finally {
-      setLoading(false)
-    }
-  }, [currentPage, search, actionFilter, subjectFilter])
-
-  const loadSubjectTypes = async () => {
+  const fetchSubjectTypes = async () => {
     try {
       const res = await api.get("/activity-logs/subject-types")
-      setSubjectTypes(res.data ?? [])
-    } catch (error) {
-      console.error(error)
+      const types = Array.isArray(res.data) ? res.data : (res.data?.data ?? [])
+      setSubjectTypes(types)
+    } catch {
+      // non-critical
     }
   }
 
-  useEffect(() => {
-    loadLogs()
-  }, [loadLogs])
+  const fetchLogs = useCallback(
+    async (filters: Record<string, any>, page: number) => {
+      setLoading(true)
+      try {
+        const params: Record<string, any> = {
+          page,
+          per_page: perPage,
+          ...filters,
+        }
+
+        const res = await api.get("/activity-logs", { params })
+        const payload = res.data
+
+        const rows: LogRow[] = Array.isArray(payload)
+          ? payload
+          : (payload?.data ?? [])
+
+        setLogs(rows)
+        if (!Array.isArray(payload) && payload?.last_page !== undefined) {
+          setLastPage(payload.last_page)
+          setTotal(payload.total ?? rows.length)
+        } else {
+          setLastPage(1)
+          setTotal(rows.length)
+        }
+      } catch (err) {
+        console.error(err)
+        toast.error("Gagal memuat log aktivitas.")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [perPage]
+  )
 
   useEffect(() => {
-    loadSubjectTypes()
+    fetchSubjectTypes()
   }, [])
 
-  // Reset to page 1 whenever a filter changes
   useEffect(() => {
+    fetchLogs(appliedFilters, currentPage)
+  }, [appliedFilters, currentPage, fetchLogs])
+
+  const handleApplyFilter = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const newFilters: Record<string, any> = {}
+
+    if (search.trim()) newFilters.search = search.trim()
+    if (actionFilter !== ALL) newFilters.action = actionFilter
+    if (subjectFilter !== ALL) newFilters.subject_type = subjectFilter
+
     setCurrentPage(1)
-  }, [search, actionFilter, subjectFilter])
-
-  const openDetail = (log: LogRow) => {
-    setSelectedLog(log)
-    setDetailOpen(true)
+    setAppliedFilters(newFilters)
   }
 
-  const formatValue = (v: any) => {
-    if (v === null || v === undefined || v === "") return "—"
-    if (typeof v === "boolean") return v ? "true" : "false"
-    if (typeof v === "object") return JSON.stringify(v, null, 2)
-    return String(v)
-  }
-
-  // Union of keys touched by this log entry
-  const changedFields = (log: LogRow) => {
-    const keys = new Set([
-      ...Object.keys(log.old_values ?? {}),
-      ...Object.keys(log.new_values ?? {}),
-    ])
-    return Array.from(keys)
+  const handleResetFilter = () => {
+    setSearch("")
+    setActionFilter(ALL)
+    setSubjectFilter(ALL)
+    setCurrentPage(1)
+    setAppliedFilters({})
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <div className="flex items-center gap-2">
-          <History className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">Activity Logs</h1>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <History className="h-6 w-6 text-zinc-700 dark:text-zinc-300" />
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+              Log Aktivitas Sistem (Activity Logs)
+            </h1>
+          </div>
+          <p className="text-sm text-zinc-500">
+            Jejak audit seluruh perubahan data, pencatatan check-in/out, dan sesi login pengguna sistem.
+          </p>
         </div>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
-          <div className="relative w-full md:w-1/3">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
+      {/* Filter Box */}
+      <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <form onSubmit={handleApplyFilter} className="flex flex-col gap-3 md:flex-row md:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
             <Input
-              placeholder="Search user or record name..."
+              placeholder="Cari pelaku atau subjek..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8"
+              className="pl-8 h-9 text-sm"
             />
           </div>
 
           <Select value={actionFilter} onValueChange={setActionFilter}>
-            <SelectTrigger className="w-full md:w-44">
-              <SelectValue placeholder="All actions" />
+            <SelectTrigger className="h-9 w-full md:w-44 text-sm">
+              <SelectValue placeholder="Semua Aksi" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>All actions</SelectItem>
-              {Object.entries(ACTION_LABEL).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
+              <SelectItem value={ALL}>Semua Aksi</SelectItem>
+              {Object.entries(ACTION_LABEL).map(([val, label]) => (
+                <SelectItem key={val} value={val}>
                   {label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-            <SelectTrigger className="w-full md:w-44">
-              <SelectValue placeholder="All data types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>All data types</SelectItem>
-              {subjectTypes.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+          {subjectTypes.length > 0 && (
+            <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+              <SelectTrigger className="h-9 w-full md:w-44 text-sm">
+                <SelectValue placeholder="Semua Subjek" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Semua Subjek</SelectItem>
+                {subjectTypes.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
-        <div className="overflow-hidden rounded-md border">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleResetFilter}
+              className="gap-1.5"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset
+            </Button>
+            <Button type="submit" size="sm" className="gap-1.5" disabled={loading}>
+              {loading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Search className="h-3.5 w-3.5" />
+              )}
+              Cari
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      {/* Table Data */}
+      <div className="rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden">
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
+            <TableHeader className="bg-zinc-50 dark:bg-zinc-900/50">
               <TableRow>
-                <TableHead>Time</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead className="text-right">Detail</TableHead>
+                <TableHead className="w-12 text-center">No</TableHead>
+                <TableHead>Waktu</TableHead>
+                <TableHead>Pelaku</TableHead>
+                <TableHead>Event</TableHead>
+                <TableHead>Subjek</TableHead>
+                <TableHead>IP Address</TableHead>
+                <TableHead className="w-20 text-right">Detail</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading && logs.length === 0 ? (
+              {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={7} className="h-32 text-center text-zinc-500">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
+                    <span className="mt-2 block text-xs">Memuat log aktivitas...</span>
                   </TableCell>
                 </TableRow>
               ) : logs.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="h-24 text-center text-zinc-500"
-                  >
-                    No activity found.
+                  <TableCell colSpan={7} className="h-32 text-center text-zinc-500 text-xs">
+                    Tidak ada aktivitas yang tercatat sesuai filter.
                   </TableCell>
                 </TableRow>
               ) : (
-                logs.map((log) => (
-                  <TableRow
-                    key={log.id}
-                    className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-                  >
-                    <TableCell className="whitespace-nowrap text-sm text-zinc-500">
-                      {new Date(log.created_at).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">
-                        {log.causer_name ?? "System"}
-                      </div>
-                      {log.causer_email && (
-                        <div className="text-xs text-zinc-500">
-                          {log.causer_email}
+                logs.map((log, index) => {
+                  const actorDisplay = log.causer_username
+                    ? `@${log.causer_username}`
+                    : log.causer_email || log.causer_name || "Sistem"
+
+                  return (
+                    <TableRow key={log.id || index} className="text-xs">
+                      <TableCell className="text-center text-zinc-500 font-mono">
+                        {(currentPage - 1) * perPage + index + 1}
+                      </TableCell>
+                      <TableCell className="font-mono text-zinc-700 dark:text-zinc-300">
+                        {log.created_at}
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-zinc-900 dark:text-zinc-100">
+                          {actorDisplay}
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={ACTION_VARIANT[log.action] ?? "outline"}>
-                        {ACTION_LABEL[log.action] ?? log.action}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {log.subject_type ? (
-                        <>
-                          <span className="font-medium">
-                            {log.subject_type}
-                          </span>
-                          {log.subject_label && (
-                            <span className="text-zinc-500">
-                              {" "}
-                              — {log.subject_label}
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-zinc-400">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {(log.old_values || log.new_values) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openDetail(log)}
+                        {log.causer_name && log.causer_username && (
+                          <div className="text-[11px] text-zinc-500">
+                            {log.causer_name}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={ACTION_VARIANT[log.action] ?? "secondary"}
+                          className="capitalize text-[11px]"
                         >
-                          <Eye className="mr-1 h-3.5 w-3.5" /> View
+                          {ACTION_LABEL[log.action] ?? log.action}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-zinc-900 dark:text-zinc-100">
+                          {log.subject_label || log.subject_id || "-"}
+                        </div>
+                        {log.subject_type && (
+                          <div className="text-[11px] text-zinc-500">
+                            {log.subject_type}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-zinc-600 dark:text-zinc-400">
+                        {log.ip_address || "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label="Lihat Detail Log"
+                          onClick={() => {
+                            setSelectedLog(log)
+                            setDetailOpen(true)
+                          }}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="h-4 w-4" />
                         </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
               )}
             </TableBody>
           </Table>
         </div>
 
-        {/* Pagination */}
-        <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-zinc-500">
-            Page {currentPage} of {lastPage} · {total} entries
+        {/* Pagination Footer */}
+        <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800">
+          <div>
+            Total <strong className="text-zinc-900 dark:text-zinc-100">{total}</strong> entri aktivitas
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <span>
+              Halaman {currentPage} dari {lastPage || 1}
+            </span>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1 || loading}
+              disabled={currentPage <= 1 || loading}
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              className="h-7 w-7 p-0"
+              aria-label="Previous Page"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(lastPage, p + 1))}
-              disabled={currentPage === lastPage || loading}
+              disabled={currentPage >= lastPage || loading}
+              onClick={() => setCurrentPage((prev) => prev + 1)}
+              className="h-7 w-7 p-0"
+              aria-label="Next Page"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* MODAL / DIALOG DETIK AKTIVITAS */}
+      {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-h-[90vh] w-[95vw] sm:max-w-2xl lg:max-w-3xl flex flex-col p-0 overflow-hidden">
-          <DialogHeader className="p-6 pb-4 border-b border-zinc-100 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <Badge variant={ACTION_VARIANT[selectedLog?.action ?? ""] ?? "outline"}>
-                {ACTION_LABEL[selectedLog?.action ?? ""] ?? selectedLog?.action}
-              </Badge>
-              <DialogTitle className="text-lg font-semibold">
-                {selectedLog?.subject_type ?? "Activity Detail"}
-                {selectedLog?.subject_label && (
-                  <span className="text-zinc-500 font-normal ml-1">
-                    ({selectedLog.subject_label})
-                  </span>
-                )}
-              </DialogTitle>
-            </div>
-            <DialogDescription className="text-xs text-zinc-500 pt-1">
-              Log ID: {selectedLog?.id}
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <ShieldAlert className="h-5 w-5 text-blue-600" />
+              Detail Log Aktivitas
+            </DialogTitle>
+            <DialogDescription>
+              Rincian perubahan atribut data dan konteks audit pergerakan sistem.
             </DialogDescription>
           </DialogHeader>
 
           {selectedLog && (
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)] space-y-6">
-              {/* Metadata Info Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 text-xs dark:border-zinc-800 dark:bg-zinc-900/50">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-zinc-400 shrink-0" />
-                  <div className="truncate">
-                    <p className="text-zinc-500">Performed By</p>
-                    <p className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                      {selectedLog.causer_name ?? "System"}
-                    </p>
+            <div className="space-y-4 pt-2 text-xs">
+              <div className="grid grid-cols-2 gap-3 bg-zinc-50 p-3 rounded-md dark:bg-zinc-900">
+                <div>
+                  <span className="text-zinc-500">Waktu Kejadian:</span>
+                  <div className="font-mono font-medium">{selectedLog.created_at}</div>
+                </div>
+                <div>
+                  <span className="text-zinc-500">Pelaku (Causer):</span>
+                  <div className="font-medium">
+                    {selectedLog.causer_username ? `@${selectedLog.causer_username}` : selectedLog.causer_name || selectedLog.causer_email || "Sistem"}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-zinc-400 shrink-0" />
+                <div>
+                  <span className="text-zinc-500">Aksi / Event:</span>
                   <div>
-                    <p className="text-zinc-500">Timestamp</p>
-                    <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                      {new Date(selectedLog.created_at).toLocaleString()}
-                    </p>
+                    <Badge variant={ACTION_VARIANT[selectedLog.action] ?? "secondary"} className="text-[10px]">
+                      {ACTION_LABEL[selectedLog.action] ?? selectedLog.action}
+                    </Badge>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-zinc-400 shrink-0" />
-                  <div>
-                    <p className="text-zinc-500">IP Address</p>
-                    <p className="font-medium text-zinc-900 dark:text-zinc-100 font-mono">
-                      {selectedLog.ip_address ?? "N/A"}
-                    </p>
+                <div>
+                  <span className="text-zinc-500">IP Address:</span>
+                  <div className="font-mono">{selectedLog.ip_address || "-"}</div>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-zinc-500">Subjek:</span>
+                  <div className="font-medium">
+                    {selectedLog.subject_type}: {selectedLog.subject_label || selectedLog.subject_id || "-"}
                   </div>
                 </div>
               </div>
 
-              {/* Field Changes Section */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  Data Changes
-                </h3>
-
-                {changedFields(selectedLog).length > 0 ? (
-                  <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-                    <Table className="w-full table-fixed">
-                      <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
-                        <TableRow>
-                          <TableHead className="w-1/4">Field</TableHead>
-                          <TableHead className="w-3/8">Old Value</TableHead>
-                          <TableHead className="w-3/8">New Value</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {changedFields(selectedLog).map((field) => {
-                          const oldVal = selectedLog.old_values?.[field]
-                          const newVal = selectedLog.new_values?.[field]
-
-                          return (
-                            <TableRow key={field} className="align-top">
-                              <TableCell className="font-mono text-xs font-semibold text-zinc-700 dark:text-zinc-300 break-all">
-                                {field}
-                              </TableCell>
-                              <TableCell className="bg-red-50/40 dark:bg-red-950/20 text-red-900 dark:text-red-200 font-mono text-xs break-all whitespace-pre-wrap">
-                                {formatValue(oldVal)}
-                              </TableCell>
-                              <TableCell className="bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200 font-mono text-xs break-all whitespace-pre-wrap">
-                                {formatValue(newVal)}
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      </TableBody>
-                    </Table>
+              {/* Old vs New Values */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
+                  <div className="font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+                    Nilai Sebelumnya (Old Values)
                   </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-zinc-200 p-6 text-center text-xs text-zinc-500 dark:border-zinc-800">
-                    No detailed field-level changes recorded for this event.
+                  {selectedLog.old_values && Object.keys(selectedLog.old_values).length > 0 ? (
+                    <div className="space-y-1.5 font-mono text-[11px]">
+                      {Object.entries(selectedLog.old_values).map(([k, v]) => (
+                        <div key={k} className="flex justify-between border-b border-zinc-100 py-1 dark:border-zinc-800">
+                          <span className="text-zinc-500">{k}:</span>
+                          <span className="text-red-600 font-medium truncate max-w-[180px]">{String(v)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-zinc-400 italic">Tidak ada nilai sebelumnya.</div>
+                  )}
+                </div>
+
+                <div className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
+                  <div className="font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+                    Nilai Baru (New Values)
                   </div>
-                )}
+                  {selectedLog.new_values && Object.keys(selectedLog.new_values).length > 0 ? (
+                    <div className="space-y-1.5 font-mono text-[11px]">
+                      {Object.entries(selectedLog.new_values).map(([k, v]) => (
+                        <div key={k} className="flex justify-between border-b border-zinc-100 py-1 dark:border-zinc-800">
+                          <span className="text-zinc-500">{k}:</span>
+                          <span className="text-emerald-600 font-medium truncate max-w-[180px]">{String(v)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-zinc-400 italic">Tidak ada nilai baru.</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button size="sm" onClick={() => setDetailOpen(false)}>
+                  Tutup
+                </Button>
               </div>
             </div>
           )}

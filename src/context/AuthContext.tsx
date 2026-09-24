@@ -1,25 +1,7 @@
-// import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { createContext, useContext, useState, useEffect } from "react"
 import type { ReactNode } from "react"
 import api from "../lib/axios"
-
-interface User {
-  id: string
-  name: string
-  email: string
-  roles?: { name: string }[]
-  permissions?: { name: string }[]
-}
-
-interface AuthContextType {
-  user: User | null
-  token: string | null
-  login: (token: string, user: User) => void
-  logout: () => void
-  hasRole: (role: string) => boolean
-  hasPermission: (perm: string) => boolean
-  loading: boolean
-}
+import type { User, AuthContextType } from "../types/auth"
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
@@ -33,8 +15,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const storedUser = localStorage.getItem("user")
 
     if (storedToken && storedUser) {
-      setToken(storedToken)
-      setUser(JSON.parse(storedUser))
+      try {
+        setToken(storedToken)
+        setUser(JSON.parse(storedUser))
+      } catch (e) {
+        console.error("Failed to parse stored user from localStorage:", e)
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+      }
     }
     setLoading(false)
   }, [])
@@ -61,13 +49,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const hasRole = (role: string) => {
+  const hasRole = (role: string): boolean => {
     if (!user || !user.roles) return false
-    return user.roles.some((r: any) => r.name === role)
+    return user.roles.some((r) => {
+      if (typeof r === "string") return r === role
+      return r.name === role
+    })
   }
 
-  const hasPermission = (perm: string) => {
-    return user?.permissions?.some((p) => p.name === perm) ?? false
+  const hasPermission = (perm: string): boolean => {
+    if (!user || !user.permissions) return false
+    return user.permissions.some((p) => {
+      if (typeof p === "string") return p === perm
+      return p.name === perm
+    })
   }
 
   return (
@@ -86,3 +81,4 @@ export const useAuth = () => {
   }
   return context
 }
+export type { User, AuthContextType }

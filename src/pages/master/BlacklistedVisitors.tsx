@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import api from "@/lib/axios"
@@ -14,9 +14,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -33,51 +35,60 @@ import {
 import {
   Search,
   Loader2,
-  ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
   FileDown,
   Upload,
   ArrowLeft,
+  Plus,
 } from "lucide-react"
 
-const ITEMS_PER_PAGE = 15
+interface BlacklistedVisitor {
+  id: number | string
+  visitor_no?: string
+  id_type: string
+  id_number: string
+  name: string
+  company?: string
+  is_blacklisted: boolean
+  blacklist_reason?: string
+  blacklisted_at?: string
+  blacklisted_by?: string
+}
+
+const ITEMS_PER_PAGE = 10
 
 export default function BlacklistedVisitors() {
   const navigate = useNavigate()
-  const [visitors, setVisitors] = useState<any[]>([])
+  const [visitors, setVisitors] = useState<BlacklistedVisitor[]>([])
   const [loading, setLoading] = useState(false)
+
+  // Filters & Pagination
+  const [search, setSearch] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+
+  // Unblacklist Confirm State
+  const [unblacklistAlertOpen, setUnblacklistAlertOpen] = useState(false)
+  const [selectedUnblacklistId, setSelectedUnblacklistId] = useState<number | string | null>(null)
+
+  // Add Blacklist Modal State
+  const [addBlacklistModalOpen, setAddBlacklistModalOpen] = useState(false)
+  const [addSearch, setAddSearch] = useState("")
+  const [candidateVisitors, setCandidateVisitors] = useState<any[]>([])
+  const [candidateLoading, setCandidateLoading] = useState(false)
+  const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null)
+  const [addReason, setAddReason] = useState("")
+  const [submittingAdd, setSubmittingAdd] = useState(false)
+
+  // Import / Export State
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [importLoading, setImportLoading] = useState(false)
-  const [isDownloading, setIsDownloading] = useState(false)
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
-  const [unblacklistAlertOpen, setUnblacklistAlertOpen] = useState(false)
-  const [selectedUnblacklistId, setSelectedUnblacklistId] = useState<
-    string | null
-  >(null)
-  const [search, setSearch] = useState("")
-  const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [sortConfig, setSortConfig] = useState<{
-    key: string
-    direction: "asc" | "desc"
-  } | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-
-  // Server pagination metadata (populated when the API returns a paginator)
-  const [serverPaginated, setServerPaginated] = useState(false)
-  const [serverLastPage, setServerLastPage] = useState(1)
-  const [serverTotal, setServerTotal] = useState(0)
-
-  // Debounce the search box (400ms) and reset to page 1 on a new query.
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setDebouncedSearch(search)
-      setCurrentPage(1)
-    }, 400)
-    return () => clearTimeout(t)
-  }, [search])
 
   const fetchBlacklisted = useCallback(async () => {
     setLoading(true)
@@ -86,80 +97,77 @@ export default function BlacklistedVisitors() {
         page: currentPage,
         per_page: ITEMS_PER_PAGE,
       }
-      if (debouncedSearch) params.search = debouncedSearch
-      if (sortConfig) {
-        params.sort = sortConfig.key
-        params.dir = sortConfig.direction
-      }
+      if (search) params.search = search
+
       const res = await api.get("/visitors/blacklisted", { params })
-      const rows = Array.isArray(res.data) ? res.data : (res.data.data ?? [])
-      setVisitors(rows)
-      if (!Array.isArray(res.data) && res.data.last_page !== undefined) {
-        setServerPaginated(true)
-        setServerLastPage(res.data.last_page)
-        setServerTotal(res.data.total ?? rows.length)
+      const data = res.data
+      if (data && Array.isArray(data.data)) {
+        setVisitors(data.data)
+        setCurrentPage(data.current_page || 1)
+        setTotalPages(data.last_page || 1)
+        setTotalItems(data.total || 0)
+      } else if (Array.isArray(data)) {
+        setVisitors(data)
+        setTotalPages(1)
+        setTotalItems(data.length)
       } else {
-        setServerPaginated(false)
+        setVisitors([])
       }
     } catch (error) {
       console.error(error)
     } finally {
       setLoading(false)
     }
-  }, [currentPage, debouncedSearch, sortConfig])
+  }, [currentPage, search])
 
   useEffect(() => {
     fetchBlacklisted()
   }, [fetchBlacklisted])
 
-  const handleSort = (key: string) => {
-    let direction: "asc" | "desc" = "asc"
-    if (
-      sortConfig &&
-      sortConfig.key === key &&
-      sortConfig.direction === "asc"
-    ) {
-      direction = "desc"
+  // Search candidate visitors to blacklist
+  const searchCandidates = async () => {
+    if (!addSearch.trim()) return
+    setCandidateLoading(true)
+    try {
+      const res = await api.get("/visitors", {
+        params: { search: addSearch, is_blacklisted: "0", per_page: 5 },
+      })
+      const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : []
+      setCandidateVisitors(list)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setCandidateLoading(false)
     }
-    setSortConfig({ key, direction })
-    setCurrentPage(1)
   }
 
-  // Client-side filter & sort (fallback when the backend returns a plain array)
-  const filteredAndSorted = useMemo(() => {
-    let result = [...visitors]
-    if (search) {
-      result = result.filter(
-        (item) =>
-          (item.name || "").toLowerCase().includes(search.toLowerCase()) ||
-          (item.id_number || "").toLowerCase().includes(search.toLowerCase()) ||
-          (item.company || "").toLowerCase().includes(search.toLowerCase())
-      )
+  const handleAddBlacklistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedCandidate) {
+      toast.error("Pilih pengunjung yang akan dimasukkan ke blacklist")
+      return
     }
-    if (sortConfig !== null) {
-      result.sort((a, b) => {
-        const aVal = a[sortConfig.key] ?? ""
-        const bVal = b[sortConfig.key] ?? ""
-        if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1
-        if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1
-        return 0
+    setSubmittingAdd(true)
+    try {
+      await api.post(`/visitors/${selectedCandidate.id}/blacklist`, {
+        reason: addReason,
       })
+      toast.success("Pengunjung berhasil dimasukkan ke daftar blacklist")
+      setAddBlacklistModalOpen(false)
+      setSelectedCandidate(null)
+      setAddReason("")
+      setAddSearch("")
+      setCandidateVisitors([])
+      fetchBlacklisted()
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.response?.data?.message || "Gagal memasukkan ke daftar blacklist")
+    } finally {
+      setSubmittingAdd(false)
     }
-    return result
-  }, [visitors, search, sortConfig])
+  }
 
-  const clientTotalPages =
-    Math.ceil(filteredAndSorted.length / ITEMS_PER_PAGE) || 1
-  const clientPaginated = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE
-    return filteredAndSorted.slice(start, start + ITEMS_PER_PAGE)
-  }, [filteredAndSorted, currentPage])
-
-  const displayRows = serverPaginated ? visitors : clientPaginated
-  const lastPage = serverPaginated ? serverLastPage : clientTotalPages
-  const totalEntries = serverPaginated ? serverTotal : filteredAndSorted.length
-
-  const confirmUnblacklist = (id: string) => {
+  const confirmUnblacklist = (id: number | string) => {
     setSelectedUnblacklistId(id)
     setUnblacklistAlertOpen(true)
   }
@@ -168,13 +176,12 @@ export default function BlacklistedVisitors() {
     if (!selectedUnblacklistId) return
     try {
       await api.post(`/visitors/${selectedUnblacklistId}/unblacklist`)
-      toast.success("Visitor removed from blacklist")
+      toast.success("Pengunjung berhasil dikeluarkan dari daftar blacklist")
       fetchBlacklisted()
     } catch (error: any) {
       console.error(error)
       toast.error(
-        error.response?.data?.message ||
-          "Failed to remove visitor from blacklist"
+        error.response?.data?.message || "Gagal mencabut status blacklist"
       )
     } finally {
       setUnblacklistAlertOpen(false)
@@ -183,7 +190,7 @@ export default function BlacklistedVisitors() {
   }
 
   const handleDownloadTemplate = async () => {
-    setIsDownloading(true)
+    setIsDownloadingTemplate(true)
     try {
       const res = await api.get("/visitors/blacklisted/template", {
         responseType: "blob",
@@ -195,12 +202,11 @@ export default function BlacklistedVisitors() {
       document.body.appendChild(link)
       link.click()
       link.remove()
-      setTimeout(() => window.URL.revokeObjectURL(url), 1000)
     } catch (error) {
       console.error(error)
-      toast.error("Failed to download template.")
+      toast.error("Gagal mengunduh template.")
     } finally {
-      setIsDownloading(false)
+      setIsDownloadingTemplate(false)
     }
   }
 
@@ -217,12 +223,11 @@ export default function BlacklistedVisitors() {
       setImportModalOpen(false)
       setFile(null)
       fetchBlacklisted()
-      toast.success(res.data?.message || "Import completed.")
+      toast.success(res.data?.message || "Import data blacklist selesai.")
     } catch (error: any) {
       console.error(error)
       toast.error(
-        error.response?.data?.message ||
-          "Import failed. Please make sure the format is correct."
+        error.response?.data?.message || "Format file import tidak sesuai template."
       )
     } finally {
       setImportLoading(false)
@@ -238,14 +243,14 @@ export default function BlacklistedVisitors() {
       const url = window.URL.createObjectURL(new Blob([res.data]))
       const link = document.createElement("a")
       link.href = url
-      link.setAttribute("download", "blacklisted_visitors.xlsx")
+      link.setAttribute("download", `blacklisted_visitors_${new Date().toISOString().slice(0, 10)}.xlsx`)
       document.body.appendChild(link)
       link.click()
       link.remove()
-      setTimeout(() => window.URL.revokeObjectURL(url), 1000)
+      toast.success("File blacklist berhasil diekspor")
     } catch (error) {
       console.error(error)
-      toast.error("Failed to export blacklist data.")
+      toast.error("Gagal mengekspor data blacklist.")
     } finally {
       setExportLoading(false)
     }
@@ -253,87 +258,87 @@ export default function BlacklistedVisitors() {
 
   return (
     <div className="p-6">
+      {/* Header */}
       <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
           <Button
             variant="ghost"
             size="sm"
-            className="mb-2 -ml-2"
+            className="mb-2 -ml-2 text-muted-foreground hover:text-foreground"
             onClick={() => navigate("/master/visitors")}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Visitors
+            Kembali ke Pengunjung
           </Button>
-          <h1 className="text-2xl font-bold">Blacklisted Visitors</h1>
+          <h1 className="text-2xl font-bold">Daftar Pengunjung Blacklist</h1>
+          <p className="text-muted-foreground text-sm">
+            Daftar individu yang dilarang memasuki kawasan galangan ASL Shipyard.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setImportModalOpen(true)}>
+          <Button
+            variant="outline"
+            onClick={() => setImportModalOpen(true)}
+          >
             <Upload className="mr-2 h-4 w-4" /> Import Excel
           </Button>
           <Button
+            variant="outline"
             onClick={handleExport}
-            disabled={exportLoading || visitors.length === 0}
-            className="bg-green-600 text-white hover:bg-green-700"
+            disabled={exportLoading}
           >
-            <FileDown className="mr-2 h-4 w-4" />
-            {exportLoading ? "Exporting..." : "Export Excel"}
+            {exportLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileDown className="mr-2 h-4 w-4" />
+            )}
+            Export Excel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              setSelectedCandidate(null)
+              setAddReason("")
+              setAddSearch("")
+              setCandidateVisitors([])
+              setAddBlacklistModalOpen(true)
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Tambah Blacklist
           </Button>
         </div>
       </div>
 
+      {/* Filter Card */}
       <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mb-4 flex items-center justify-between">
           <div className="relative w-full md:w-1/3">
             <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />
             <Input
-              placeholder="Search visitor name, KTP, or company..."
+              placeholder="Cari nama, KTP, atau perusahaan..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setCurrentPage(1)
+              }}
               className="pl-8"
             />
           </div>
         </div>
 
+        {/* Table */}
         <div className="overflow-hidden rounded-md border">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
                 <TableRow>
-                  <TableHead
-                    onClick={() => handleSort("id_type")}
-                    className="cursor-pointer"
-                  >
-                    <div className="flex items-center">
-                      Type <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("id_number")}
-                    className="cursor-pointer"
-                  >
-                    <div className="flex items-center">
-                      ID Number <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("name")}
-                    className="cursor-pointer"
-                  >
-                    <div className="flex items-center">
-                      Name <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("company")}
-                    className="cursor-pointer"
-                  >
-                    <div className="flex items-center">
-                      Company <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </div>
-                  </TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableHead>No. Visitor</TableHead>
+                  <TableHead>Identitas</TableHead>
+                  <TableHead>Nama Pengunjung</TableHead>
+                  <TableHead>Perusahaan</TableHead>
+                  <TableHead>Tanggal Blacklist</TableHead>
+                  <TableHead>Alasan Blacklist</TableHead>
+                  <TableHead className="text-center">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -343,66 +348,58 @@ export default function BlacklistedVisitors() {
                       <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
                     </TableCell>
                   </TableRow>
-                ) : displayRows.length === 0 ? (
+                ) : visitors.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={7}
                       className="h-24 text-center text-zinc-500"
                     >
-                      No blacklisted visitors found.
+                      Tidak ada pengunjung dalam daftar blacklist.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  displayRows.map((visitor) => (
+                  visitors.map((visitor) => (
                     <TableRow
                       key={visitor.id}
                       className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                     >
+                      <TableCell className="font-mono text-xs font-semibold text-primary">
+                        {visitor.visitor_no || "-"}
+                      </TableCell>
                       <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            visitor.id_type === "ktp"
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400"
-                              : visitor.id_type === "sim"
-                                ? "bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400"
-                                : "bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-400"
-                          }`}
-                        >
-                          {visitor.id_type?.toUpperCase() || "KTP"}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="font-mono text-xs text-muted-foreground uppercase">
+                            {visitor.id_type}
+                          </span>
+                          <span className="font-medium text-sm">
+                            {visitor.id_number}
+                          </span>
+                        </div>
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {visitor.id_number}
-                      </TableCell>
-                      <TableCell>{visitor.name}</TableCell>
+                      <TableCell className="font-medium">{visitor.name}</TableCell>
                       <TableCell>{visitor.company || "-"}</TableCell>
-                      <TableCell>
-                        {visitor.is_blacklisted ? (
-                          <span className="inline-flex w-fit items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950/50 dark:text-red-400">
-                            Blacklisted
-                          </span>
-                        ) : (
-                          <span className="inline-flex w-fit items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                            Active
-                          </span>
-                        )}
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {visitor.blacklisted_at
+                          ? new Date(visitor.blacklisted_at).toLocaleString()
+                          : "-"}
                       </TableCell>
-                      <TableCell className="max-w-[260px]">
+                      <TableCell className="max-w-[280px]">
                         <span
-                          className="line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400"
+                          className="line-clamp-2 text-sm text-red-700 dark:text-red-400 font-medium"
                           title={visitor.blacklist_reason}
                         >
                           {visitor.blacklist_reason || "-"}
                         </span>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center whitespace-nowrap">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => confirmUnblacklist(visitor.id)}
+                          className="text-emerald-600 hover:text-emerald-700 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                         >
-                          <ShieldCheck className="mr-2 h-4 w-4" />
-                          Unblacklist
+                          <ShieldCheck className="mr-1.5 h-4 w-4" />
+                          Cabut Blacklist
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -416,7 +413,8 @@ export default function BlacklistedVisitors() {
         {/* Pagination Controls */}
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-zinc-500">
-            Page {currentPage} of {lastPage} · {totalEntries} entries
+            Menampilkan {visitors.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}{" "}
+            hingga {Math.min(currentPage * ITEMS_PER_PAGE, totalItems)} dari {totalItems} total blacklist
           </div>
           <div className="flex gap-2">
             <Button
@@ -430,8 +428,8 @@ export default function BlacklistedVisitors() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(lastPage, p + 1))}
-              disabled={currentPage >= lastPage || loading}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages || totalPages === 0 || loading}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -439,40 +437,163 @@ export default function BlacklistedVisitors() {
         </div>
       </div>
 
+      {/* Dialog Tambah ke Daftar Blacklist */}
+      <Dialog open={addBlacklistModalOpen} onOpenChange={setAddBlacklistModalOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Tambah ke Daftar Blacklist</DialogTitle>
+            <DialogDescription>
+              Cari data pengunjung dan masukkan alasan pemblokiran akses.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddBlacklistSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="search_candidate">Cari Pengunjung</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="search_candidate"
+                  value={addSearch}
+                  onChange={(e) => setAddSearch(e.target.value)}
+                  placeholder="Ketik nama atau nomor KTP..."
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={searchCandidates}
+                  disabled={candidateLoading || !addSearch.trim()}
+                >
+                  {candidateLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cari"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Candidate Results */}
+            {candidateVisitors.length > 0 && (
+              <div className="space-y-1.5 rounded-md border p-2">
+                <p className="text-xs font-medium text-muted-foreground">Pilih pengunjung:</p>
+                {candidateVisitors.map((cand) => (
+                  <div
+                    key={cand.id}
+                    onClick={() => setSelectedCandidate(cand)}
+                    className={`cursor-pointer rounded p-2 text-sm transition-colors ${
+                      selectedCandidate?.id === cand.id
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    <p className="font-semibold">{cand.name}</p>
+                    <p className="text-xs opacity-80">
+                      {cand.id_type?.toUpperCase()}: {cand.id_number} ({cand.company || "Independen"})
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedCandidate && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-50 p-3 text-xs dark:bg-amber-950/30 text-amber-900 dark:text-amber-300">
+                <p className="font-semibold">Pengunjung Terpilih:</p>
+                <p>
+                  {selectedCandidate.name} ({selectedCandidate.id_number}) - {selectedCandidate.company || "-"}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="add_reason">Alasan Blacklist *</Label>
+              <Textarea
+                id="add_reason"
+                value={addReason}
+                onChange={(e) => setAddReason(e.target.value)}
+                placeholder="Tuliskan alasan penolakan atau pelanggaran..."
+                rows={3}
+                required
+              />
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAddBlacklistModalOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={!selectedCandidate || !addReason.trim() || submittingAdd}
+              >
+                {submittingAdd ? "Menyimpan..." : "Blacklist Pengunjung"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alert Dialog Unblacklist */}
+      <AlertDialog
+        open={unblacklistAlertOpen}
+        onOpenChange={setUnblacklistAlertOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Pencabutan Blacklist</AlertDialogTitle>
+            <AlertDialogDescription>
+              Pengunjung ini akan diizinkan kembali untuk melakukan kunjungan ke
+              kawasan galangan ASL Shipyard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={executeUnblacklist}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              Cabut Blacklist
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Import Modal */}
       <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Import Blacklist Data</DialogTitle>
+            <DialogTitle>Import Data Blacklist</DialogTitle>
+            <DialogDescription>
+              Unggah file spreadsheet untuk memasukkan data blacklist sekaligus.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
               <div className="text-sm">
                 <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                  Download Template
+                  Unduh Template Excel
                 </p>
                 <p className="text-zinc-500">
-                  Use this Excel template to format your data correctly.
+                  Format template untuk data blacklist pengunjung.
                 </p>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleDownloadTemplate}
-                disabled={isDownloading}
+                disabled={isDownloadingTemplate}
               >
-                {isDownloading ? (
+                {isDownloadingTemplate ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <FileDown className="mr-2 h-4 w-4" />
                 )}
-                {isDownloading ? "Downloading..." : "Download"}
+                Unduh
               </Button>
             </div>
             <form onSubmit={handleImport} className="space-y-4">
               <div className="space-y-2">
-                <Label>Upload Excel File</Label>
+                <Label htmlFor="import_file">Unggah File Excel</Label>
                 <Input
+                  id="import_file"
                   type="file"
                   accept=".xlsx,.csv"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
@@ -485,38 +606,16 @@ export default function BlacklistedVisitors() {
                   variant="outline"
                   onClick={() => setImportModalOpen(false)}
                 >
-                  Cancel
+                  Batal
                 </Button>
                 <Button type="submit" disabled={!file || importLoading}>
-                  {importLoading ? "Importing..." : "Upload & Import"}
+                  {importLoading ? "Mengimpor..." : "Upload & Import"}
                 </Button>
               </div>
             </form>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Unblacklist Confirm */}
-      <AlertDialog
-        open={unblacklistAlertOpen}
-        onOpenChange={setUnblacklistAlertOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove from blacklist?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Visitor ini akan diizinkan berkunjung kembali. Alasan blacklist
-              sebelumnya akan dihapus.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeUnblacklist}>
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

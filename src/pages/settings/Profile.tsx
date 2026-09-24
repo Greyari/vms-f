@@ -6,7 +6,8 @@ import { useAuth } from "@/context/AuthContext"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Loader2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Loader2, User, KeyRound, Shield, CheckCircle2 } from "lucide-react"
 
 export default function Profile() {
   const { user } = useAuth()
@@ -18,12 +19,16 @@ export default function Profile() {
     new_password_confirmation: "",
   })
 
+  const [passwordError, setPasswordError] = useState("")
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [loadingPassword, setLoadingPassword] = useState(false)
 
   useEffect(() => {
     if (user) {
-      setProfileForm({ name: user.name, email: user.email })
+      setProfileForm({
+        name: user.name || "",
+        email: user.email || "",
+      })
     }
   }, [user])
 
@@ -32,10 +37,10 @@ export default function Profile() {
     setLoadingProfile(true)
     try {
       await api.put("/profile", profileForm)
-      toast.success("Profile updated successfully! Refresh to see changes.")
+      toast.success("Profil berhasil diperbarui.")
     } catch (error: any) {
       console.error(error)
-      toast.error(error.response?.data?.message || "Failed to update profile.")
+      toast.error(error.response?.data?.message || "Gagal memperbarui profil.")
     } finally {
       setLoadingProfile(false)
     }
@@ -43,10 +48,22 @@ export default function Profile() {
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setPasswordError("")
+
+    if (passwordForm.new_password !== passwordForm.new_password_confirmation) {
+      setPasswordError("Konfirmasi password baru tidak cocok.")
+      return
+    }
+
+    if (passwordForm.new_password.length < 6) {
+      setPasswordError("Password baru minimal 6 karakter.")
+      return
+    }
+
     setLoadingPassword(true)
     try {
       await api.put("/profile/password", passwordForm)
-      toast.success("Password updated successfully!")
+      toast.success("Password berhasil diubah.")
       setPasswordForm({
         current_password: "",
         new_password: "",
@@ -54,101 +71,215 @@ export default function Profile() {
       })
     } catch (error: any) {
       console.error(error)
-      toast.error(error.response?.data?.message || "Failed to update password.")
+      const msg = error.response?.data?.message || "Gagal mengubah password."
+      setPasswordError(msg)
+      toast.error(msg)
     } finally {
       setLoadingPassword(false)
     }
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 p-6">
-      <h1 className="text-2xl font-bold">My Profile</h1>
-
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-        <h2 className="mb-4 text-lg font-semibold">Profile Information</h2>
-        <form onSubmit={handleProfileSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Full Name</Label>
-            <Input
-              value={profileForm.name}
-              onChange={(e) =>
-                setProfileForm({ ...profileForm, name: e.target.value })
-              }
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Email Address</Label>
-            <Input
-              type="email"
-              value={profileForm.email}
-              onChange={(e) =>
-                setProfileForm({ ...profileForm, email: e.target.value })
-              }
-              required
-            />
-          </div>
-          <Button type="submit" disabled={loadingProfile}>
-            {loadingProfile && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Update Profile
-          </Button>
-        </form>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+          Profil Saya (My Profile)
+        </h1>
+        <p className="text-sm text-zinc-500">
+          Kelola informasi identitas pribadi, kredensial login, dan kata sandi akun Anda.
+        </p>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-        <h2 className="mb-4 text-lg font-semibold">Change Password</h2>
-        <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Current Password</Label>
-            <Input
-              type="password"
-              value={passwordForm.current_password}
-              onChange={(e) =>
-                setPasswordForm({
-                  ...passwordForm,
-                  current_password: e.target.value,
-                })
-              }
-              required
-            />
+      {/* Identity Summary Card */}
+      <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-lg font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+              {user?.name?.charAt(0).toUpperCase() || "U"}
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                {user?.name || "Nama Pengguna"}
+              </h2>
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-zinc-500">
+                <span className="font-mono font-medium text-zinc-800 dark:text-zinc-200">
+                  {user?.username ? `@${user.username}` : "@USER"}
+                </span>
+                <span>•</span>
+                <span>{user?.email || "Tidak ada email"}</span>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>New Password</Label>
-            <Input
-              type="password"
-              value={passwordForm.new_password}
-              onChange={(e) =>
-                setPasswordForm({
-                  ...passwordForm,
-                  new_password: e.target.value,
-                })
-              }
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Confirm New Password</Label>
-            <Input
-              type="password"
-              value={passwordForm.new_password_confirmation}
-              onChange={(e) =>
-                setPasswordForm({
-                  ...passwordForm,
-                  new_password_confirmation: e.target.value,
-                })
-              }
-              required
-            />
-          </div>
-          <Button type="submit" variant="outline" disabled={loadingPassword}>
-            {loadingPassword && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+
+          <div className="flex flex-wrap gap-1.5">
+            {user?.roles && user.roles.length > 0 ? (
+              user.roles.map((r, i) => {
+                const roleName = typeof r === "string" ? r : r.name
+                const roleKey = typeof r === "string" ? r : r.id || `${r.name}-${i}`
+                return (
+                  <Badge
+                    key={roleKey}
+                    variant="outline"
+                    className="border-blue-200 bg-blue-50 text-blue-700 capitalize dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-400"
+                  >
+                    <Shield className="mr-1 h-3 w-3" />
+                    {roleName}
+                  </Badge>
+                )
+              })
+            ) : (
+              <Badge variant="outline">User</Badge>
             )}
-            Update Password
-          </Button>
-        </form>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Profile Form */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="mb-4 flex items-center gap-2">
+            <User className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+              Informasi Profil
+            </h2>
+          </div>
+
+          <form onSubmit={handleProfileSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="profile-name-input" className="text-xs">
+                Nama Lengkap
+              </Label>
+              <Input
+                id="profile-name-input"
+                value={profileForm.name}
+                onChange={(e) =>
+                  setProfileForm({ ...profileForm, name: e.target.value })
+                }
+                className="h-9 text-sm"
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="profile-email-input" className="text-xs">
+                Alamat Email <span className="text-zinc-400 font-normal">(opsional)</span>
+              </Label>
+              <Input
+                id="profile-email-input"
+                type="email"
+                value={profileForm.email}
+                onChange={(e) =>
+                  setProfileForm({ ...profileForm, email: e.target.value })
+                }
+                className="h-9 text-sm"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              size="sm"
+              className="w-full gap-2 mt-2"
+              disabled={loadingProfile}
+            >
+              {loadingProfile ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+              Perbarui Profil
+            </Button>
+          </form>
+        </div>
+
+        {/* Password Form */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="mb-4 flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+              Ubah Password
+            </h2>
+          </div>
+
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            {passwordError && (
+              <div className="rounded-md bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/30 dark:text-red-400">
+                {passwordError}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="current-password-input" className="text-xs">
+                Password Saat Ini
+              </Label>
+              <Input
+                id="current-password-input"
+                type="password"
+                value={passwordForm.current_password}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    current_password: e.target.value,
+                  })
+                }
+                className="h-9 text-sm"
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="new-password-input" className="text-xs">
+                Password Baru
+              </Label>
+              <Input
+                id="new-password-input"
+                type="password"
+                placeholder="Minimal 6 karakter..."
+                value={passwordForm.new_password}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    new_password: e.target.value,
+                  })
+                }
+                className="h-9 text-sm"
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="confirm-password-input" className="text-xs">
+                Konfirmasi Password Baru
+              </Label>
+              <Input
+                id="confirm-password-input"
+                type="password"
+                value={passwordForm.new_password_confirmation}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    new_password_confirmation: e.target.value,
+                  })
+                }
+                className="h-9 text-sm"
+                required
+              />
+            </div>
+
+            <Button
+              type="submit"
+              size="sm"
+              className="w-full gap-2 mt-2"
+              disabled={loadingPassword}
+            >
+              {loadingPassword ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <KeyRound className="h-4 w-4" />
+              )}
+              Ubah Password
+            </Button>
+          </form>
+        </div>
       </div>
     </div>
   )

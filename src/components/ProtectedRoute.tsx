@@ -1,16 +1,36 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Navigate, Outlet } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
-export const ProtectedRoute = () => {
-    const { token, loading } = useAuth();
+interface ProtectedRouteProps {
+  requiredPermission?: string
+  requiredRole?: string
+}
 
-    if (loading) {
-        return <div className="flex h-screen items-center justify-center">Loading...</div>;
-    }
+export const ProtectedRoute = ({
+  requiredPermission,
+  requiredRole,
+}: ProtectedRouteProps = {}) => {
+  const { token, loading, hasPermission, hasRole } = useAuth()
 
-    if (!token) {
-        return <Navigate to="/login" replace />;
-    }
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Loading...
+      </div>
+    )
+  }
 
-    return <Outlet />;
-};
+  if (!token) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (requiredPermission && !hasPermission(requiredPermission)) {
+    return <Navigate to="/" replace />
+  }
+
+  if (requiredRole && !hasRole(requiredRole)) {
+    return <Navigate to="/" replace />
+  }
+
+  return <Outlet />
+}

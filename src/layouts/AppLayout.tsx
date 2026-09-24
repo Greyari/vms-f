@@ -9,11 +9,13 @@ import {
   LogOut,
   CreditCard,
   UserCircle,
-  Car,
   MoreVertical,
   LayoutDashboard,
   ShieldOff,
   History,
+  Printer,
+  Ship,
+  Building2,
 } from "lucide-react"
 
 export default function AppLayout() {
@@ -63,10 +65,16 @@ export default function AppLayout() {
           show: hasPermission("view_visits"),
         },
         {
-          name: "Report",
-          path: "/visits/report",
-          icon: FileText,
+          name: "Reprint Pass",
+          path: "/visits/reprint",
+          icon: Printer,
           show: hasPermission("view_visits"),
+        },
+        {
+          name: "Crew Arrivals",
+          path: "/vessel-arrivals",
+          icon: Ship,
+          show: hasPermission("view_vessel_arrivals"),
         },
       ],
     },
@@ -74,21 +82,21 @@ export default function AppLayout() {
       title: "Master Data",
       items: [
         {
+          name: "Locations & Vessels",
+          path: "/master/locations",
+          icon: Building2,
+          show: hasPermission("view_locations"),
+        },
+        {
           name: "Staffs",
           path: "/master/staffs",
           icon: Users,
           show: hasPermission("view_staffs"),
         },
         {
-          name: "Visitor Cards",
+          name: "Cards",
           path: "/master/cards",
           icon: CreditCard,
-          show: hasPermission("view_cards"),
-        },
-        {
-          name: "Vehicle Cards",
-          path: "/master/vehicle-cards",
-          icon: Car,
           show: hasPermission("view_cards"),
         },
         {
@@ -102,6 +110,23 @@ export default function AppLayout() {
           path: "/master/visitors/blacklist",
           icon: ShieldOff,
           show: hasPermission("view_visitors"),
+        },
+      ],
+    },
+    {
+      title: "Reports",
+      items: [
+        {
+          name: "Visitor Report",
+          path: "/reports/visits",
+          icon: FileText,
+          show: hasPermission("view_reports"),
+        },
+        {
+          name: "Vessel Report",
+          path: "/reports/vessels",
+          icon: Ship,
+          show: hasPermission("view_reports"),
         },
       ],
     },
@@ -205,7 +230,7 @@ export default function AppLayout() {
                   {user?.name}
                 </span>
                 <span className="max-w-[130px] truncate text-xs text-zinc-500">
-                  {user?.email}
+                  {user?.email || user?.username}
                 </span>
               </div>
             </div>

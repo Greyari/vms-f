@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { toast } from "sonner"
 import api from "@/lib/axios"
 
 import {
@@ -11,19 +12,14 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import {
   AlertDialog,
@@ -38,346 +34,417 @@ import {
 import {
   Search,
   Loader2,
+  Plus,
+  Pencil,
+  Trash2,
+  Car,
   FileDown,
-  Upload,
-  ArrowUpDown,
+  RotateCw,
   ChevronLeft,
   ChevronRight,
-  Plus,
 } from "lucide-react"
 
+export interface VehicleCardItem {
+  id: number | string
+  card_no: string
+  card_type: "vehicle"
+  status: "available" | "in_use" | "lost"
+  created_at?: string
+  updated_at?: string
+}
+
 export default function VehicleCards() {
-  const [cards, setCards] = useState<any[]>([])
-  const [trashedCards, setTrashedCards] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [importModalOpen, setImportModalOpen] = useState(false)
-  const [trashedModalOpen, setTrashedModalOpen] = useState(false)
-  const [isDownloading, setIsDownloading] = useState(false)
+  const [cards, setCards] = useState<VehicleCardItem[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const [form, setForm] = useState({
-    id: null as string | null,
-    card_no: "",
-    status: "available",
-  })
-  const [file, setFile] = useState<File | null>(null)
-
-  // Alert Dialog States
-  const [alertOpen, setAlertOpen] = useState(false)
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
-
-  // Error Dialog States
-  const [errorOpen, setErrorOpen] = useState(false)
-  const [errorMessage, setErrorMessage] = useState("")
-
-  const showError = (message: string) => {
-    setErrorMessage(message)
-    setErrorOpen(true)
-  }
-
-  // Advanced Table States
+  // Filters & Pagination
   const [search, setSearch] = useState("")
-  const [sortConfig, setSortConfig] = useState<{
-    key: string
-    direction: "asc" | "desc"
-  } | null>(null)
+  const [statusFilter, setStatusFilter] = useState("")
+  const [cardNoFrom, setCardNoFrom] = useState("")
+  const [cardNoTo, setCardNoTo] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const perPage = 15
 
-  const fetchCards = async () => {
+  // Form State
+  const [modalOpen, setModalOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [editingCard, setEditingCard] = useState<VehicleCardItem | null>(null)
+  const [cardNo, setCardNo] = useState("")
+
+  // Delete State
+  const [deleteTarget, setDeleteTarget] = useState<VehicleCardItem | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  const fetchCards = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await api.get("/vehicle-cards")
-      setCards(res.data)
-      const trashedRes = await api.get("/vehicle-cards/trashed")
-      setTrashedCards(trashedRes.data)
+      const params: Record<string, string | number> = {
+        card_type: "vehicle",
+        page: currentPage,
+        per_page: perPage,
+      }
+      if (search.trim()) params.search = search.trim()
+      if (statusFilter) params.status = statusFilter
+      if (cardNoFrom.trim()) params.card_no_from = cardNoFrom.trim()
+      if (cardNoTo.trim()) params.card_no_to = cardNoTo.trim()
+
+      const res = await api.get("/cards", { params })
+      const resData = res.data?.data || (Array.isArray(res.data) ? res.data : [])
+      setCards(resData)
+      setTotalPages(res.data?.last_page || 1)
+      setTotalCount(res.data?.total || resData.length)
     } catch (error) {
-      console.error(error)
+      console.error("Gagal memuat kartu kendaraan", error)
+      toast.error("Gagal memuat daftar kartu kendaraan.")
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentPage, search, statusFilter, cardNoFrom, cardNoTo])
 
   useEffect(() => {
     fetchCards()
-  }, [])
+  }, [fetchCards])
 
-  const openForm = (card: any = null) => {
-    if (card) {
-      setForm({ id: card.id, card_no: card.card_no, status: card.status })
-    } else {
-      setForm({ id: null, card_no: "", status: "available" })
-    }
+  const handleApplyFilter = (e: React.FormEvent) => {
+    e.preventDefault()
+    setCurrentPage(1)
+    fetchCards()
+  }
+
+  const openCreateModal = () => {
+    setEditingCard(null)
+    setCardNo("")
     setModalOpen(true)
   }
 
-  const handleSort = (key: string) => {
-    let direction: "asc" | "desc" = "asc"
-    if (
-      sortConfig &&
-      sortConfig.key === key &&
-      sortConfig.direction === "asc"
-    ) {
-      direction = "desc"
-    }
-    setSortConfig({ key, direction })
+  const openEditModal = (card: VehicleCardItem) => {
+    setEditingCard(card)
+    setCardNo(card.card_no)
+    setModalOpen(true)
   }
-
-  // Filter & Sort Logic
-  const filteredAndSorted = useMemo(() => {
-    let result = [...cards]
-    if (search) {
-      result = result.filter(
-        (item) =>
-          item.card_no.toLowerCase().includes(search.toLowerCase()) ||
-          item.status.toLowerCase().includes(search.toLowerCase())
-      )
-    }
-    if (sortConfig !== null) {
-      result.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key])
-          return sortConfig.direction === "asc" ? -1 : 1
-        if (a[sortConfig.key] > b[sortConfig.key])
-          return sortConfig.direction === "asc" ? 1 : -1
-        return 0
-      })
-    }
-    return result
-  }, [cards, search, sortConfig])
-
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredAndSorted.length / itemsPerPage)
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage
-    return filteredAndSorted.slice(start, start + itemsPerPage)
-  }, [filteredAndSorted, currentPage])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    if (!cardNo.trim()) {
+      toast.error("Nomor kartu kendaraan wajib diisi.")
+      return
+    }
+
+    setSubmitting(true)
     try {
-      if (form.id) {
-        await api.put(`/vehicle-cards/${form.id}`, form)
+      if (editingCard) {
+        await api.put(`/cards/${editingCard.id}`, { card_no: cardNo.trim() })
+        toast.success("Nomor kartu kendaraan berhasil diperbarui.")
       } else {
-        await api.post("/vehicle-cards", form)
+        await api.post("/cards", {
+          card_no: cardNo.trim(),
+          card_type: "vehicle",
+        })
+        toast.success("Kartu kendaraan baru berhasil ditambahkan.")
       }
       setModalOpen(false)
       fetchCards()
-    } catch (error: any) {
-      console.error(error)
-      const msg = error.response?.data?.message || "Failed to save card"
-      showError(msg)
+    } catch (error: unknown) {
+      console.error("Gagal menyimpan kartu kendaraan", error)
+      const maybeAxios = error as { response?: { data?: { message?: string } } }
+      toast.error(maybeAxios.response?.data?.message || "Gagal menyimpan kartu kendaraan.")
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
-  const confirmDelete = (id: string) => {
-    setSelectedCardId(id)
-    setAlertOpen(true)
-  }
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    if (deleteTarget.status === "in_use") {
+      toast.error("Kartu kendaraan sedang digunakan dan tidak dapat dihapus.")
+      setDeleteTarget(null)
+      return
+    }
 
-  const executeDelete = async () => {
-    if (!selectedCardId) return
+    setDeleting(true)
     try {
-      await api.delete(`/vehicle-cards/${selectedCardId}`)
+      await api.delete(`/cards/${deleteTarget.id}`)
+      toast.success("Kartu kendaraan berhasil dihapus.")
+      setDeleteTarget(null)
       fetchCards()
-    } catch (error: any) {
-      console.error(error)
-      const msg = error.response?.data?.message || "Failed to delete card"
-      showError(msg)
+    } catch (error: unknown) {
+      console.error("Gagal menghapus kartu", error)
+      const maybeAxios = error as { response?: { data?: { message?: string } } }
+      toast.error(maybeAxios.response?.data?.message || "Gagal menghapus kartu kendaraan.")
     } finally {
-      setAlertOpen(false)
-      setSelectedCardId(null)
+      setDeleting(false)
     }
   }
 
-  const executeRestore = async (id: string) => {
+  const handleExport = async () => {
+    setExporting(true)
     try {
-      await api.post(`/vehicle-cards/${id}/restore`)
-      fetchCards()
-    } catch (error: any) {
-      console.error(error)
-      const msg = error.response?.data?.message || "Failed to restore card"
-      showError(msg)
-    }
-  }
-
-  const handleDownloadTemplate = async () => {
-    setIsDownloading(true)
-    try {
-      const res = await api.get("/vehicle-cards/template/download", {
+      const res = await api.get("/cards/export", {
+        params: { card_type: "vehicle" },
         responseType: "blob",
       })
       const url = window.URL.createObjectURL(new Blob([res.data]))
       const link = document.createElement("a")
       link.href = url
-      link.setAttribute("download", "vehicle_card_template.xlsx")
+      link.setAttribute("download", `cards-vehicle-${new Date().toISOString().slice(0, 10)}.xlsx`)
       document.body.appendChild(link)
       link.click()
       link.remove()
+      toast.success("Ekspor data kartu kendaraan berhasil diunduh.")
     } catch (error) {
-      console.error(error)
-      showError("Failed to download template.")
+      console.error("Ekspor kartu kendaraan gagal", error)
+      toast.error("Gagal mengekspor data kartu kendaraan.")
     } finally {
-      setIsDownloading(false)
+      setExporting(false)
     }
   }
 
-  const handleImport = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!file) return
-    setLoading(true)
-    const formData = new FormData()
-    formData.append("file", file)
-    try {
-      await api.post("/vehicle-cards/import", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
-      setImportModalOpen(false)
-      setFile(null)
-      fetchCards()
-    } catch (error: any) {
-      console.error(error)
-      const msg =
-        error.response?.data?.message ||
-        "Import failed. Please make sure the format is correct."
-      showError(msg)
-    } finally {
-      setLoading(false)
+  const getStatusBadge = (status: VehicleCardItem["status"]) => {
+    switch (status) {
+      case "available":
+        return (
+          <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
+            Available
+          </Badge>
+        )
+      case "in_use":
+        return (
+          <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-300 dark:border-amber-800">
+            In Use
+          </Badge>
+        )
+      case "lost":
+        return (
+          <Badge variant="destructive" className="font-medium text-xs">
+            Lost
+          </Badge>
+        )
+      default:
+        return <Badge variant="secondary">{status}</Badge>
     }
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <div className="mb-6 flex w-full items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Vehicle Cards</h1>
-            <p className="text-muted-foreground">
-              Manage your vehicle card master data and statuses.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => setTrashedModalOpen(true)}
-            >
-              View Deleted
-            </Button>
-            <Button variant="outline" onClick={() => setImportModalOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" /> Import Excel
-            </Button>
-            <Button onClick={() => openForm()}>
-              <Plus className="mr-2 h-4 w-4" /> Add Vehicle Card
-            </Button>
-          </div>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Master Kartu Kendaraan</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Kelola kartu pass kendaraan (mobil, truk, motor) di area galangan shipyard.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={exporting}
+            className="cursor-pointer"
+          >
+            {exporting ? (
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <FileDown className="h-4 w-4 mr-1.5" />
+            )}
+            Export Excel
+          </Button>
+
+          <Button onClick={openCreateModal} className="cursor-pointer">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Tambah Kartu Kendaraan
+          </Button>
         </div>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="relative w-full md:w-1/3">
-            <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />
-            <Input
-              placeholder="Search card no or status..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value)
-                setCurrentPage(1)
-              }}
-              className="pl-8"
-            />
-          </div>
-        </div>
+      {/* Filters Card */}
+      <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <form onSubmit={handleApplyFilter} className="space-y-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[200px]">
+              <label
+                htmlFor="vehicle-cards-search-input"
+                className="block text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 mb-1"
+              >
+                Pencarian
+              </label>
+              <div className="relative">
+                <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-400" />
+                <Input
+                  id="vehicle-cards-search-input"
+                  placeholder="Cari nomor kartu kendaraan..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
 
-        <div className="overflow-hidden rounded-md border">
+            <div className="w-40">
+              <label
+                htmlFor="vehicle-cards-status-filter"
+                className="block text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 mb-1"
+              >
+                Status Kartu
+              </label>
+              <select
+                id="vehicle-cards-status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              >
+                <option value="">Semua Status</option>
+                <option value="available">Available</option>
+                <option value="in_use">In Use</option>
+                <option value="lost">Lost</option>
+              </select>
+            </div>
+
+            <div className="w-36">
+              <label
+                htmlFor="vehicle-cards-from-filter"
+                className="block text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 mb-1"
+              >
+                Nomor Awal
+              </label>
+              <Input
+                id="vehicle-cards-from-filter"
+                placeholder="Misal: VEH-001"
+                value={cardNoFrom}
+                onChange={(e) => setCardNoFrom(e.target.value)}
+              />
+            </div>
+
+            <div className="w-36">
+              <label
+                htmlFor="vehicle-cards-to-filter"
+                className="block text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 mb-1"
+              >
+                Nomor Akhir
+              </label>
+              <Input
+                id="vehicle-cards-to-filter"
+                placeholder="Misal: VEH-100"
+                value={cardNoTo}
+                onChange={(e) => setCardNoTo(e.target.value)}
+              />
+            </div>
+
+            <Button type="submit" variant="secondary" className="cursor-pointer">
+              Terapkan Filter
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={fetchCards}
+              disabled={loading}
+              title="Muat Ulang"
+              className="cursor-pointer"
+            >
+              <RotateCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+        </form>
+
+        {/* Table */}
+        <div className="mt-4 overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-800">
           <Table>
             <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
               <TableRow>
-                <TableHead
-                  onClick={() => handleSort("card_no")}
-                  className="cursor-pointer"
-                >
-                  <div className="flex items-center">
-                    Card No <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead
-                  onClick={() => handleSort("status")}
-                  className="cursor-pointer"
-                >
-                  <div className="flex items-center">
-                    Status <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="w-12 text-center">No</TableHead>
+                <TableHead>Nomor Kartu Kendaraan</TableHead>
+                <TableHead>Tipe Kartu</TableHead>
+                <TableHead>Status Operasional</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading && cards.length === 0 ? (
+              {loading ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-28 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
+                    <span className="mt-2 block text-xs text-zinc-500">Memuat data kartu kendaraan...</span>
                   </TableCell>
                 </TableRow>
-              ) : paginatedData.length === 0 ? (
+              ) : cards.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={3}
-                    className="h-24 text-center text-zinc-500"
-                  >
-                    No cards found.
+                  <TableCell colSpan={5} className="h-24 text-center text-zinc-500">
+                    Tidak ada kartu kendaraan ditemukan.
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedData.map((card) => (
-                  <TableRow
-                    key={card.id}
-                    className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-                  >
-                    <TableCell className="font-medium">
-                      {card.card_no}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`rounded px-2 py-1 text-xs font-medium ${card.status === "available" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"}`}
-                      >
-                        {card.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="space-x-2 text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openForm(card)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => confirmDelete(card.id)}
-                      >
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                cards.map((card, index) => {
+                  const isInUse = card.status === "in_use"
+
+                  return (
+                    <TableRow
+                      key={card.id}
+                      className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                    >
+                      <TableCell className="text-center font-mono text-xs text-zinc-500">
+                        {(currentPage - 1) * perPage + index + 1}
+                      </TableCell>
+                      <TableCell className="font-mono font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <Car className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                        <span>{card.card_no}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-medium text-xs uppercase">
+                          Vehicle
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(card.status)}</TableCell>
+                      <TableCell className="space-x-1.5 text-right whitespace-nowrap">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditModal(card)}
+                          title="Edit Nomor Kartu"
+                          aria-label="Edit"
+                          className="cursor-pointer"
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDeleteTarget(card)}
+                          disabled={isInUse}
+                          title={
+                            isInUse
+                              ? "Kartu kendaraan sedang digunakan dan tidak dapat dihapus."
+                              : "Hapus Kartu"
+                          }
+                          aria-label="Hapus"
+                          className={`cursor-pointer ${
+                            isInUse
+                              ? "opacity-40 cursor-not-allowed"
+                              : "text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                          }`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Hapus
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
               )}
             </TableBody>
           </Table>
         </div>
 
-        {/* Pagination Controls */}
+        {/* Pagination */}
         <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-zinc-500">
-            Showing{" "}
-            {filteredAndSorted.length > 0
-              ? (currentPage - 1) * itemsPerPage + 1
-              : 0}{" "}
-            to {Math.min(currentPage * itemsPerPage, filteredAndSorted.length)}{" "}
-            of {filteredAndSorted.length} entries
+          <div className="text-sm text-zinc-500 dark:text-zinc-400">
+            Menampilkan {cards.length > 0 ? (currentPage - 1) * perPage + 1 : 0} hingga{" "}
+            {Math.min(currentPage * perPage, totalCount)} dari {totalCount} kartu
           </div>
           <div className="flex gap-2">
             <Button
@@ -392,219 +459,91 @@ export default function VehicleCards() {
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={
-                currentPage === totalPages || totalPages === 0 || loading
-              }
+              disabled={currentPage === totalPages || totalPages === 0 || loading}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Modal Dialog Add/Edit */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {form.id ? "Edit Vehicle Card" : "Add Vehicle Card"}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-md">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Card Number</Label>
+            <DialogHeader>
+              <DialogTitle>
+                {editingCard ? "Edit Kartu Kendaraan" : "Tambah Kartu Kendaraan"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingCard
+                  ? "Ubah nomor fisik kartu kendaraan."
+                  : "Masukkan nomor kartu pass kendaraan baru. Status awal otomatis diset Available oleh sistem."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div>
+              <label
+                htmlFor="vehicle-cards-cardno-input"
+                className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+              >
+                Nomor Kartu Kendaraan <span className="text-red-500">*</span>
+              </label>
               <Input
-                value={form.card_no}
-                onChange={(e) => setForm({ ...form, card_no: e.target.value })}
+                id="vehicle-cards-cardno-input"
+                value={cardNo}
+                onChange={(e) => setCardNo(e.target.value)}
+                placeholder="Misal: VEH-001"
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select
-                value={form.status}
-                onValueChange={(val) => setForm({ ...form, status: val })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="in_use">In Use</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="mt-4 flex justify-end gap-2">
+
+            <DialogFooter className="pt-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setModalOpen(false)}
+                disabled={submitting}
               >
-                Cancel
+                Batal
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : "Save"}
+              <Button type="submit" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  "Simpan"
+                )}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Import Card Data</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="text-sm">
-                <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                  Download Template
-                </p>
-                <p className="text-zinc-500">
-                  Use this Excel template to format your data correctly.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadTemplate}
-                disabled={isDownloading}
-              >
-                {isDownloading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <FileDown className="mr-2 h-4 w-4" />
-                )}
-                {isDownloading ? "Downloading..." : "Download"}
-              </Button>
-            </div>
-            <form onSubmit={handleImport} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Upload Excel File</Label>
-                <Input
-                  type="file"
-                  accept=".xlsx,.csv"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  required
-                />
-              </div>
-              <div className="mt-4 flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setImportModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={!file || loading}>
-                  {loading ? "Importing..." : "Upload & Import"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+      {/* Delete Confirmation Alert Dialog */}
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Konfirmasi Hapus Kartu Kendaraan</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              visitor card. Note that cards currently linked to active visits
-              might throw an error if deleted due to constraints.
+              Apakah Anda yakin ingin menghapus kartu kendaraan{" "}
+              <strong>{deleteTarget?.card_no}</strong>?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
             <AlertDialogAction
-              onClick={executeDelete}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 text-white hover:bg-red-700"
             >
-              Delete Permanently
+              {deleting ? "Menghapus..." : "Ya, Hapus"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <AlertDialog open={errorOpen} onOpenChange={setErrorOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>An Error Occurred</AlertDialogTitle>
-            <AlertDialogDescription>{errorMessage}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setErrorOpen(false)}>
-              Close
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog open={trashedModalOpen} onOpenChange={setTrashedModalOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Deleted Visitor Cards</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-md border">
-              <Table>
-                <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
-                  <TableRow>
-                    <TableHead>Card No</TableHead>
-                    <TableHead>Status Before Deletion</TableHead>
-                    <TableHead>Deleted At</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {trashedCards.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={4}
-                        className="h-24 text-center text-zinc-500"
-                      >
-                        No deleted cards found.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    trashedCards.map((card) => (
-                      <TableRow key={card.id}>
-                        <TableCell className="font-medium text-zinc-500 line-through">
-                          {card.card_no}
-                        </TableCell>
-                        <TableCell className="text-zinc-500">
-                          {card.status}
-                        </TableCell>
-                        <TableCell className="text-zinc-500">
-                          {new Date(card.deleted_at).toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => executeRestore(card.id)}
-                          >
-                            Restore
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setTrashedModalOpen(false)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

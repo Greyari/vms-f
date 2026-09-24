@@ -1,0 +1,495 @@
+import { useState, useEffect } from "react"
+import { toast } from "sonner"
+import api from "@/lib/axios"
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Loader2, Ship, Users } from "lucide-react"
+import type { VesselArrivalItem } from "@/pages/vessels/VesselArrivals"
+import CrewSelectionDialog from "./CrewSelectionDialog"
+
+interface LocationOption {
+  id: string
+  name: string
+  code?: string | null
+  type: string
+  is_active: boolean
+}
+
+interface VesselArrivalFormModalProps {
+  open: boolean
+  onClose: () => void
+  onSuccess: () => void
+  arrivalToEdit?: VesselArrivalItem | null
+}
+
+export default function VesselArrivalFormModal({
+  open,
+  onClose,
+  onSuccess,
+  arrivalToEdit,
+}: VesselArrivalFormModalProps) {
+  const isEdit = Boolean(arrivalToEdit)
+
+  // Vessel locations
+  const [vessels, setVessels] = useState<LocationOption[]>([])
+  const [loadingVessels, setLoadingVessels] = useState(false)
+
+  // Form Fields
+  const [locationId, setLocationId] = useState("")
+  const [signInDate, setSignInDate] = useState("")
+  const [signOutDate, setSignOutDate] = useState("")
+  const [signInPort, setSignInPort] = useState("")
+  const [signOutPort, setSignOutPort] = useState("")
+  const [captain, setCaptain] = useState("")
+
+  // Agent Fields
+  const [localAgentCompany, setLocalAgentCompany] = useState("")
+  const [localAgentName, setLocalAgentName] = useState("")
+  const [localAgentPhone, setLocalAgentPhone] = useState("")
+  const [localAgentLocation, setLocalAgentLocation] = useState("")
+
+  const [foreignAgentCompany, setForeignAgentCompany] = useState("")
+  const [foreignAgentName, setForeignAgentName] = useState("")
+  const [foreignAgentPhone, setForeignAgentPhone] = useState("")
+  const [foreignAgentLocation, setForeignAgentLocation] = useState("")
+
+  // Crew Selection
+  const [selectedCrewIds, setSelectedCrewIds] = useState<string[]>([])
+  const [crewDialogOpen, setCrewDialogOpen] = useState(false)
+
+  // UI state
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [submitting, setSubmitting] = useState(false)
+
+  // Load vessels
+  useEffect(() => {
+    if (!open) return
+
+    async function loadVessels() {
+      setLoadingVessels(true)
+      try {
+        const res = await api.get("/locations", { params: { per_page: 100 } })
+        const raw = Array.isArray(res.data) ? res.data : (res.data?.data ?? [])
+        // Filter out non-vessel locations
+        const filteredVessels = raw.filter(
+          (loc: LocationOption) => loc.type !== "location"
+        )
+        setVessels(filteredVessels)
+      } catch {
+        toast.error("Gagal memuat daftar kapal")
+      } finally {
+        setLoadingVessels(false)
+      }
+    }
+
+    loadVessels()
+  }, [open])
+
+  // Populate form on open/edit
+  useEffect(() => {
+    if (!open) {
+      setErrors({})
+      return
+    }
+
+    if (arrivalToEdit) {
+      setLocationId(arrivalToEdit.location_id || "")
+      setSignInDate(arrivalToEdit.sign_in_date || "")
+      setSignOutDate(arrivalToEdit.sign_out_date || "")
+      setSignInPort(arrivalToEdit.sign_in_port || "")
+      setSignOutPort(arrivalToEdit.sign_out_port || "")
+      setCaptain(arrivalToEdit.captain || "")
+      setLocalAgentCompany(arrivalToEdit.local_agent_company || "")
+      setLocalAgentName(arrivalToEdit.local_agent_name || "")
+      setLocalAgentPhone(arrivalToEdit.local_agent_phone || "")
+      setLocalAgentLocation(arrivalToEdit.local_agent_location || "")
+      setForeignAgentCompany(arrivalToEdit.foreign_agent_company || "")
+      setForeignAgentName(arrivalToEdit.foreign_agent_name || "")
+      setForeignAgentPhone(arrivalToEdit.foreign_agent_phone || "")
+      setForeignAgentLocation(arrivalToEdit.foreign_agent_location || "")
+
+      if (arrivalToEdit.crew && Array.isArray(arrivalToEdit.crew)) {
+        setSelectedCrewIds(arrivalToEdit.crew.map((c) => c.id))
+      } else if (arrivalToEdit.id) {
+        api.get(`/vessel-arrivals/${arrivalToEdit.id}`)
+          .then((res) => {
+            const crewList = res.data?.crew
+            if (Array.isArray(crewList)) {
+              setSelectedCrewIds(crewList.map((c: { id: string }) => c.id))
+            }
+          })
+          .catch(() => {
+            // Ignore background fetch error
+          })
+      } else {
+        setSelectedCrewIds([])
+      }
+    } else {
+      // Default to today
+      const today = new Date().toISOString().split("T")[0]
+      setLocationId("")
+      setSignInDate(today)
+      setSignOutDate("")
+      setSignInPort("")
+      setSignOutPort("")
+      setCaptain("")
+      setLocalAgentCompany("")
+      setLocalAgentName("")
+      setLocalAgentPhone("")
+      setLocalAgentLocation("")
+      setForeignAgentCompany("")
+      setForeignAgentName("")
+      setForeignAgentPhone("")
+      setForeignAgentLocation("")
+      setSelectedCrewIds([])
+    }
+  }, [open, arrivalToEdit])
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    if (!locationId) {
+      newErrors.location_id = "Kapal wajib dipilih."
+    }
+
+    if (!signInDate) {
+      newErrors.sign_in_date = "Tanggal kedatangan wajib diisi."
+    }
+
+    if (signOutDate && signInDate && signOutDate < signInDate) {
+      newErrors.sign_out_date =
+        "Tanggal keberangkatan tidak boleh mendahului tanggal kedatangan."
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!validate()) {
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const payload: Record<string, unknown> = {
+        location_id: locationId,
+        sign_in_date: signInDate,
+        sign_out_date: signOutDate || null,
+        sign_in_port: signInPort.trim() || null,
+        sign_out_port: signOutPort.trim() || null,
+        captain: captain.trim() || null,
+        local_agent_company: localAgentCompany.trim() || null,
+        local_agent_name: localAgentName.trim() || null,
+        local_agent_phone: localAgentPhone.trim() || null,
+        local_agent_location: localAgentLocation.trim() || null,
+        foreign_agent_company: foreignAgentCompany.trim() || null,
+        foreign_agent_name: foreignAgentName.trim() || null,
+        foreign_agent_phone: foreignAgentPhone.trim() || null,
+        foreign_agent_location: foreignAgentLocation.trim() || null,
+        crew_ids: selectedCrewIds,
+      }
+
+      if (isEdit && arrivalToEdit) {
+        await api.put(`/vessel-arrivals/${arrivalToEdit.id}`, payload)
+        toast.success("Data kedatangan kapal berhasil diperbarui")
+      } else {
+        await api.post("/vessel-arrivals", payload)
+        toast.success("Kedatangan kapal baru berhasil dicatat")
+      }
+
+      onSuccess()
+      onClose()
+    } catch {
+      toast.error(
+        isEdit
+          ? "Gagal memperbarui kedatangan kapal"
+          : "Gagal mencatat kedatangan kapal baru"
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+            <Ship className="h-5 w-5 text-blue-600" />
+            {isEdit
+              ? "Edit Kedatangan Kapal"
+              : "Catat Kedatangan Kapal Baru"}
+          </DialogTitle>
+          <DialogDescription>
+            Masukkan informasi kapal, tanggal dan pelabuhan sandar, nakhoda, keagenan, serta manifest kru.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6 pt-2">
+          {/* Bagian 1: Data Kapal & Jadwal Sandar */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 border-b pb-1">
+              Informasi Kapal & Jadwal Sandar
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="vessel-select">
+                  Pilih Kapal <span className="text-red-500">*</span>
+                </Label>
+                <select
+                  id="vessel-select"
+                  aria-label="Pilih Kapal"
+                  value={locationId}
+                  onChange={(e) => setLocationId(e.target.value)}
+                  disabled={loadingVessels || submitting}
+                  className="mt-1 w-full h-10 px-3 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Pilih Kapal --</option>
+                  {vessels.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} {v.code ? `(${v.code})` : ""}
+                    </option>
+                  ))}
+                </select>
+                {errors.location_id && (
+                  <p className="text-xs text-red-500 mt-1">{errors.location_id}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="captain-input">Nakhoda / Captain</Label>
+                <Input
+                  id="captain-input"
+                  aria-label="Nakhoda"
+                  value={captain}
+                  onChange={(e) => setCaptain(e.target.value)}
+                  placeholder="Nama kapten kapal..."
+                  disabled={submitting}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="sign-in-date">
+                  Tanggal Kedatangan (Sign-In) <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="sign-in-date"
+                  type="date"
+                  aria-label="Tanggal Kedatangan"
+                  value={signInDate}
+                  onChange={(e) => setSignInDate(e.target.value)}
+                  disabled={submitting}
+                  className="mt-1"
+                />
+                {errors.sign_in_date && (
+                  <p className="text-xs text-red-500 mt-1">{errors.sign_in_date}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="sign-in-port">Pelabuhan Asal</Label>
+                <Input
+                  id="sign-in-port"
+                  aria-label="Pelabuhan Asal"
+                  value={signInPort}
+                  onChange={(e) => setSignInPort(e.target.value)}
+                  placeholder="Misal: SINGAPORE / BATAM"
+                  disabled={submitting}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="sign-out-date">Tanggal Keberangkatan (Sign-Out)</Label>
+                <Input
+                  id="sign-out-date"
+                  type="date"
+                  aria-label="Tanggal Keberangkatan"
+                  value={signOutDate}
+                  onChange={(e) => setSignOutDate(e.target.value)}
+                  disabled={submitting}
+                  className="mt-1"
+                />
+                {errors.sign_out_date && (
+                  <p className="text-xs text-red-500 mt-1">{errors.sign_out_date}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="sign-out-port">Pelabuhan Tujuan</Label>
+                <Input
+                  id="sign-out-port"
+                  aria-label="Pelabuhan Tujuan"
+                  value={signOutPort}
+                  onChange={(e) => setSignOutPort(e.target.value)}
+                  placeholder="Misal: JAKARTA / JURONG"
+                  disabled={submitting}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Bagian 2: Informasi Keagenan Lokal & Asing */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 border-b pb-1">
+              Informasi Keagenan
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Agen Lokal */}
+              <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border">
+                <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Agen Lokal (Indonesia)
+                </span>
+                <div>
+                  <Label htmlFor="local-agent-company">Perusahaan Agen Lokal</Label>
+                  <Input
+                    id="local-agent-company"
+                    aria-label="Perusahaan Agen Lokal"
+                    value={localAgentCompany}
+                    onChange={(e) => setLocalAgentCompany(e.target.value)}
+                    placeholder="Nama PT / Agen lokal..."
+                    disabled={submitting}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="local-agent-name">Nama Petugas Agen</Label>
+                  <Input
+                    id="local-agent-name"
+                    value={localAgentName}
+                    onChange={(e) => setLocalAgentName(e.target.value)}
+                    placeholder="Nama PIC agen lokal..."
+                    disabled={submitting}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="local-agent-phone">Nomor Telepon</Label>
+                  <Input
+                    id="local-agent-phone"
+                    value={localAgentPhone}
+                    onChange={(e) => setLocalAgentPhone(e.target.value)}
+                    placeholder="08..."
+                    disabled={submitting}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              {/* Agen Asing */}
+              <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border">
+                <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Agen Luar Negeri (Foreign Agent)
+                </span>
+                <div>
+                  <Label htmlFor="foreign-agent-company">Perusahaan Agen Asing</Label>
+                  <Input
+                    id="foreign-agent-company"
+                    value={foreignAgentCompany}
+                    onChange={(e) => setForeignAgentCompany(e.target.value)}
+                    placeholder="Nama agen asing..."
+                    disabled={submitting}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="foreign-agent-name">Nama Petugas Agen</Label>
+                  <Input
+                    id="foreign-agent-name"
+                    value={foreignAgentName}
+                    onChange={(e) => setForeignAgentName(e.target.value)}
+                    placeholder="PIC agen asing..."
+                    disabled={submitting}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="foreign-agent-phone">Nomor Telepon</Label>
+                  <Input
+                    id="foreign-agent-phone"
+                    value={foreignAgentPhone}
+                    onChange={(e) => setForeignAgentPhone(e.target.value)}
+                    placeholder="+..."
+                    disabled={submitting}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bagian 3: Ringkasan Manifest Kru */}
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-900 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-blue-900 dark:text-blue-200">
+              <Users className="h-4 w-4" />
+              <span>Manifest Kru: <strong>{selectedCrewIds.length} Kru Terpilih</strong></span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!locationId || submitting}
+              onClick={() => setCrewDialogOpen(true)}
+            >
+              Kelola Kru Kapal
+            </Button>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={submitting}
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan Kedatangan"
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+
+        {/* Crew Selection Dialog */}
+        {locationId && (
+          <CrewSelectionDialog
+            open={crewDialogOpen}
+            onClose={() => setCrewDialogOpen(false)}
+            locationId={locationId}
+            arrivalId={arrivalToEdit?.id}
+            selectedCrewIds={selectedCrewIds}
+            onSave={(ids) => setSelectedCrewIds(ids)}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}

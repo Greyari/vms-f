@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import api from "@/lib/axios"
 
 import {
@@ -12,9 +12,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -33,28 +35,61 @@ import {
   Loader2,
   FileDown,
   Upload,
-  ArrowUpDown,
+  Plus,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from "lucide-react"
 
+interface Staff {
+  id: string
+  staff_id: string
+  name: string
+  department?: string
+  occupation?: string
+  company?: string
+  gender?: string
+  birth_date?: string
+  address?: string
+  is_active: boolean
+  deleted_at?: string
+}
+
 export default function Staffs() {
-  const [staffs, setStaffs] = useState<any[]>([])
-  const [trashedStaffs, setTrashedStaffs] = useState<any[]>([])
+  const [staffs, setStaffs] = useState<Staff[]>([])
+  const [trashedStaffs, setTrashedStaffs] = useState<Staff[]>([])
   const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [trashedModalOpen, setTrashedModalOpen] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+
+  // Filters & Pagination
+  const [search, setSearch] = useState("")
+  const [companyFilter, setCompanyFilter] = useState("")
+  const [statusFilter, setStatusFilter] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const perPage = 10
+
+  // Form State
   const [form, setForm] = useState({
     id: null as string | null,
     staff_id: "",
     name: "",
     department: "",
+    occupation: "",
+    company: "",
+    gender: "",
+    birth_date: "",
+    address: "",
+    is_active: true,
   })
   const [file, setFile] = useState<File | null>(null)
 
-  // Alert Dialog States
+  // Alert Dialog States (Delete)
   const [alertOpen, setAlertOpen] = useState(false)
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null)
 
@@ -67,31 +102,42 @@ export default function Staffs() {
     setErrorOpen(true)
   }
 
-  // Advanced Table States
-  const [search, setSearch] = useState("")
-  const [sortConfig, setSortConfig] = useState<{
-    key: string
-    direction: "asc" | "desc"
-  } | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
-
-  const fetchStaffs = async () => {
+  const fetchStaffs = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await api.get("/staffs")
-      setStaffs(res.data)
+      const params: Record<string, any> = {
+        page: currentPage,
+        per_page: perPage,
+      }
+      if (search) params.search = search
+      if (companyFilter) params.company = companyFilter
+      if (statusFilter !== "") params.is_active = statusFilter
+
+      const res = await api.get("/staffs", { params })
+      const data = res.data
+      if (data && Array.isArray(data.data)) {
+        setStaffs(data.data)
+        setCurrentPage(data.current_page || 1)
+        setTotalPages(data.last_page || 1)
+        setTotalItems(data.total || 0)
+      } else if (Array.isArray(data)) {
+        setStaffs(data)
+        setTotalPages(1)
+        setTotalItems(data.length)
+      } else {
+        setStaffs([])
+      }
     } catch (error) {
       console.error(error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentPage, search, companyFilter, statusFilter])
 
   const fetchTrashedStaffs = async () => {
     try {
       const res = await api.get("/staffs/trashed")
-      setTrashedStaffs(res.data)
+      setTrashedStaffs(Array.isArray(res.data) ? res.data : res.data?.data || [])
     } catch (error) {
       console.error(error)
     }
@@ -99,64 +145,38 @@ export default function Staffs() {
 
   useEffect(() => {
     fetchStaffs()
-    fetchTrashedStaffs()
-  }, [])
+  }, [fetchStaffs])
 
-  const openForm = (staff: any = null) => {
+  const openForm = (staff: Staff | null = null) => {
     if (staff) {
       setForm({
         id: staff.id,
-        staff_id: staff.staff_id,
-        name: staff.name,
-        department: staff.department,
+        staff_id: staff.staff_id || "",
+        name: staff.name || "",
+        department: staff.department || "",
+        occupation: staff.occupation || "",
+        company: staff.company || "",
+        gender: staff.gender || "",
+        birth_date: staff.birth_date || "",
+        address: staff.address || "",
+        is_active: staff.is_active ?? true,
       })
     } else {
-      setForm({ id: null, staff_id: "", name: "", department: "" })
+      setForm({
+        id: null,
+        staff_id: "",
+        name: "",
+        department: "",
+        occupation: "",
+        company: "",
+        gender: "",
+        birth_date: "",
+        address: "",
+        is_active: true,
+      })
     }
     setModalOpen(true)
   }
-
-  const handleSort = (key: string) => {
-    let direction: "asc" | "desc" = "asc"
-    if (
-      sortConfig &&
-      sortConfig.key === key &&
-      sortConfig.direction === "asc"
-    ) {
-      direction = "desc"
-    }
-    setSortConfig({ key, direction })
-  }
-
-  // Filter & Sort Logic
-  const filteredAndSorted = useMemo(() => {
-    let result = [...staffs]
-    if (search) {
-      result = result.filter(
-        (item) =>
-          item.name.toLowerCase().includes(search.toLowerCase()) ||
-          item.staff_id.toLowerCase().includes(search.toLowerCase()) ||
-          item.department.toLowerCase().includes(search.toLowerCase())
-      )
-    }
-    if (sortConfig !== null) {
-      result.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key])
-          return sortConfig.direction === "asc" ? -1 : 1
-        if (a[sortConfig.key] > b[sortConfig.key])
-          return sortConfig.direction === "asc" ? 1 : -1
-        return 0
-      })
-    }
-    return result
-  }, [staffs, search, sortConfig])
-
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredAndSorted.length / itemsPerPage)
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage
-    return filteredAndSorted.slice(start, start + itemsPerPage)
-  }, [filteredAndSorted, currentPage])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -171,7 +191,7 @@ export default function Staffs() {
       fetchStaffs()
     } catch (error: any) {
       console.error(error)
-      const msg = error.response?.data?.message || "Failed to save staff"
+      const msg = error.response?.data?.message || "Gagal menyimpan data staf"
       showError(msg)
     } finally {
       setLoading(false)
@@ -190,7 +210,7 @@ export default function Staffs() {
       fetchStaffs()
     } catch (error: any) {
       console.error(error)
-      const msg = error.response?.data?.message || "Failed to delete staff"
+      const msg = error.response?.data?.message || "Gagal menghapus data staf"
       showError(msg)
     } finally {
       setAlertOpen(false)
@@ -205,8 +225,35 @@ export default function Staffs() {
       fetchTrashedStaffs()
     } catch (error: any) {
       console.error(error)
-      const msg = error.response?.data?.message || "Failed to restore staff"
+      const msg = error.response?.data?.message || "Gagal memulihkan staf"
       showError(msg)
+    }
+  }
+
+  const handleExportExcel = async () => {
+    setIsExporting(true)
+    try {
+      const params: Record<string, any> = {}
+      if (search) params.search = search
+      if (companyFilter) params.company = companyFilter
+      if (statusFilter !== "") params.is_active = statusFilter
+
+      const res = await api.get("/staffs/export", {
+        params,
+        responseType: "blob",
+      })
+      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const link = document.createElement("a")
+      link.href = url
+      link.setAttribute("download", `staffs_export_${new Date().toISOString().slice(0, 10)}.xlsx`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (error) {
+      console.error(error)
+      showError("Gagal mengekspor data staf.")
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -225,7 +272,7 @@ export default function Staffs() {
       link.remove()
     } catch (error) {
       console.error(error)
-      showError("Failed to download template.")
+      showError("Gagal mengunduh template.")
     } finally {
       setIsDownloading(false)
     }
@@ -248,7 +295,7 @@ export default function Staffs() {
       console.error(error)
       const msg =
         error.response?.data?.message ||
-        "Import failed. Please make sure the format is correct."
+        "Gagal mengimpor file. Pastikan format file sesuai template."
       showError(msg)
     } finally {
       setLoading(false)
@@ -257,14 +304,27 @@ export default function Staffs() {
 
   return (
     <div className="p-6">
+      {/* Header */}
       <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-2xl font-bold">Staff</h1>
+          <h1 className="text-2xl font-bold">Master Staf & Karyawan</h1>
           <p className="text-muted-foreground">
-            Manage your staff master data.
+            Kelola data staf dan karyawan internal sebagai PIC/Host kunjungan.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExportExcel}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            Export Excel
+          </Button>
           <Button
             variant="secondary"
             onClick={() => {
@@ -272,21 +332,24 @@ export default function Staffs() {
               setTrashedModalOpen(true)
             }}
           >
-            View Deleted
+            Lihat Sampah
           </Button>
           <Button variant="outline" onClick={() => setImportModalOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Import Excel
           </Button>
-          <Button onClick={() => openForm()}>Add Staff</Button>
+          <Button onClick={() => openForm(null)}>
+            <Plus className="mr-2 h-4 w-4" /> Tambah Staf
+          </Button>
         </div>
       </div>
 
+      {/* Filter Card */}
       <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="relative w-full md:w-1/3">
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+          <div className="relative">
             <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />
             <Input
-              placeholder="Search staff, ID, or dept..."
+              placeholder="Cari nama, NIK, atau departemen..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value)
@@ -295,66 +358,90 @@ export default function Staffs() {
               className="pl-8"
             />
           </div>
+
+          <div>
+            <Input
+              placeholder="Filter perusahaan / unit..."
+              value={companyFilter}
+              onChange={(e) => {
+                setCompanyFilter(e.target.value)
+                setCurrentPage(1)
+              }}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Label htmlFor="statusFilter" className="whitespace-nowrap text-sm font-medium">
+              Status Aktif
+            </Label>
+            <select
+              id="statusFilter"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">Semua Status</option>
+              <option value="1">Aktif</option>
+              <option value="0">Nonaktif</option>
+            </select>
+          </div>
         </div>
 
+        {/* Table */}
         <div className="overflow-hidden rounded-md border">
           <Table>
             <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
               <TableRow>
-                <TableHead
-                  onClick={() => handleSort("staff_id")}
-                  className="cursor-pointer"
-                >
-                  <div className="flex items-center">
-                    Staff ID <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead
-                  onClick={() => handleSort("name")}
-                  className="cursor-pointer"
-                >
-                  <div className="flex items-center">
-                    Name <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead
-                  onClick={() => handleSort("department")}
-                  className="cursor-pointer"
-                >
-                  <div className="flex items-center">
-                    Department <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Staff ID / NIK</TableHead>
+                <TableHead>Nama Lengkap</TableHead>
+                <TableHead>Departemen</TableHead>
+                <TableHead>Perusahaan</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && staffs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
                   </TableCell>
                 </TableRow>
-              ) : paginatedData.length === 0 ? (
+              ) : staffs.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={6}
                     className="h-24 text-center text-zinc-500"
                   >
-                    No staffs found.
+                    Data staf tidak ditemukan.
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedData.map((staff) => (
+                staffs.map((staff) => (
                   <TableRow
                     key={staff.id}
                     className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                   >
-                    <TableCell className="font-medium">
+                    <TableCell className="font-mono font-medium">
                       {staff.staff_id}
                     </TableCell>
-                    <TableCell>{staff.name}</TableCell>
-                    <TableCell>{staff.department}</TableCell>
+                    <TableCell className="font-medium">{staff.name}</TableCell>
+                    <TableCell>{staff.department || "-"}</TableCell>
+                    <TableCell>{staff.company || "-"}</TableCell>
+                    <TableCell>
+                      {staff.is_active ? (
+                        <Badge variant="outline" className="border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                          Aktif
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-zinc-500/30 bg-zinc-50 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                          Nonaktif
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="space-x-2 text-right">
                       <Button
                         variant="outline"
@@ -368,7 +455,7 @@ export default function Staffs() {
                         size="sm"
                         onClick={() => confirmDelete(staff.id)}
                       >
-                        Delete
+                        Hapus
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -381,12 +468,8 @@ export default function Staffs() {
         {/* Pagination Controls */}
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-zinc-500">
-            Showing{" "}
-            {filteredAndSorted.length > 0
-              ? (currentPage - 1) * itemsPerPage + 1
-              : 0}{" "}
-            to {Math.min(currentPage * itemsPerPage, filteredAndSorted.length)}{" "}
-            of {filteredAndSorted.length} entries
+            Menampilkan {staffs.length > 0 ? (currentPage - 1) * perPage + 1 : 0}{" "}
+            hingga {Math.min(currentPage * perPage, totalItems)} dari {totalItems} total staf
           </div>
           <div className="flex gap-2">
             <Button
@@ -411,67 +494,155 @@ export default function Staffs() {
         </div>
       </div>
 
+      {/* Modal Form Tambah / Edit */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{form.id ? "Edit Staff" : "Add Staff"}</DialogTitle>
+            <DialogTitle>
+              {form.id ? "Edit Data Staf" : "Tambah Data Staf"}
+            </DialogTitle>
+            <DialogDescription>
+              Isi data lengkap staf internal berikut untuk kebutuhan PIC kunjungan.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Staff ID</Label>
+              <Label htmlFor="form_staff_id">Staff ID / NIK *</Label>
               <Input
+                id="form_staff_id"
                 value={form.staff_id}
                 onChange={(e) => setForm({ ...form, staff_id: e.target.value })}
+                placeholder="Contoh: EMP-001"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label>Name</Label>
+              <Label htmlFor="form_name">Nama Lengkap *</Label>
               <Input
+                id="form_name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Contoh: Budi Santoso"
                 required
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="form_department">Departemen</Label>
+                <Input
+                  id="form_department"
+                  value={form.department}
+                  onChange={(e) =>
+                    setForm({ ...form, department: e.target.value })
+                  }
+                  placeholder="Contoh: Commercial"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="form_occupation">Jabatan / Posisi</Label>
+                <Input
+                  id="form_occupation"
+                  value={form.occupation}
+                  onChange={(e) =>
+                    setForm({ ...form, occupation: e.target.value })
+                  }
+                  placeholder="Contoh: Manager"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="form_company">Perusahaan</Label>
+                <Input
+                  id="form_company"
+                  value={form.company}
+                  onChange={(e) =>
+                    setForm({ ...form, company: e.target.value })
+                  }
+                  placeholder="Contoh: PT Cemara Intan"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="form_gender">Jenis Kelamin</Label>
+                <select
+                  id="form_gender"
+                  value={form.gender}
+                  onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">Pilih Jenis Kelamin</option>
+                  <option value="M">Laki-laki (M)</option>
+                  <option value="F">Perempuan (F)</option>
+                </select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="form_birth_date">Tanggal Lahir</Label>
+              <Input
+                id="form_birth_date"
+                type="date"
+                value={form.birth_date}
+                onChange={(e) =>
+                  setForm({ ...form, birth_date: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
-              <Label>Department</Label>
+              <Label htmlFor="form_address">Alamat</Label>
               <Input
-                value={form.department}
-                onChange={(e) =>
-                  setForm({ ...form, department: e.target.value })
-                }
-                required
+                id="form_address"
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                placeholder="Alamat domisili"
               />
             </div>
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="flex items-center space-x-2 pt-2">
+              <input
+                id="form_is_active"
+                type="checkbox"
+                checked={form.is_active}
+                onChange={(e) =>
+                  setForm({ ...form, is_active: e.target.checked })
+                }
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <Label htmlFor="form_is_active" className="cursor-pointer text-sm font-medium">
+                Status Aktif Bekerja
+              </Label>
+            </div>
+            <div className="mt-4 flex justify-end gap-2 pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setModalOpen(false)}
               >
-                Cancel
+                Batal
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : "Save"}
+                {loading ? "Menyimpan..." : "Simpan"}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
+      {/* Modal Import Excel */}
       <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Import Staff Data</DialogTitle>
+            <DialogTitle>Import Data Staf</DialogTitle>
+            <DialogDescription>
+              Unggah file spreadsheet Excel untuk memperbarui data staf sekaligus.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
               <div className="text-sm">
                 <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                  Download Template
+                  Unduh Template
                 </p>
                 <p className="text-zinc-500">
-                  Use this Excel template to format your data correctly.
+                  Gunakan template Excel ini agar format kolom sesuai sistem.
                 </p>
               </div>
               <Button
@@ -485,13 +656,14 @@ export default function Staffs() {
                 ) : (
                   <FileDown className="mr-2 h-4 w-4" />
                 )}
-                {isDownloading ? "Downloading..." : "Download"}
+                {isDownloading ? "Mengunduh..." : "Download"}
               </Button>
             </div>
             <form onSubmit={handleImport} className="space-y-4">
               <div className="space-y-2">
-                <Label>Upload Excel File</Label>
+                <Label htmlFor="import_file">Unggah File Excel</Label>
                 <Input
+                  id="import_file"
                   type="file"
                   accept=".xlsx,.csv"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
@@ -504,10 +676,10 @@ export default function Staffs() {
                   variant="outline"
                   onClick={() => setImportModalOpen(false)}
                 >
-                  Cancel
+                  Batal
                 </Button>
                 <Button type="submit" disabled={!file || loading}>
-                  {loading ? "Importing..." : "Upload & Import"}
+                  {loading ? "Mengimpor..." : "Upload & Import"}
                 </Button>
               </div>
             </form>
@@ -515,56 +687,61 @@ export default function Staffs() {
         </DialogContent>
       </Dialog>
 
+      {/* Alert Dialog Konfirmasi Hapus */}
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              staff member and cascade any visits or ID card reservations
-              related to this staff.
+              Apakah Anda yakin ingin menghapus data staf ini? Data yang dihapus
+              akan masuk ke daftar terhapus dan dapat dipulihkan kembali.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={executeDelete}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              Delete Permanently
+              Ya, Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Alert Dialog Error */}
       <AlertDialog open={errorOpen} onOpenChange={setErrorOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>An Error Occurred</AlertDialogTitle>
+            <AlertDialogTitle>Terjadi Kesalahan</AlertDialogTitle>
             <AlertDialogDescription>{errorMessage}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setErrorOpen(false)}>
-              Close
+              Tutup
             </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Dialog Data Terhapus */}
       <Dialog open={trashedModalOpen} onOpenChange={setTrashedModalOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Deleted Staff Members</DialogTitle>
+            <DialogTitle>Data Staf Terhapus</DialogTitle>
+            <DialogDescription>
+              Daftar staf yang sebelumnya dihapus dan dapat dipulihkan kembali.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="overflow-hidden rounded-md border">
               <Table>
                 <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
                   <TableRow>
-                    <TableHead>Staff ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Deleted At</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead>Staff ID / NIK</TableHead>
+                    <TableHead>Nama Lengkap</TableHead>
+                    <TableHead>Waktu Dihapus</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -574,20 +751,22 @@ export default function Staffs() {
                         colSpan={4}
                         className="h-24 text-center text-zinc-500"
                       >
-                        No deleted staffs found.
+                        Tidak ada data staf terhapus.
                       </TableCell>
                     </TableRow>
                   ) : (
                     trashedStaffs.map((staff) => (
                       <TableRow key={staff.id}>
-                        <TableCell className="font-medium text-zinc-500 line-through">
+                        <TableCell className="font-mono font-medium text-zinc-500 line-through">
                           {staff.staff_id}
                         </TableCell>
                         <TableCell className="text-zinc-500">
                           {staff.name}
                         </TableCell>
                         <TableCell className="text-zinc-500">
-                          {new Date(staff.deleted_at).toLocaleString()}
+                          {staff.deleted_at
+                            ? new Date(staff.deleted_at).toLocaleString()
+                            : "-"}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
@@ -595,7 +774,7 @@ export default function Staffs() {
                             size="sm"
                             onClick={() => executeRestore(staff.id)}
                           >
-                            Restore
+                            Pulihkan
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -610,7 +789,7 @@ export default function Staffs() {
                 variant="outline"
                 onClick={() => setTrashedModalOpen(false)}
               >
-                Close
+                Tutup
               </Button>
             </div>
           </div>
