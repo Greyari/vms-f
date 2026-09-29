@@ -15,8 +15,9 @@ share one origin on the yard PC. UI/UX family reference: `VesselCert/vesselcert-
 
 **Never `git add`, `commit`, `push` or `rm`** — the owner does git. `.env` is still tracked in the index
 until the owner runs `git rm --cached .env` (decision FE-1); `.gitignore` already lists it, so do not
-`git add -A`. `.github/workflows/deploy.yml` (Azure Static Web Apps) was disabled on 2026-09-28 — the SWA now
-belongs to the guest portal (decision B-3); do not re-enable it.
+`git add -A`. The old Azure Static Web Apps `deploy.yml` was disabled on 2026-09-28 and deleted on 2026-09-29 — the
+SWA now belongs to the guest portal (decision B-3); never add a deploy workflow here. The only workflow is
+`.github/workflows/quality.yml` (Vitest + build on push to `production` and on pull requests; no secrets).
 
 ## How to write code here
 

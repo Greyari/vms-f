@@ -1,0 +1,46 @@
+# Gerbang kualitas SPA gerbang VMS.
+#
+# Repo ini tidak men-deploy apa pun sendiri: SPA dibangun ke dalam paket rilis backend
+# (VMS-backend-laravel/tools/windows/build-release.ps1, workflow deploy-onprem.yml di repo itu).
+# Workflow lama "Deploy to Azure Static Web Apps" dihapus 2026-09-29 — Static Web App itu kini
+# milik portal tamu (keputusan B-3).
+#
+# Tanpa rahasia apa pun, jadi aman juga untuk pull request.
+
+name: Quality
+
+on:
+  push:
+    branches: [production]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Vitest, build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Vitest
+        run: npm test
+
+      # tsc -b, then vite build, exactly what build-release.ps1 runs. /api is same-origin on the yard server.
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: /api

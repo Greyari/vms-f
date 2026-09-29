@@ -29,8 +29,9 @@ Base URL API: `VITE_API_BASE_URL`, default **`/api`** bila tidak diisi (`src/lib
 
 ## Deploy
 
-On-prem: ikut paket rilis backend. `.github/workflows/deploy.yml` (Azure Static Web Apps) sudah dimatikan
-2026-09-28 — Static Web App-nya kini milik portal tamu; jangan diaktifkan lagi.
+On-prem: ikut paket rilis backend (`deploy-onprem.yml` di repo `VMS-backend-laravel`). Workflow lama Azure Static
+Web Apps dimatikan 2026-09-28 dan berkasnya dihapus 2026-09-29 — Static Web App-nya kini milik portal tamu.
+Satu-satunya workflow repo ini: `.github/workflows/quality.yml` (Vitest + build, push `production` dan PR).
 
 ## Git
 
