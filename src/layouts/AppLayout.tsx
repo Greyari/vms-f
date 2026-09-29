@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import { permissionFor, type GuardedPath } from "../lib/routePermissions"
 import {
   Users,
   ClipboardList,
@@ -16,12 +17,19 @@ import {
   Printer,
   Ship,
   Building2,
+  KeyRound,
 } from "lucide-react"
 
 export default function AppLayout() {
   const { user, logout, hasPermission } = useAuth()
   const location = useLocation()
   const [profileOpen, setProfileOpen] = useState(false)
+
+  // Same matrix as the route guards in App.tsx (decision FE-2).
+  const can = (path: GuardedPath) => {
+    const permission = permissionFor(path)
+    return permission === undefined || hasPermission(permission)
+  }
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -56,25 +64,25 @@ export default function AppLayout() {
           name: "Add Visit",
           path: "/visits/create",
           icon: ClipboardList,
-          show: hasPermission("create_visits"),
+          show: can("/visits/create"),
         },
         {
           name: "Active Visitors",
           path: "/visits/activate",
           icon: Users,
-          show: hasPermission("view_visits"),
+          show: can("/visits/activate"),
         },
         {
           name: "Reprint Pass",
           path: "/visits/reprint",
           icon: Printer,
-          show: hasPermission("view_visits"),
+          show: can("/visits/reprint"),
         },
         {
           name: "Crew Arrivals",
           path: "/vessel-arrivals",
           icon: Ship,
-          show: hasPermission("view_vessel_arrivals"),
+          show: can("/vessel-arrivals"),
         },
       ],
     },
@@ -85,31 +93,31 @@ export default function AppLayout() {
           name: "Locations & Vessels",
           path: "/master/locations",
           icon: Building2,
-          show: hasPermission("view_locations"),
+          show: can("/master/locations"),
         },
         {
           name: "Staffs",
           path: "/master/staffs",
           icon: Users,
-          show: hasPermission("view_staffs"),
+          show: can("/master/staffs"),
         },
         {
           name: "Cards",
           path: "/master/cards",
           icon: CreditCard,
-          show: hasPermission("view_cards"),
+          show: can("/master/cards"),
         },
         {
           name: "Visitors",
           path: "/master/visitors",
           icon: Users,
-          show: hasPermission("view_visitors"),
+          show: can("/master/visitors"),
         },
         {
           name: "Blacklist",
           path: "/master/visitors/blacklist",
           icon: ShieldOff,
-          show: hasPermission("view_visitors"),
+          show: can("/master/visitors/blacklist"),
         },
       ],
     },
@@ -120,13 +128,13 @@ export default function AppLayout() {
           name: "Visitor Report",
           path: "/reports/visits",
           icon: FileText,
-          show: hasPermission("view_reports"),
+          show: can("/reports/visits"),
         },
         {
           name: "Vessel Report",
           path: "/reports/vessels",
           icon: Ship,
-          show: hasPermission("view_reports"),
+          show: can("/reports/vessels"),
         },
       ],
     },
@@ -137,13 +145,19 @@ export default function AppLayout() {
           name: "System Users",
           path: "/settings/users",
           icon: Settings,
-          show: hasPermission("view_users"),
+          show: can("/settings/users"),
         },
         {
           name: "Activity Logs",
           path: "/settings/logs",
           icon: History,
-          show: hasPermission("view_logs"),
+          show: can("/settings/logs"),
+        },
+        {
+          name: "Roles",
+          path: "/settings/roles",
+          icon: KeyRound,
+          show: can("/settings/roles"),
         },
         {
           name: "My Profile",

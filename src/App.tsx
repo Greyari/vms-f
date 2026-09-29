@@ -1,7 +1,9 @@
+import type { ReactNode } from "react"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { AuthProvider } from "./context/AuthContext"
 import { ProtectedRoute } from "./components/ProtectedRoute"
 import AppLayout from "./layouts/AppLayout"
+import { permissionFor, type GuardedPath } from "./lib/routePermissions"
 
 import Login from "./pages/Login"
 import CreateVisit from "./pages/visits/CreateVisit"
@@ -21,6 +23,23 @@ import Visitors from "./pages/master/Visitors"
 import BlacklistedVisitors from "./pages/master/BlacklistedVisitors"
 import VesselArrivals from "./pages/vessels/VesselArrivals"
 import Dashboard from "./pages/dashboard/Dashboard"
+import Roles from "./pages/settings/Roles"
+import NotFound from "./pages/NotFound"
+
+/**
+ * A screen inside the sidebar layout, behind the permission ROUTE_PERMISSIONS gives it.
+ * Returns a <Route> element (not a component) because <Routes> accepts only routes.
+ */
+function guarded(path: GuardedPath, element: ReactNode) {
+  return (
+    <Route
+      key={path}
+      element={<ProtectedRoute requiredPermission={permissionFor(path)} />}
+    >
+      <Route path={path.slice(1)} element={element} />
+    </Route>
+  )
+}
 
 function App() {
   return (
@@ -30,40 +49,55 @@ function App() {
           <Route path="/login" element={<Login />} />
 
           {/* Print page is separated from the sidebar layout */}
-          <Route path="/visits/print" element={<ProtectedRoute />}>
+          <Route
+            path="/visits/print"
+            element={
+              <ProtectedRoute
+                requiredPermission={permissionFor("/visits/print")}
+              />
+            }
+          >
             <Route index element={<PrintVisit />} />
           </Route>
-          <Route path="/visits/:id/print" element={<ProtectedRoute />}>
+          <Route
+            path="/visits/:id/print"
+            element={
+              <ProtectedRoute
+                requiredPermission={permissionFor("/visits/:id/print")}
+              />
+            }
+          >
             <Route index element={<PrintVisit />} />
           </Route>
 
           {/* Main Application Routes inside Sidebar Layout */}
           <Route path="/" element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
+              {/* Unguarded on purpose: refused users are sent here. */}
               <Route index element={<Dashboard />} />
 
-              <Route path="visits/activate" element={<ActiveVisits />} />
-              <Route path="visits/create" element={<CreateVisit />} />
-              <Route path="visits/reprint" element={<Reprint />} />
-              <Route path="reports/visits" element={<VisitorReport />} />
-              <Route path="reports/vessels" element={<VesselReport />} />
+              {guarded("/visits/activate", <ActiveVisits />)}
+              {guarded("/visits/create", <CreateVisit />)}
+              {guarded("/visits/reprint", <Reprint />)}
+              {guarded("/reports/visits", <VisitorReport />)}
+              {guarded("/reports/vessels", <VesselReport />)}
               {/* Backwards compatibility alias */}
-              <Route path="visits/report" element={<VisitorReport />} />
-              <Route path="vessel-arrivals" element={<VesselArrivals />} />
-              <Route
-                path="master/visitors/blacklist"
-                element={<BlacklistedVisitors />}
-              />
+              {guarded("/visits/report", <VisitorReport />)}
+              {guarded("/vessel-arrivals", <VesselArrivals />)}
+              {guarded("/master/visitors/blacklist", <BlacklistedVisitors />)}
 
-              <Route path="master/locations" element={<Locations />} />
-              <Route path="master/visitors" element={<Visitors />} />
-              <Route path="master/staffs" element={<Staffs />} />
-              <Route path="master/cards" element={<Cards />} />
-              <Route path="master/vehicle-cards" element={<VehicleCards />} />
+              {guarded("/master/locations", <Locations />)}
+              {guarded("/master/visitors", <Visitors />)}
+              {guarded("/master/staffs", <Staffs />)}
+              {guarded("/master/cards", <Cards />)}
+              {guarded("/master/vehicle-cards", <VehicleCards />)}
 
-              <Route path="settings/users" element={<Users />} />
-              <Route path="settings/logs" element={<ActivityLogs />} />
-              <Route path="settings/profile" element={<Profile />} />
+              {guarded("/settings/users", <Users />)}
+              {guarded("/settings/logs", <ActivityLogs />)}
+              {guarded("/settings/profile", <Profile />)}
+              {guarded("/settings/roles", <Roles />)}
+
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Route>
         </Routes>

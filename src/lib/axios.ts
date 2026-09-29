@@ -1,8 +1,9 @@
 import axios from "axios"
 import { toast } from "sonner"
+import { resolveApiBaseUrl } from "./apiBaseUrl"
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api",
+  baseURL: resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL),
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -59,7 +60,9 @@ api.interceptors.response.use(
       status !== 422
     ) {
       // General unexpected client error toast (exclude 422 validation handled in form)
-      toast.error(error.response?.data?.message || "An unexpected error occurred.")
+      toast.error(
+        error.response?.data?.message || "An unexpected error occurred."
+      )
     }
 
     return Promise.reject(error)

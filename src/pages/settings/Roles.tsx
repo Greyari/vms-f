@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useAuth } from "@/context/AuthContext"
 
 import {
   Table,
@@ -16,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -33,6 +35,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2 } from "lucide-react"
 
 export default function Roles() {
+  // Decision FE-3-ROLE: built-in roles (is_builtin from the API) are re-synced by the seeder,
+  // so they open read-only; changing any role also needs manage_roles.
+  const { hasPermission } = useAuth()
+  const canManage = hasPermission("manage_roles")
+  const [readOnly, setReadOnly] = useState(false)
   const [roles, setRoles] = useState<any[]>([])
   const [permissions, setPermissions] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -72,7 +79,8 @@ export default function Roles() {
     fetchPermissions()
   }, [])
 
-  const openForm = (role: any = null) => {
+  const openForm = (role: any = null, viewOnly = false) => {
+    setReadOnly(viewOnly)
     if (role) {
       setForm({
         id: role.id,
@@ -143,7 +151,7 @@ export default function Roles() {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Role Management</h1>
-        <Button onClick={() => openForm()}>Add Role</Button>
+        {canManage && <Button onClick={() => openForm()}>Add Role</Button>}
       </div>
 
       <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
@@ -177,6 +185,11 @@ export default function Roles() {
                   <TableRow key={role.id}>
                     <TableCell className="font-medium capitalize">
                       {role.name}
+                      {role.is_builtin && (
+                        <span className="ml-2 rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 normal-case dark:bg-amber-900/40 dark:text-amber-200">
+                          Bawaan
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium dark:bg-zinc-800">
@@ -184,20 +197,32 @@ export default function Roles() {
                       </span>
                     </TableCell>
                     <TableCell className="space-x-2 text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openForm(role)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => confirmDelete(role.id)}
-                      >
-                        Delete
-                      </Button>
+                      {role.is_builtin || !canManage ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openForm(role, true)}
+                        >
+                          Lihat
+                        </Button>
+                      ) : (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openForm(role)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => confirmDelete(role.id)}
+                          >
+                            Delete
+                          </Button>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -210,7 +235,14 @@ export default function Roles() {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{form.id ? "Edit Role" : "Add Role"}</DialogTitle>
+            <DialogTitle>
+              {readOnly ? "Lihat Role" : form.id ? "Edit Role" : "Add Role"}
+            </DialogTitle>
+            <DialogDescription>
+              {readOnly
+                ? "Role bawaan dikelola seeder sistem dan tidak bisa diubah di sini."
+                : "Pilih permission yang dimiliki role ini."}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
@@ -220,7 +252,7 @@ export default function Roles() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
                 placeholder="e.g. manager"
-                disabled={form.name === "administrator"} // protect admin role rename
+                disabled={readOnly}
               />
             </div>
 
@@ -233,6 +265,7 @@ export default function Roles() {
                       id={`perm-${perm.id}`}
                       checked={form.permissions.includes(perm.name)}
                       onCheckedChange={() => togglePermission(perm.name)}
+                      disabled={readOnly}
                     />
                     <label
                       htmlFor={`perm-${perm.id}`}
@@ -256,11 +289,13 @@ export default function Roles() {
                 variant="outline"
                 onClick={() => setModalOpen(false)}
               >
-                Cancel
+                {readOnly ? "Tutup" : "Cancel"}
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : "Save"}
-              </Button>
+              {!readOnly && (
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Saving..." : "Save"}
+                </Button>
+              )}
             </div>
           </form>
         </DialogContent>
