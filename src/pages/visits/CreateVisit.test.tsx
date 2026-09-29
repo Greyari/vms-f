@@ -135,6 +135,126 @@ describe('CreateVisit Page', () => {
     expect(submitBtn).toBeDisabled()
   })
 
+  const masterData = (url: string) => {
+    if (url.includes('/locations')) return Promise.resolve({ data: [{ id: 1, name: 'Dermaga 1' }] })
+    if (url.includes('/staffs')) return Promise.resolve({ data: [{ id: 10, name: 'Budi' }] })
+    if (url.includes('/cards')) return Promise.resolve({ data: [{ id: 20, card_no: 'V-001', status: 'available' }] })
+    return Promise.resolve({ data: [] })
+  }
+
+  it('loads a scanned pre-registration, asks for gender, and sends its token (hybrid FE-4a)', async () => {
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url.includes('/pre-registrations/PR-AAAA-BBBB-CCCC')) {
+        return Promise.resolve({
+          data: {
+            data: {
+              token: 'PR-AAAA-BBBB-CCCC', id_type: 'ktp', id_number: '3210000000000009', name: 'Siti Aminah',
+              company: 'PT Contoh', phone: '0812', gender: null, purpose: 'Survey', host_name: 'Pak Andi',
+              host_department: null, scheduled_date: '2026-10-01', vehicle_no: 'BP 1234 XY', status: 'pending',
+            },
+          },
+        })
+      }
+      if (url.includes('/visitors/check-ktp/')) return Promise.resolve({ data: { data: null, global_blacklist: [] } })
+      return masterData(url)
+    })
+    vi.mocked(api.post).mockResolvedValue({ data: { visit: { id: 'v-1' } } })
+
+    render(
+      <MemoryRouter>
+        <CreateVisit />
+      </MemoryRouter>
+    )
+
+    fireEvent.change(screen.getByLabelText(/kode pra-registrasi/i), { target: { value: 'pr-aaaa-bbbb-cccc' } })
+    fireEvent.click(screen.getByRole('button', { name: /muat/i }))
+
+    await waitFor(() => expect(screen.getByDisplayValue('Siti Aminah')).toBeInTheDocument())
+    expect(screen.getByDisplayValue('BP 1234 XY')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText(/location/i), { target: { value: '1' } })
+    fireEvent.change(screen.getByLabelText(/jenis kelamin/i), { target: { value: 'F' } })
+    fireEvent.click(screen.getByRole('button', { name: /save & print ticket/i }))
+
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith(
+        '/visits',
+        expect.objectContaining({
+          pre_registration_token: 'PR-AAAA-BBBB-CCCC',
+          gender: 'F',
+          vehicle_no: 'BP 1234 XY',
+          host_name: 'Pak Andi',
+        })
+      )
+    )
+  })
+
+  it('shows the global blacklist block and lets a supervisor override one visit (hybrid SEC-7)', async () => {
+    const hit = { id_type: 'ktp', name: 'Budi', reason_category: 'k3_violation', reason_label: 'Pelanggaran K3', registered_by_yard: 'ASL' }
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url.includes('/visitors/check-ktp/')) return Promise.resolve({ data: { data: null, global_blacklist: [hit] } })
+      return masterData(url)
+    })
+    vi.mocked(api.post)
+      .mockRejectedValueOnce({
+        response: { status: 422, data: { message: 'This visitor is on the global blacklist.', global_blacklist: hit, can_override: true } },
+      })
+      .mockResolvedValueOnce({ data: { visit: { id: 'v-2' } } })
+
+    render(
+      <MemoryRouter>
+        <CreateVisit />
+      </MemoryRouter>
+    )
+
+    fireEvent.change(screen.getByLabelText(/id number/i), { target: { value: '3210000000000001' } })
+    fireEvent.click(screen.getByRole('button', { name: /check|search/i }))
+    expect(await screen.findByText('BLACKLIST GLOBAL')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText(/visitor name/i), { target: { value: 'Budi' } })
+    fireEvent.change(screen.getByLabelText(/location/i), { target: { value: '1' } })
+    fireEvent.change(screen.getByLabelText(/purpose of visit/i), { target: { value: 'Delivery' } })
+    fireEvent.click(screen.getByRole('button', { name: /save & print ticket/i }))
+
+    expect(await screen.findByRole('heading', { name: /loloskan satu kunjungan/i })).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/alasan/i), { target: { value: 'Dikonfirmasi ASL: salah orang' } })
+    fireEvent.click(screen.getByRole('button', { name: /loloskan & check-in/i }))
+
+    await waitFor(() =>
+      expect(api.post).toHaveBeenLastCalledWith(
+        '/visits',
+        expect.objectContaining({ override_global_blacklist: true, override_reason: 'Dikonfirmasi ASL: salah orang' })
+      )
+    )
+  })
+
+  it('warns without blocking when the number is listed under another document type (hybrid SEC-4)', async () => {
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url.includes('/visitors/check-ktp/')) {
+        return Promise.resolve({
+          data: {
+            data: null,
+            global_blacklist: [{ id_type: 'passport', name: 'X', reason_category: 'other', reason_label: 'Lainnya', registered_by_yard: 'ASL' }],
+          },
+        })
+      }
+      return masterData(url)
+    })
+
+    render(
+      <MemoryRouter>
+        <CreateVisit />
+      </MemoryRouter>
+    )
+
+    fireEvent.change(screen.getByLabelText(/id number/i), { target: { value: '3210000000000001' } })
+    fireEvent.click(screen.getByRole('button', { name: /check|search/i }))
+
+    expect(await screen.findByText(/sebagai PASSPORT/)).toBeInTheDocument()
+    expect(screen.queryByText('BLACKLIST GLOBAL')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /save & print ticket/i })).not.toBeDisabled()
+  })
+
   it('shows close_open_visits confirmation dialog on 422 conflict and retries', async () => {
     vi.mocked(api.get).mockImplementation((url: string) => {
       if (url.includes('/visitors/check-ktp/1111222233334444')) {

@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import App from './App'
 import api from '@/lib/axios'
+import { resetAppConfigCache } from '@/lib/appConfig'
 
 vi.mock('@/lib/axios')
 
@@ -20,7 +21,13 @@ describe('App Router Integration', () => {
       })
     )
 
+    resetAppConfigCache()
     vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url === '/app-config') {
+        return Promise.resolve({
+          data: { company_name: 'PT. ASL Shipyard Indonesia', company_address: '', logo_url: null, yard_code: 'ASL' },
+        })
+      }
       if (url.includes('/visits/reprint')) {
         return Promise.resolve({ data: [] })
       }
@@ -67,7 +74,7 @@ describe('App Router Integration', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole('heading', { name: 'PT CEMARA INTAN SHIPYARD' })
+        screen.getByRole('heading', { name: 'PT. ASL SHIPYARD INDONESIA' })
       ).toBeInTheDocument()
       expect(
         screen.getByRole('heading', { name: 'VISITOR ENTRY PASS' })

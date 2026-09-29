@@ -39,8 +39,17 @@ belongs to the guest portal (decision B-3); do not re-enable it.
   render `pages/NotFound.tsx`.
 - **Built-in roles are read-only** (`administrator`, `supervisor`, `security`; decision FE-3-ROLE): `Roles.tsx`
   reads `is_builtin` from `/api/roles` and offers only "Lihat" for them; the API refuses changes with 422 anyway.
-- Company name on the pass and PDFs is still hard-coded to the CIS pilot's name; per-yard branding from
-  `/api/app-config` is decision PE-7 (not built yet).
+- **Company name, address and logo on the pass come from `GET /api/app-config`** (decision PE-7, 2026-09-29),
+  through `useAppConfig()` in `src/lib/appConfig.ts`: one build serves every yard, each yard's `.env` names its
+  company (`VMS_COMPANY_*`). Never hard-code a yard's name. `PrintVisit` opens the print dialog only once the
+  config has answered (or failed — then it prints "VISITOR MANAGEMENT SYSTEM"), so paper never shows a
+  placeholder. Tests that render the pass call `resetAppConfigCache()` in `beforeEach`.
+- **Hybrid screens (roadmap step 8, 2026-09-29)**: the pre-registration code field on `CreateVisit` is its own
+  `<form>` — a USB 2D scanner types the token and presses Enter, which must not submit the check-in. Whether a
+  supervisor may override a global blacklist entry comes from the API (`can_override` on the 422), not from the
+  SPA's permission list. `SyncIndicator` hides itself on any answer that is not a sync status. Only the fixed
+  `REASON_CATEGORIES` (`src/types/hybrid.ts`) ever go to the hub; the local note stays on the gate.
+- The check-in payload field is `vehicle_no` (it was `vehicle_plate` until 2026-09-29, which the API ignored).
 
 ## Tests
 

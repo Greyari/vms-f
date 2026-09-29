@@ -37,8 +37,12 @@ import {
   AlertTriangle,
   UserCheck,
   UserPlus,
+  ScanLine,
+  Globe,
 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import type { GlobalBlacklistHit, PreRegistration } from "@/types/hybrid"
 
 interface LocationItem {
   id: number | string
@@ -101,6 +105,15 @@ export default function CreateVisit() {
   // Conflict modal state (close_open_visits = true)
   const [conflictOpen, setConflictOpen] = useState(false)
   const [conflictMessage, setConflictMessage] = useState("")
+
+  // Hybrid multi-yard (spec §6.2): scanned pre-registration, global blacklist, supervisor override.
+  const [preRegCode, setPreRegCode] = useState("")
+  const [preReg, setPreReg] = useState<PreRegistration | null>(null)
+  const [lookingUpPreReg, setLookingUpPreReg] = useState(false)
+  const [gender, setGender] = useState("")
+  const [globalEntries, setGlobalEntries] = useState<GlobalBlacklistHit[]>([])
+  const [overrideEntry, setOverrideEntry] = useState<GlobalBlacklistHit | null>(null)
+  const [overrideReason, setOverrideReason] = useState("")
 
   const [currentTime, setCurrentTime] = useState(new Date())
 
@@ -227,9 +240,60 @@ export default function CreateVisit() {
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Same number, same document type = blocked; another type = the officer checks the document (SEC-4).
+  const globalBlock = globalEntries.find((e) => e.id_type === form.id_type) ?? null
+  const globalWarnings = globalEntries.filter((e) => e.id_type !== form.id_type)
+
+  // A USB 2D scanner types the token and presses Enter; no webcam (decision FE-4a).
+  const handlePreRegLookup = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    const code = preRegCode.trim().toUpperCase()
+    if (!code) return
+
+    setLookingUpPreReg(true)
+    try {
+      const res = await api.get(`/pre-registrations/${encodeURIComponent(code)}`)
+      const found = res.data?.data as PreRegistration
+      if (found.status !== "pending") {
+        setPreReg(null)
+        toast.error(
+          found.status === "checked_in"
+            ? "Pra-registrasi ini sudah dipakai untuk check-in."
+            : "Pra-registrasi ini sudah kedaluwarsa. Layani sebagai walk-in."
+        )
+        return
+      }
+
+      setPreReg(found)
+      setGender(found.gender ?? "")
+      setForm((prev) => ({
+        ...prev,
+        id_type: found.id_type,
+        id_number: found.id_number,
+        name: found.name,
+        company: found.company ?? prev.company,
+        purpose: found.purpose ?? prev.purpose,
+        is_custom_host: Boolean(found.host_name),
+        host_name: found.host_name ?? prev.host_name,
+        vehicle_no: found.vehicle_no ?? prev.vehicle_no,
+      }))
+      toast.success(`Pra-registrasi ${found.token} dimuat.`)
+      await checkIdentity(found.id_number)
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        toast.info("Kode ini belum tersinkron di gerbang ini. Layani sebagai walk-in.")
+      } else {
+        toast.error("Gagal membaca pra-registrasi.")
+      }
+    } finally {
+      setLookingUpPreReg(false)
+    }
+  }
+
   // Probe check-ktp endpoint directly
-  const handleCheckKtp = async () => {
-    const idVal = form.id_number.trim()
+  const handleCheckKtp = () => checkIdentity(form.id_number.trim())
+
+  const checkIdentity = async (idVal: string) => {
     if (!idVal) {
       toast.error("Please enter an ID number first.")
       return
@@ -239,6 +303,7 @@ export default function CreateVisit() {
     try {
       const res = await api.get(`/visitors/check-ktp/${encodeURIComponent(idVal)}`)
       const visitor = res.data?.data
+      setGlobalEntries(Array.isArray(res.data?.global_blacklist) ? res.data.global_blacklist : [])
 
       if (!visitor) {
         setVisitorStatus("new")
@@ -340,7 +405,7 @@ export default function CreateVisit() {
     setOpenName(false)
   }
 
-  const submitVisit = async (closeOpenVisits = false) => {
+  const submitVisit = async (closeOpenVisits = false, override?: string) => {
     if (visitorStatus === "blacklisted") {
       toast.error(
         "Cannot check-in a blacklisted visitor. Contact security administrator."
@@ -358,6 +423,12 @@ export default function CreateVisit() {
       return
     }
 
+    // A pre-registration leaves gender empty; the officer completes it here (decision BE-2).
+    if (preReg && !gender) {
+      toast.error("Pilih jenis kelamin tamu pra-registrasi.")
+      return
+    }
+
     setLoading(true)
     try {
       const payload: Record<string, unknown> = {
@@ -368,8 +439,15 @@ export default function CreateVisit() {
         location_id: form.location_id,
         purpose: form.purpose.trim(),
         card_ids: form.card_ids,
-        vehicle_plate: form.vehicle_no.trim() || undefined,
+        vehicle_no: form.vehicle_no.trim() || undefined,
         vehicle_card_id: form.vehicle_card_id || undefined,
+      }
+
+      if (gender) payload.gender = gender
+      if (preReg) payload.pre_registration_token = preReg.token
+      if (override) {
+        payload.override_global_blacklist = true
+        payload.override_reason = override
       }
 
       if (form.is_custom_host) {
@@ -387,12 +465,31 @@ export default function CreateVisit() {
       const res = await api.post("/visits", payload)
       const newVisit = res.data?.visit || res.data?.data || res.data
 
+      for (const warning of (res.data?.warnings ?? []) as GlobalBlacklistHit[]) {
+        toast.warning(
+          `Nomor ini ada di blacklist global sebagai ${warning.id_type.toUpperCase()} (${warning.reason_label}, ${warning.registered_by_yard}).`
+        )
+      }
       toast.success("Visitor checked in successfully!")
       navigate(`/visits/${newVisit.id}/print`, { state: { visit: newVisit } })
     } catch (err: any) {
       console.error("Visit submission error:", err)
       const status = err.response?.status
       const msg = err.response?.data?.message || ""
+
+      // Global blacklist (SEC-7): a supervisor may let this one visit through with a reason.
+      if (status === 422 && err.response?.data?.global_blacklist) {
+        const hit = err.response.data.global_blacklist as GlobalBlacklistHit
+        if (err.response.data.can_override) {
+          setOverrideEntry(hit)
+          setOverrideReason("")
+        } else {
+          toast.error(
+            `Ditolak: blacklist global (${hit.reason_label}, didaftarkan ${hit.registered_by_yard}). Hubungi supervisor.`
+          )
+        }
+        return
+      }
 
       // Detect active open visit conflict
       if (
@@ -464,6 +561,36 @@ export default function CreateVisit() {
         </div>
       )}
 
+      {/* Global blacklist (hybrid spec §6.2): red = refused, yellow = verify the document (SEC-4) */}
+      {globalBlock && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
+          <Globe className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+          <div>
+            <span className="rounded-full bg-red-200 px-2 py-0.5 text-xs font-bold tracking-wider text-red-900 uppercase dark:bg-red-900 dark:text-red-100">
+              BLACKLIST GLOBAL
+            </span>
+            <p className="mt-1 text-sm font-medium">
+              {globalBlock.reason_label} · didaftarkan {globalBlock.registered_by_yard}
+            </p>
+            <p className="mt-1 text-xs text-red-700 dark:text-red-400">
+              Check-in ditolak. Supervisor dapat meloloskan satu kunjungan dengan alasan tertulis.
+            </p>
+          </div>
+        </div>
+      )}
+      {globalWarnings.map((w) => (
+        <div
+          key={`${w.id_type}-${w.registered_by_yard}`}
+          className="mb-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <span>
+            Nomor yang sama ada di blacklist global sebagai {w.id_type.toUpperCase()} ({w.reason_label}, didaftarkan{" "}
+            {w.registered_by_yard}). Periksa dokumen fisik dan cocokkan nama sebelum melanjutkan.
+          </span>
+        </div>
+      ))}
+
       {/* Visitor Status Badges */}
       {visitorStatus === "registered" && (
         <div className="mb-4 flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
@@ -476,6 +603,30 @@ export default function CreateVisit() {
           <UserPlus className="h-4 w-4 text-sky-600" />
           <span>New visitor detected. Please complete registration details below.</span>
         </div>
+      )}
+
+      {/* Pre-registration (decision FE-4a): the QR code carries only the token; read from the local mirror */}
+      <form onSubmit={handlePreRegLookup} className="mt-2 flex flex-col gap-2 rounded-lg border border-dashed border-zinc-300 p-4 md:flex-row md:items-end dark:border-zinc-700">
+        <div className="flex-1 space-y-2">
+          <Label htmlFor="pre_registration_code">Kode pra-registrasi / scan QR</Label>
+          <Input
+            id="pre_registration_code"
+            value={preRegCode}
+            onChange={(e) => setPreRegCode(e.target.value)}
+            placeholder="PR-XXXX-XXXX-XXXX"
+            autoComplete="off"
+          />
+        </div>
+        <Button type="submit" variant="outline" disabled={lookingUpPreReg || !preRegCode.trim()}>
+          {lookingUpPreReg ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ScanLine className="mr-2 h-4 w-4" />}
+          Muat
+        </Button>
+      </form>
+      {preReg && (
+        <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-400">
+          Pra-registrasi {preReg.token} · rencana datang {preReg.scheduled_date}
+          {preReg.host_department ? ` · ${preReg.host_department}` : ""}
+        </p>
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
@@ -493,7 +644,6 @@ export default function CreateVisit() {
               <option value="ktp">KTP</option>
               <option value="sim">SIM</option>
               <option value="passport">Passport</option>
-              <option value="other">Other</option>
             </select>
           </div>
 
@@ -647,6 +797,23 @@ export default function CreateVisit() {
               placeholder="e.g. PT Mitra Maritim"
             />
           </div>
+
+          {preReg && (
+            <div className="space-y-2">
+              <Label htmlFor="gender">Jenis Kelamin</Label>
+              <select
+                id="gender"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                required
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+              >
+                <option value="">-- Pilih --</option>
+                <option value="M">Laki-laki</option>
+                <option value="F">Perempuan</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Step 3: Location / Vessel & Purpose */}
@@ -984,6 +1151,48 @@ export default function CreateVisit() {
               className="bg-amber-600 hover:bg-amber-700 text-white"
             >
               {loading ? "Memproses..." : "Tutup Kunjungan Lama & Check-In"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Supervisor override of a global entry (decision SEC-7): one visit, reason required, audited */}
+      <Dialog open={overrideEntry !== null} onOpenChange={(open) => !open && setOverrideEntry(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Globe className="h-5 w-5" />
+              Loloskan Satu Kunjungan
+            </DialogTitle>
+            <DialogDescription className="text-zinc-700 dark:text-zinc-300">
+              Tamu ini ada di blacklist global ({overrideEntry?.reason_label}, didaftarkan{" "}
+              {overrideEntry?.registered_by_yard}). Override hanya untuk kunjungan ini, tercatat di activity log,
+              dan tidak mencabut entri global.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="override_reason">Alasan (minimal 10 karakter)</Label>
+            <Textarea
+              id="override_reason"
+              rows={3}
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter className="mt-4 gap-2">
+            <Button variant="outline" onClick={() => setOverrideEntry(null)} disabled={loading}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={loading || overrideReason.trim().length < 10}
+              onClick={() => {
+                const reason = overrideReason.trim()
+                setOverrideEntry(null)
+                submitVisit(false, reason)
+              }}
+            >
+              Loloskan & Check-In
             </Button>
           </DialogFooter>
         </DialogContent>

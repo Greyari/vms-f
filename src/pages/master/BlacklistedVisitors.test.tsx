@@ -103,6 +103,29 @@ describe('BlacklistedVisitors Master Page', () => {
     })
   })
 
+  it('queues a promotion to the global blacklist with a fixed category and a local note (hybrid PE-5)', async () => {
+    vi.mocked(api.post).mockResolvedValue({ data: { data: { id: 'o-1', status: 'pending' } } })
+    render(
+      <BrowserRouter>
+        <BlacklistedVisitors />
+      </BrowserRouter>
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: /naikkan ke global/i }))
+    expect(await screen.findByRole('heading', { name: /naikkan ke blacklist global/i })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText(/kategori alasan/i), { target: { value: 'misconduct' } })
+    fireEvent.click(screen.getAllByRole('button', { name: /naikkan ke global/i }).at(-1) as HTMLElement)
+
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith('/global-blacklists', {
+        visitor_id: 99,
+        reason_category: 'misconduct',
+        local_note: 'Melanggar SOP dermaga barat',
+      })
+    )
+  })
+
   it('triggers export API call when Export Excel button is clicked', async () => {
     render(
       <BrowserRouter>

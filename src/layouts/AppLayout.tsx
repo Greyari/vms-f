@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { permissionFor, type GuardedPath } from "../lib/routePermissions"
+import SyncIndicator from "../components/sync/SyncIndicator"
 import {
   Users,
   ClipboardList,
@@ -262,6 +263,10 @@ export default function AppLayout() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
+        {/* Cloud hub sync indicator (hybrid decisions FE-4c, PE-6) */}
+        <div className="flex h-14 items-center justify-end border-b border-zinc-200 bg-white px-6 dark:border-zinc-800 dark:bg-zinc-950">
+          <SyncIndicator canRun={hasPermission("manage_blacklist")} />
+        </div>
         <div className="max-w-10xl container mx-auto p-6">
           <Outlet />
         </div>

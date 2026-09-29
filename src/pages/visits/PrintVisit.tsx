@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams, Link } from "react-router-dom"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { FALLBACK_COMPANY_NAME, useAppConfig } from "@/lib/appConfig"
 import { useAuth } from "@/context/AuthContext"
 import { Loader2, Printer, PlusCircle, ArrowLeft } from "lucide-react"
 
@@ -10,17 +11,23 @@ export default function PrintVisit() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
+  // Whose name goes on the pass comes from this yard's server (decision PE-7).
+  const { config, ready: configReady } = useAppConfig()
 
   const [visit, setVisit] = useState<any>(location.state?.visit || null)
   const [loading, setLoading] = useState<boolean>(!location.state?.visit)
 
+  // Print once both the pass and the yard's name are known, so paper never shows a placeholder.
   useEffect(() => {
-    if (visit) {
-      const timer = setTimeout(() => {
-        window.print()
-      }, 500)
-      return () => clearTimeout(timer)
-    }
+    if (!visit || !configReady) return
+    const timer = setTimeout(() => {
+      window.print()
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [visit, configReady])
+
+  useEffect(() => {
+    if (visit) return
 
     // Fallback: fetch pass data from API when directly navigated or refreshed
     if (id) {
@@ -30,9 +37,6 @@ export default function PrintVisit() {
         .then((res) => {
           const visitData = res.data?.visit || res.data?.data || res.data
           setVisit(visitData)
-          setTimeout(() => {
-            window.print()
-          }, 500)
         })
         .catch((err) => {
           console.error("Failed to fetch visit pass for print:", err)
@@ -82,6 +86,7 @@ export default function PrintVisit() {
     visit.visitor_cards?.map((c: any) => c.card_no).filter(Boolean).join(", ") ||
     visit.card_no ||
     "-"
+  const companyName = config.company_name.trim()
 
   return (
     <div className="min-h-screen bg-white font-sans text-black print:w-full print:p-0">
@@ -117,9 +122,19 @@ export default function PrintVisit() {
         <div className="flex flex-col border-2 border-black p-3">
           {/* Header Ticket */}
           <div className="mb-2 border-b-2 border-black pb-1 text-center">
+            {config.logo_url && (
+              <img
+                src={config.logo_url}
+                alt=""
+                className="mx-auto mb-0.5 h-8 w-auto object-contain"
+              />
+            )}
             <h1 className="text-lg font-black tracking-widest uppercase">
-              PT CEMARA INTAN SHIPYARD
+              {(companyName || FALLBACK_COMPANY_NAME).toUpperCase()}
             </h1>
+            {config.company_address && (
+              <p className="text-[9px] text-zinc-700">{config.company_address}</p>
+            )}
             <h2 className="text-sm font-bold tracking-wider uppercase text-zinc-800">
               VISITOR ENTRY PASS
             </h2>
@@ -252,7 +267,7 @@ export default function PrintVisit() {
               </p>
               <ul className="list-inside list-disc space-y-0.5 text-zinc-800">
                 <li>Visitor pass must be visibly worn at all times in yard.</li>
-                <li>PT Cemara Intan Shipyard is not liable for injury or property loss.</li>
+                <li>{companyName || "The company"} is not liable for injury or property loss.</li>
                 <li>Report lost pass immediately to Security. Replacement fee: Rp. 50,000.</li>
               </ul>
             </div>

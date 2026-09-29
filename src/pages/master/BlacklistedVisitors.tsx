@@ -19,9 +19,13 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import GlobalBlacklistPanel from "./GlobalBlacklistPanel"
+import { REASON_CATEGORIES, type ReasonCategory } from "@/types/hybrid"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +46,7 @@ import {
   Upload,
   ArrowLeft,
   Plus,
+  Globe,
 } from "lucide-react"
 
 interface BlacklistedVisitor {
@@ -89,6 +94,37 @@ export default function BlacklistedVisitors() {
   const [importLoading, setImportLoading] = useState(false)
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
+
+  // "Naikkan ke global" (hybrid decisions PE-5, FE-4b): a fixed category travels, the note stays here.
+  const [promoteTarget, setPromoteTarget] = useState<BlacklistedVisitor | null>(null)
+  const [promoteCategory, setPromoteCategory] = useState<ReasonCategory | "">("")
+  const [promoteNote, setPromoteNote] = useState("")
+  const [promoting, setPromoting] = useState(false)
+
+  const openPromote = (visitor: BlacklistedVisitor) => {
+    setPromoteTarget(visitor)
+    setPromoteCategory("")
+    setPromoteNote(visitor.blacklist_reason ?? "")
+  }
+
+  const submitPromote = async () => {
+    if (!promoteTarget || !promoteCategory || !promoteNote.trim()) return
+    setPromoting(true)
+    try {
+      await api.post("/global-blacklists", {
+        visitor_id: promoteTarget.id,
+        reason_category: promoteCategory,
+        local_note: promoteNote.trim(),
+      })
+      toast.success("Masuk antrean; dikirim ke Cloud Hub pada siklus sync berikutnya.")
+      setPromoteTarget(null)
+    } catch (err: any) {
+      const errors = err.response?.data?.errors
+      toast.error(errors?.visitor_id?.[0] || err.response?.data?.message || "Gagal menaikkan ke blacklist global.")
+    } finally {
+      setPromoting(false)
+    }
+  }
 
   const fetchBlacklisted = useCallback(async () => {
     setLoading(true)
@@ -272,7 +308,7 @@ export default function BlacklistedVisitors() {
           </Button>
           <h1 className="text-2xl font-bold">Daftar Pengunjung Blacklist</h1>
           <p className="text-muted-foreground text-sm">
-            Daftar individu yang dilarang memasuki kawasan galangan ASL Shipyard.
+            Daftar individu yang dilarang memasuki kawasan galangan.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -309,6 +345,17 @@ export default function BlacklistedVisitors() {
         </div>
       </div>
 
+      <Tabs defaultValue="local" className="gap-4">
+        <TabsList>
+          <TabsTrigger value="local">Lokal</TabsTrigger>
+          <TabsTrigger value="global">Global</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="global">
+          <GlobalBlacklistPanel />
+        </TabsContent>
+
+        <TabsContent value="local">
       {/* Filter Card */}
       <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mb-4 flex items-center justify-between">
@@ -391,7 +438,15 @@ export default function BlacklistedVisitors() {
                           {visitor.blacklist_reason || "-"}
                         </span>
                       </TableCell>
-                      <TableCell className="text-center whitespace-nowrap">
+                      <TableCell className="space-x-2 text-center whitespace-nowrap">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openPromote(visitor)}
+                        >
+                          <Globe className="mr-1.5 h-4 w-4" />
+                          Naikkan ke global
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -436,6 +491,56 @@ export default function BlacklistedVisitors() {
           </div>
         </div>
       </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialog Naikkan ke Blacklist Global */}
+      <Dialog open={promoteTarget !== null} onOpenChange={(open) => !open && setPromoteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Naikkan ke Blacklist Global</DialogTitle>
+            <DialogDescription>
+              {promoteTarget?.name} ({promoteTarget?.id_number}) akan ditolak di semua yard setelah sinkron. Hanya
+              kategori yang dikirim ke yard lain; catatan di bawah tetap di yard ini.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="promote-category">Kategori alasan</Label>
+              <select
+                id="promote-category"
+                value={promoteCategory}
+                onChange={(e) => setPromoteCategory(e.target.value as ReasonCategory)}
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 text-sm dark:border-zinc-800"
+              >
+                <option value="">-- Pilih kategori --</option>
+                {REASON_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="promote-note">Catatan lokal (tidak dikirim)</Label>
+              <Textarea id="promote-note" rows={3} value={promoteNote} onChange={(e) => setPromoteNote(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPromoteTarget(null)} disabled={promoting}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={submitPromote}
+              disabled={promoting || !promoteCategory || !promoteNote.trim()}
+            >
+              {promoting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Naikkan ke global
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog Tambah ke Daftar Blacklist */}
       <Dialog open={addBlacklistModalOpen} onOpenChange={setAddBlacklistModalOpen}>
@@ -541,7 +646,7 @@ export default function BlacklistedVisitors() {
             <AlertDialogTitle>Konfirmasi Pencabutan Blacklist</AlertDialogTitle>
             <AlertDialogDescription>
               Pengunjung ini akan diizinkan kembali untuk melakukan kunjungan ke
-              kawasan galangan ASL Shipyard.
+              kawasan galangan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

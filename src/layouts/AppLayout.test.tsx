@@ -5,6 +5,11 @@ import AppLayout from './AppLayout'
 import * as AuthContextModule from '../context/AuthContext'
 import type { User } from '../types/auth'
 
+// The header's sync indicator polls /sync/status; nothing here should reach the network.
+vi.mock('@/lib/axios', () => ({
+  default: { get: vi.fn(() => Promise.resolve({ data: null })), post: vi.fn() },
+}))
+
 describe('AppLayout RBAC Navigation', () => {
   const setupUserWithPermissions = (user: User) => {
     vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
