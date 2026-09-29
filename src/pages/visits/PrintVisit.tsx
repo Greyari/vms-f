@@ -53,7 +53,7 @@ export default function PrintVisit() {
 
   if (loading) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-3 bg-zinc-50 dark:bg-zinc-950 font-sans">
+      <div className="flex h-screen flex-col items-center justify-center gap-3 bg-zinc-50 font-sans dark:bg-zinc-950">
         <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
         <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
           Memuat data pass pengunjung...
@@ -64,7 +64,7 @@ export default function PrintVisit() {
 
   if (!visit) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 p-10 font-sans text-center">
+      <div className="flex h-screen flex-col items-center justify-center gap-4 p-10 text-center font-sans">
         <p className="text-base font-semibold text-red-600">
           Data tiket pass tidak ditemukan.
         </p>
@@ -83,7 +83,10 @@ export default function PrintVisit() {
   const ticketNo =
     visit.ticket_number || visit.legacy_registration_no || `#${visit.id}`
   const cardsText =
-    visit.visitor_cards?.map((c: any) => c.card_no).filter(Boolean).join(", ") ||
+    visit.visitor_cards
+      ?.map((c: any) => c.card_no)
+      .filter(Boolean)
+      .join(", ") ||
     visit.card_no ||
     "-"
   const companyName = config.company_name.trim()
@@ -133,12 +136,14 @@ export default function PrintVisit() {
               {(companyName || FALLBACK_COMPANY_NAME).toUpperCase()}
             </h1>
             {config.company_address && (
-              <p className="text-[9px] text-zinc-700">{config.company_address}</p>
+              <p className="text-[9px] text-zinc-700">
+                {config.company_address}
+              </p>
             )}
-            <h2 className="text-sm font-bold tracking-wider uppercase text-zinc-800">
+            <h2 className="text-sm font-bold tracking-wider text-zinc-800 uppercase">
               VISITOR ENTRY PASS
             </h2>
-            <p className="text-xs font-mono font-bold tracking-widest text-zinc-900">
+            <p className="font-mono text-xs font-bold tracking-widest text-zinc-900">
               NO: {ticketNo}
             </p>
           </div>
@@ -147,12 +152,12 @@ export default function PrintVisit() {
             <tbody>
               <tr>
                 {/* Column 1 */}
-                <td className="w-1/2 border-r border-gray-400 pr-3 align-top space-y-1">
+                <td className="w-1/2 space-y-1 border-r border-gray-400 pr-3 align-top">
                   <div className="flex border-b border-gray-300 pb-0.5">
                     <span className="inline-block w-32 font-bold text-gray-700">
                       VISITOR NAME
                     </span>
-                    <span className="uppercase font-bold">
+                    <span className="font-bold uppercase">
                       : {visit.visitor?.name || visit.visitor_name || "-"}
                     </span>
                   </div>
@@ -160,7 +165,7 @@ export default function PrintVisit() {
                     <span className="inline-block w-32 font-bold text-gray-700">
                       {visit.visitor?.id_type?.toUpperCase() || "IDENTITAS"}
                     </span>
-                    <span className="uppercase font-mono">
+                    <span className="font-mono uppercase">
                       : {visit.visitor?.id_number || "-"}
                     </span>
                   </div>
@@ -176,7 +181,7 @@ export default function PrintVisit() {
                     <span className="inline-block w-32 font-bold text-gray-700">
                       DESTINATION
                     </span>
-                    <span className="uppercase font-bold">
+                    <span className="font-bold uppercase">
                       : {visit.location_name || visit.location?.name || "-"}
                     </span>
                   </div>
@@ -192,35 +197,43 @@ export default function PrintVisit() {
                     <span className="inline-block w-32 font-bold text-gray-700">
                       ID CARDS
                     </span>
-                    <span className="uppercase font-mono font-bold">
+                    <span className="font-mono font-bold uppercase">
                       : {cardsText}
                     </span>
                   </div>
                 </td>
 
                 {/* Column 2 */}
-                <td className="w-1/2 pl-3 align-top space-y-1">
+                <td className="w-1/2 space-y-1 pl-3 align-top">
                   <div className="flex border-b border-gray-300 pb-0.5">
                     <span className="inline-block w-32 font-bold text-gray-700">
                       DATE
                     </span>
-                    <span className="uppercase font-mono">
-                      : {visit.date || (visit.check_in_at ? visit.check_in_at.slice(0, 10) : "-")}
+                    <span className="font-mono uppercase">
+                      :{" "}
+                      {visit.date ||
+                        (visit.check_in_at
+                          ? visit.check_in_at.slice(0, 10)
+                          : "-")}
                     </span>
                   </div>
                   <div className="flex border-b border-gray-300 pb-0.5">
                     <span className="inline-block w-32 font-bold text-gray-700">
                       TIME IN
                     </span>
-                    <span className="uppercase font-mono font-bold">
-                      : {visit.time_in || (visit.check_in_at ? visit.check_in_at.slice(11, 16) : "-")}
+                    <span className="font-mono font-bold uppercase">
+                      :{" "}
+                      {visit.time_in ||
+                        (visit.check_in_at
+                          ? visit.check_in_at.slice(11, 16)
+                          : "-")}
                     </span>
                   </div>
                   <div className="flex border-b border-gray-300 pb-0.5">
                     <span className="inline-block w-32 font-bold text-gray-700">
                       VEHICLE NO
                     </span>
-                    <span className="uppercase font-mono">
+                    <span className="font-mono uppercase">
                       : {visit.vehicle_plate || visit.vehicle_no || "-"}
                     </span>
                   </div>
@@ -228,15 +241,18 @@ export default function PrintVisit() {
                     <span className="inline-block w-32 font-bold text-gray-700">
                       VEHICLE CARD
                     </span>
-                    <span className="uppercase font-mono">
-                      : {visit.vehicle_card?.card_no || visit.vehicleCard?.card_no || "-"}
+                    <span className="font-mono uppercase">
+                      :{" "}
+                      {visit.vehicle_card?.card_no ||
+                        visit.vehicleCard?.card_no ||
+                        "-"}
                     </span>
                   </div>
                   <div className="flex pb-0.5">
                     <span className="inline-block w-32 font-bold text-gray-700">
                       TIME OUT
                     </span>
-                    <span className="uppercase font-mono">
+                    <span className="font-mono uppercase">
                       : {visit.time_out || "-"}
                     </span>
                   </div>
@@ -250,7 +266,7 @@ export default function PrintVisit() {
                     <span className="inline-block w-32 font-bold text-gray-700">
                       PURPOSE
                     </span>
-                    <span className="uppercase font-semibold">
+                    <span className="font-semibold uppercase">
                       : {visit.purpose || "-"}
                     </span>
                   </div>
@@ -267,8 +283,14 @@ export default function PrintVisit() {
               </p>
               <ul className="list-inside list-disc space-y-0.5 text-zinc-800">
                 <li>Visitor pass must be visibly worn at all times in yard.</li>
-                <li>{companyName || "The company"} is not liable for injury or property loss.</li>
-                <li>Report lost pass immediately to Security. Replacement fee: Rp. 50,000.</li>
+                <li>
+                  {companyName || "The company"} is not liable for injury or
+                  property loss.
+                </li>
+                <li>
+                  Report lost pass immediately to Security. Replacement fee: Rp.
+                  50,000.
+                </li>
               </ul>
             </div>
             <div className="pl-2">
@@ -276,9 +298,17 @@ export default function PrintVisit() {
                 Ketentuan Yard:
               </p>
               <ul className="list-inside list-disc space-y-0.5 text-zinc-800">
-                <li>Pass harus selalu dikenakan selama berada di area galangan.</li>
-                <li>Perusahaan tidak bertanggung jawab atas cedera atau kehilangan barang.</li>
-                <li>Pass hilang segera lapor Pos Sekuriti. Biaya penggantian: Rp 50.000.</li>
+                <li>
+                  Pass harus selalu dikenakan selama berada di area galangan.
+                </li>
+                <li>
+                  Perusahaan tidak bertanggung jawab atas cedera atau kehilangan
+                  barang.
+                </li>
+                <li>
+                  Pass hilang segera lapor Pos Sekuriti. Biaya penggantian: Rp
+                  50.000.
+                </li>
               </ul>
             </div>
           </div>
@@ -287,18 +317,14 @@ export default function PrintVisit() {
           <div className="mt-2 grid grid-cols-3 gap-4 text-center text-xs font-bold uppercase">
             <div>
               <div className="h-10"></div>
-              <div className="border-t border-black pt-1">
-                Security Duty
-              </div>
+              <div className="border-t border-black pt-1">Security Duty</div>
               <p className="mt-0.5 font-mono text-[9px] font-normal text-zinc-600">
                 Printed By: {printedBy}
               </p>
             </div>
             <div>
               <div className="h-10"></div>
-              <div className="border-t border-black pt-1">
-                Host / Staff
-              </div>
+              <div className="border-t border-black pt-1">Host / Staff</div>
             </div>
             <div>
               <div className="h-10"></div>
@@ -313,21 +339,21 @@ export default function PrintVisit() {
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3 print:hidden">
           <button
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 cursor-pointer"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800"
           >
             <Printer className="h-4 w-4" />
             Print Pass Now
           </button>
           <button
             onClick={() => navigate("/visits/create")}
-            className="inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 cursor-pointer"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
           >
             <PlusCircle className="h-4 w-4" />
             Add New Visit
           </button>
           <button
             onClick={() => navigate("/visits/activate")}
-            className="inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 cursor-pointer"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Active Visits

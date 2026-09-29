@@ -25,7 +25,10 @@ export const FALLBACK_COMPANY_NAME = "Visitor Management System"
 let pending: Promise<AppConfig> | null = null
 
 function asAppConfig(data: unknown): AppConfig {
-  const d = (data && typeof data === "object" ? data : {}) as Record<string, unknown>
+  const d = (data && typeof data === "object" ? data : {}) as Record<
+    string,
+    unknown
+  >
   const text = (value: unknown) => (typeof value === "string" ? value : "")
   const logo = d.logo_url
 
@@ -33,7 +36,8 @@ function asAppConfig(data: unknown): AppConfig {
     company_name: text(d.company_name),
     company_address: text(d.company_address),
     // Only a file the gate itself serves from public/branding/.
-    logo_url: typeof logo === "string" && logo.startsWith("/branding/") ? logo : null,
+    logo_url:
+      typeof logo === "string" && logo.startsWith("/branding/") ? logo : null,
     yard_code: text(d.yard_code),
   }
 }

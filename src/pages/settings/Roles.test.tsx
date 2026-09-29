@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react"
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import Roles from "./Roles"
 import api from "@/lib/axios"
@@ -38,7 +44,12 @@ describe("Roles settings page", () => {
       Promise.resolve(
         url === "/roles"
           ? { data: roles }
-          : { data: [{ id: 1, name: "view_visits" }, { id: 2, name: "create_visits" }] }
+          : {
+              data: [
+                { id: 1, name: "view_visits" },
+                { id: 2, name: "create_visits" },
+              ],
+            }
       )
     )
   })
@@ -46,25 +57,43 @@ describe("Roles settings page", () => {
   it("shows a built-in role as read-only and a custom role as editable", async () => {
     render(<Roles />)
 
-    const builtInRow = (await screen.findByText("security")).closest("tr") as HTMLElement
+    const builtInRow = (await screen.findByText("security")).closest(
+      "tr"
+    ) as HTMLElement
     expect(within(builtInRow).getByText(/bawaan/i)).toBeInTheDocument()
-    expect(within(builtInRow).getByRole("button", { name: /lihat/i })).toBeInTheDocument()
-    expect(within(builtInRow).queryByRole("button", { name: /edit/i })).not.toBeInTheDocument()
-    expect(within(builtInRow).queryByRole("button", { name: /delete/i })).not.toBeInTheDocument()
+    expect(
+      within(builtInRow).getByRole("button", { name: /lihat/i })
+    ).toBeInTheDocument()
+    expect(
+      within(builtInRow).queryByRole("button", { name: /edit/i })
+    ).not.toBeInTheDocument()
+    expect(
+      within(builtInRow).queryByRole("button", { name: /delete/i })
+    ).not.toBeInTheDocument()
 
-    const customRow = screen.getByText("gate trainee").closest("tr") as HTMLElement
-    expect(within(customRow).getByRole("button", { name: /edit/i })).toBeInTheDocument()
-    expect(within(customRow).getByRole("button", { name: /delete/i })).toBeInTheDocument()
+    const customRow = screen
+      .getByText("gate trainee")
+      .closest("tr") as HTMLElement
+    expect(
+      within(customRow).getByRole("button", { name: /edit/i })
+    ).toBeInTheDocument()
+    expect(
+      within(customRow).getByRole("button", { name: /delete/i })
+    ).toBeInTheDocument()
   })
 
   it("opens a built-in role without a way to save it", async () => {
     render(<Roles />)
 
-    const builtInRow = (await screen.findByText("security")).closest("tr") as HTMLElement
+    const builtInRow = (await screen.findByText("security")).closest(
+      "tr"
+    ) as HTMLElement
     fireEvent.click(within(builtInRow).getByRole("button", { name: /lihat/i }))
 
     const dialog = await screen.findByRole("dialog")
-    expect(within(dialog).queryByRole("button", { name: /save/i })).not.toBeInTheDocument()
+    expect(
+      within(dialog).queryByRole("button", { name: /save/i })
+    ).not.toBeInTheDocument()
     within(dialog)
       .getAllByRole("checkbox")
       .forEach((box) => expect(box).toBeDisabled())
@@ -75,9 +104,15 @@ describe("Roles settings page", () => {
     render(<Roles />)
 
     await screen.findByText("gate trainee")
-    expect(screen.queryByRole("button", { name: /add role/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /edit/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /delete/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /add role/i })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /edit/i })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /delete/i })
+    ).not.toBeInTheDocument()
     await waitFor(() => expect(api.get).toHaveBeenCalledWith("/roles"))
   })
 })

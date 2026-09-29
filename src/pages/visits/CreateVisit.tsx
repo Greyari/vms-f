@@ -112,7 +112,9 @@ export default function CreateVisit() {
   const [lookingUpPreReg, setLookingUpPreReg] = useState(false)
   const [gender, setGender] = useState("")
   const [globalEntries, setGlobalEntries] = useState<GlobalBlacklistHit[]>([])
-  const [overrideEntry, setOverrideEntry] = useState<GlobalBlacklistHit | null>(null)
+  const [overrideEntry, setOverrideEntry] = useState<GlobalBlacklistHit | null>(
+    null
+  )
   const [overrideReason, setOverrideReason] = useState("")
 
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -164,7 +166,10 @@ export default function CreateVisit() {
           : locRes.data?.data || []
         setLocations(locData)
         if (locData.length > 0 && !form.location_id) {
-          setForm((prev) => ({ ...prev, location_id: locData[0].id.toString() }))
+          setForm((prev) => ({
+            ...prev,
+            location_id: locData[0].id.toString(),
+          }))
         }
 
         // Parse staff
@@ -241,7 +246,8 @@ export default function CreateVisit() {
   }
 
   // Same number, same document type = blocked; another type = the officer checks the document (SEC-4).
-  const globalBlock = globalEntries.find((e) => e.id_type === form.id_type) ?? null
+  const globalBlock =
+    globalEntries.find((e) => e.id_type === form.id_type) ?? null
   const globalWarnings = globalEntries.filter((e) => e.id_type !== form.id_type)
 
   // A USB 2D scanner types the token and presses Enter; no webcam (decision FE-4a).
@@ -252,7 +258,9 @@ export default function CreateVisit() {
 
     setLookingUpPreReg(true)
     try {
-      const res = await api.get(`/pre-registrations/${encodeURIComponent(code)}`)
+      const res = await api.get(
+        `/pre-registrations/${encodeURIComponent(code)}`
+      )
       const found = res.data?.data as PreRegistration
       if (found.status !== "pending") {
         setPreReg(null)
@@ -281,7 +289,9 @@ export default function CreateVisit() {
       await checkIdentity(found.id_number)
     } catch (err: any) {
       if (err.response?.status === 404) {
-        toast.info("Kode ini belum tersinkron di gerbang ini. Layani sebagai walk-in.")
+        toast.info(
+          "Kode ini belum tersinkron di gerbang ini. Layani sebagai walk-in."
+        )
       } else {
         toast.error("Gagal membaca pra-registrasi.")
       }
@@ -301,9 +311,15 @@ export default function CreateVisit() {
 
     setCheckingKtp(true)
     try {
-      const res = await api.get(`/visitors/check-ktp/${encodeURIComponent(idVal)}`)
+      const res = await api.get(
+        `/visitors/check-ktp/${encodeURIComponent(idVal)}`
+      )
       const visitor = res.data?.data
-      setGlobalEntries(Array.isArray(res.data?.global_blacklist) ? res.data.global_blacklist : [])
+      setGlobalEntries(
+        Array.isArray(res.data?.global_blacklist)
+          ? res.data.global_blacklist
+          : []
+      )
 
       if (!visitor) {
         setVisitorStatus("new")
@@ -465,7 +481,8 @@ export default function CreateVisit() {
       const res = await api.post("/visits", payload)
       const newVisit = res.data?.visit || res.data?.data || res.data
 
-      for (const warning of (res.data?.warnings ?? []) as GlobalBlacklistHit[]) {
+      for (const warning of (res.data?.warnings ??
+        []) as GlobalBlacklistHit[]) {
         toast.warning(
           `Nomor ini ada di blacklist global sebagai ${warning.id_type.toUpperCase()} (${warning.reason_label}, ${warning.registered_by_yard}).`
         )
@@ -525,7 +542,8 @@ export default function CreateVisit() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Add New Visit</h1>
           <p className="text-sm text-zinc-500">
-            Check ID card, select mandatory location, assign cards, and register visit.
+            Check ID card, select mandatory location, assign cards, and register
+            visit.
           </p>
         </div>
       </div>
@@ -546,16 +564,17 @@ export default function CreateVisit() {
       {/* Blacklist banner */}
       {visitorStatus === "blacklisted" && (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-red-600 mt-0.5" />
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
           <div>
-            <span className="font-bold uppercase tracking-wider text-xs bg-red-200 text-red-900 px-2 py-0.5 rounded-full dark:bg-red-900 dark:text-red-100">
+            <span className="rounded-full bg-red-200 px-2 py-0.5 text-xs font-bold tracking-wider text-red-900 uppercase dark:bg-red-900 dark:text-red-100">
               BLACKLISTED VISITOR
             </span>
-            <p className="mt-1 font-medium text-sm">
+            <p className="mt-1 text-sm font-medium">
               Alasan: {blacklistReason}
             </p>
-            <p className="text-xs mt-1 text-red-700 dark:text-red-400">
-              Entry denied. Form submission is disabled for security policy enforcement.
+            <p className="mt-1 text-xs text-red-700 dark:text-red-400">
+              Entry denied. Form submission is disabled for security policy
+              enforcement.
             </p>
           </div>
         </div>
@@ -570,10 +589,12 @@ export default function CreateVisit() {
               BLACKLIST GLOBAL
             </span>
             <p className="mt-1 text-sm font-medium">
-              {globalBlock.reason_label} · didaftarkan {globalBlock.registered_by_yard}
+              {globalBlock.reason_label} · didaftarkan{" "}
+              {globalBlock.registered_by_yard}
             </p>
             <p className="mt-1 text-xs text-red-700 dark:text-red-400">
-              Check-in ditolak. Supervisor dapat meloloskan satu kunjungan dengan alasan tertulis.
+              Check-in ditolak. Supervisor dapat meloloskan satu kunjungan
+              dengan alasan tertulis.
             </p>
           </div>
         </div>
@@ -585,30 +606,39 @@ export default function CreateVisit() {
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
           <span>
-            Nomor yang sama ada di blacklist global sebagai {w.id_type.toUpperCase()} ({w.reason_label}, didaftarkan{" "}
-            {w.registered_by_yard}). Periksa dokumen fisik dan cocokkan nama sebelum melanjutkan.
+            Nomor yang sama ada di blacklist global sebagai{" "}
+            {w.id_type.toUpperCase()} ({w.reason_label}, didaftarkan{" "}
+            {w.registered_by_yard}). Periksa dokumen fisik dan cocokkan nama
+            sebelum melanjutkan.
           </span>
         </div>
       ))}
 
       {/* Visitor Status Badges */}
       {visitorStatus === "registered" && (
-        <div className="mb-4 flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
           <UserCheck className="h-4 w-4 text-emerald-600" />
           <span>Registered visitor profile loaded.</span>
         </div>
       )}
       {visitorStatus === "new" && (
-        <div className="mb-4 flex items-center gap-2 rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-800 dark:bg-sky-950/40 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300">
           <UserPlus className="h-4 w-4 text-sky-600" />
-          <span>New visitor detected. Please complete registration details below.</span>
+          <span>
+            New visitor detected. Please complete registration details below.
+          </span>
         </div>
       )}
 
       {/* Pre-registration (decision FE-4a): the QR code carries only the token; read from the local mirror */}
-      <form onSubmit={handlePreRegLookup} className="mt-2 flex flex-col gap-2 rounded-lg border border-dashed border-zinc-300 p-4 md:flex-row md:items-end dark:border-zinc-700">
+      <form
+        onSubmit={handlePreRegLookup}
+        className="mt-2 flex flex-col gap-2 rounded-lg border border-dashed border-zinc-300 p-4 md:flex-row md:items-end dark:border-zinc-700"
+      >
         <div className="flex-1 space-y-2">
-          <Label htmlFor="pre_registration_code">Kode pra-registrasi / scan QR</Label>
+          <Label htmlFor="pre_registration_code">
+            Kode pra-registrasi / scan QR
+          </Label>
           <Input
             id="pre_registration_code"
             value={preRegCode}
@@ -617,8 +647,16 @@ export default function CreateVisit() {
             autoComplete="off"
           />
         </div>
-        <Button type="submit" variant="outline" disabled={lookingUpPreReg || !preRegCode.trim()}>
-          {lookingUpPreReg ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ScanLine className="mr-2 h-4 w-4" />}
+        <Button
+          type="submit"
+          variant="outline"
+          disabled={lookingUpPreReg || !preRegCode.trim()}
+        >
+          {lookingUpPreReg ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <ScanLine className="mr-2 h-4 w-4" />
+          )}
           Muat
         </Button>
       </form>
@@ -631,7 +669,7 @@ export default function CreateVisit() {
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
         {/* Step 1: Identity & ID Check */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4 items-end">
+        <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-4">
           <div className="space-y-2">
             <Label htmlFor="id_type">ID Type</Label>
             <select
@@ -689,7 +727,9 @@ export default function CreateVisit() {
                             onSelect={() => selectVisitor(s)}
                           >
                             <div className="flex flex-col">
-                              <span className="font-semibold">{s.id_number}</span>
+                              <span className="font-semibold">
+                                {s.id_number}
+                              </span>
                               <span className="text-xs text-zinc-500">
                                 {s.name} - {s.company || "No Company"}
                               </span>
@@ -719,7 +759,7 @@ export default function CreateVisit() {
               variant="secondary"
               onClick={handleCheckKtp}
               disabled={checkingKtp || !form.id_number}
-              className="w-full h-10 cursor-pointer"
+              className="h-10 w-full cursor-pointer"
             >
               {checkingKtp ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -857,10 +897,10 @@ export default function CreateVisit() {
         </div>
 
         {/* Step 4: Host Selection (Staff or Custom Host) */}
-        <div className="space-y-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+        <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
           <div className="flex items-center justify-between">
-            <Label className="font-semibold text-sm">Host Destination</Label>
-            <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+            <Label className="text-sm font-semibold">Host Destination</Label>
+            <label className="flex cursor-pointer items-center gap-2 text-xs select-none">
               <input
                 type="checkbox"
                 checked={form.is_custom_host}
@@ -882,7 +922,7 @@ export default function CreateVisit() {
                     variant="outline"
                     role="combobox"
                     className={cn(
-                      "w-full justify-between font-normal bg-white dark:bg-zinc-950",
+                      "w-full justify-between bg-white font-normal dark:bg-zinc-950",
                       !form.staff_id && "text-muted-foreground"
                     )}
                   >
@@ -968,7 +1008,8 @@ export default function CreateVisit() {
                     ? form.card_ids
                         .map(
                           (id) =>
-                            cardList.find((c) => c.id.toString() === id)?.card_no
+                            cardList.find((c) => c.id.toString() === id)
+                              ?.card_no
                         )
                         .filter(Boolean)
                         .join(", ")
@@ -1111,7 +1152,7 @@ export default function CreateVisit() {
           <Button
             type="submit"
             disabled={loading || visitorStatus === "blacklisted"}
-            className="w-full md:w-auto cursor-pointer"
+            className="w-full cursor-pointer md:w-auto"
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {loading ? "Processing..." : "Save & Print Ticket"}
@@ -1132,7 +1173,9 @@ export default function CreateVisit() {
             </DialogDescription>
           </DialogHeader>
           <p className="text-xs text-zinc-500">
-            Sistem dapat melakukan check-out otomatis pada kunjungan terbuka sebelumnya secara atomik dan langsung mendaftarkan kunjungan baru ini.
+            Sistem dapat melakukan check-out otomatis pada kunjungan terbuka
+            sebelumnya secara atomik dan langsung mendaftarkan kunjungan baru
+            ini.
           </p>
           <DialogFooter className="mt-4 gap-2">
             <Button
@@ -1148,7 +1191,7 @@ export default function CreateVisit() {
                 submitVisit(true)
               }}
               disabled={loading}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              className="bg-amber-600 text-white hover:bg-amber-700"
             >
               {loading ? "Memproses..." : "Tutup Kunjungan Lama & Check-In"}
             </Button>
@@ -1157,7 +1200,10 @@ export default function CreateVisit() {
       </Dialog>
 
       {/* Supervisor override of a global entry (decision SEC-7): one visit, reason required, audited */}
-      <Dialog open={overrideEntry !== null} onOpenChange={(open) => !open && setOverrideEntry(null)}>
+      <Dialog
+        open={overrideEntry !== null}
+        onOpenChange={(open) => !open && setOverrideEntry(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
@@ -1165,13 +1211,16 @@ export default function CreateVisit() {
               Loloskan Satu Kunjungan
             </DialogTitle>
             <DialogDescription className="text-zinc-700 dark:text-zinc-300">
-              Tamu ini ada di blacklist global ({overrideEntry?.reason_label}, didaftarkan{" "}
-              {overrideEntry?.registered_by_yard}). Override hanya untuk kunjungan ini, tercatat di activity log,
-              dan tidak mencabut entri global.
+              Tamu ini ada di blacklist global ({overrideEntry?.reason_label},
+              didaftarkan {overrideEntry?.registered_by_yard}). Override hanya
+              untuk kunjungan ini, tercatat di activity log, dan tidak mencabut
+              entri global.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="override_reason">Alasan (minimal 10 karakter)</Label>
+            <Label htmlFor="override_reason">
+              Alasan (minimal 10 karakter)
+            </Label>
             <Textarea
               id="override_reason"
               rows={3}
@@ -1180,7 +1229,11 @@ export default function CreateVisit() {
             />
           </div>
           <DialogFooter className="mt-4 gap-2">
-            <Button variant="outline" onClick={() => setOverrideEntry(null)} disabled={loading}>
+            <Button
+              variant="outline"
+              onClick={() => setOverrideEntry(null)}
+              disabled={loading}
+            >
               Batal
             </Button>
             <Button

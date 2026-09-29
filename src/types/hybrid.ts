@@ -1,6 +1,10 @@
 /** Hybrid multi-yard payloads (docs/vms-hybrid-architecture-spec.md §5–§8). */
 
-export type ReasonCategory = "k3_violation" | "asset_theft_damage" | "misconduct" | "other"
+export type ReasonCategory =
+  | "k3_violation"
+  | "asset_theft_damage"
+  | "misconduct"
+  | "other"
 
 /** The fixed categories that may travel between yards (decision SEC-6d). */
 export const REASON_CATEGORIES: { value: ReasonCategory; label: string }[] = [

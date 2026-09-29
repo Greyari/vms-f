@@ -77,7 +77,9 @@ export default function BlacklistedVisitors() {
 
   // Unblacklist Confirm State
   const [unblacklistAlertOpen, setUnblacklistAlertOpen] = useState(false)
-  const [selectedUnblacklistId, setSelectedUnblacklistId] = useState<number | string | null>(null)
+  const [selectedUnblacklistId, setSelectedUnblacklistId] = useState<
+    number | string | null
+  >(null)
 
   // Add Blacklist Modal State
   const [addBlacklistModalOpen, setAddBlacklistModalOpen] = useState(false)
@@ -96,8 +98,12 @@ export default function BlacklistedVisitors() {
   const [exportLoading, setExportLoading] = useState(false)
 
   // "Naikkan ke global" (hybrid decisions PE-5, FE-4b): a fixed category travels, the note stays here.
-  const [promoteTarget, setPromoteTarget] = useState<BlacklistedVisitor | null>(null)
-  const [promoteCategory, setPromoteCategory] = useState<ReasonCategory | "">("")
+  const [promoteTarget, setPromoteTarget] = useState<BlacklistedVisitor | null>(
+    null
+  )
+  const [promoteCategory, setPromoteCategory] = useState<ReasonCategory | "">(
+    ""
+  )
   const [promoteNote, setPromoteNote] = useState("")
   const [promoting, setPromoting] = useState(false)
 
@@ -116,11 +122,17 @@ export default function BlacklistedVisitors() {
         reason_category: promoteCategory,
         local_note: promoteNote.trim(),
       })
-      toast.success("Masuk antrean; dikirim ke Cloud Hub pada siklus sync berikutnya.")
+      toast.success(
+        "Masuk antrean; dikirim ke Cloud Hub pada siklus sync berikutnya."
+      )
       setPromoteTarget(null)
     } catch (err: any) {
       const errors = err.response?.data?.errors
-      toast.error(errors?.visitor_id?.[0] || err.response?.data?.message || "Gagal menaikkan ke blacklist global.")
+      toast.error(
+        errors?.visitor_id?.[0] ||
+          err.response?.data?.message ||
+          "Gagal menaikkan ke blacklist global."
+      )
     } finally {
       setPromoting(false)
     }
@@ -168,7 +180,11 @@ export default function BlacklistedVisitors() {
       const res = await api.get("/visitors", {
         params: { search: addSearch, is_blacklisted: "0", per_page: 5 },
       })
-      const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : []
+      const list = Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data)
+          ? res.data
+          : []
       setCandidateVisitors(list)
     } catch (error) {
       console.error(error)
@@ -197,7 +213,9 @@ export default function BlacklistedVisitors() {
       fetchBlacklisted()
     } catch (error: any) {
       console.error(error)
-      toast.error(error.response?.data?.message || "Gagal memasukkan ke daftar blacklist")
+      toast.error(
+        error.response?.data?.message || "Gagal memasukkan ke daftar blacklist"
+      )
     } finally {
       setSubmittingAdd(false)
     }
@@ -263,7 +281,8 @@ export default function BlacklistedVisitors() {
     } catch (error: any) {
       console.error(error)
       toast.error(
-        error.response?.data?.message || "Format file import tidak sesuai template."
+        error.response?.data?.message ||
+          "Format file import tidak sesuai template."
       )
     } finally {
       setImportLoading(false)
@@ -279,7 +298,10 @@ export default function BlacklistedVisitors() {
       const url = window.URL.createObjectURL(new Blob([res.data]))
       const link = document.createElement("a")
       link.href = url
-      link.setAttribute("download", `blacklisted_visitors_${new Date().toISOString().slice(0, 10)}.xlsx`)
+      link.setAttribute(
+        "download",
+        `blacklisted_visitors_${new Date().toISOString().slice(0, 10)}.xlsx`
+      )
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -307,15 +329,12 @@ export default function BlacklistedVisitors() {
             Kembali ke Pengunjung
           </Button>
           <h1 className="text-2xl font-bold">Daftar Pengunjung Blacklist</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-sm text-muted-foreground">
             Daftar individu yang dilarang memasuki kawasan galangan.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setImportModalOpen(true)}
-          >
+          <Button variant="outline" onClick={() => setImportModalOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Import Excel
           </Button>
           <Button
@@ -356,152 +375,168 @@ export default function BlacklistedVisitors() {
         </TabsContent>
 
         <TabsContent value="local">
-      {/* Filter Card */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="relative w-full md:w-1/3">
-            <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />
-            <Input
-              placeholder="Cari nama, KTP, atau perusahaan..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value)
-                setCurrentPage(1)
-              }}
-              className="pl-8"
-            />
-          </div>
-        </div>
+          {/* Filter Card */}
+          <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="relative w-full md:w-1/3">
+                <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />
+                <Input
+                  placeholder="Cari nama, KTP, atau perusahaan..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                  className="pl-8"
+                />
+              </div>
+            </div>
 
-        {/* Table */}
-        <div className="overflow-hidden rounded-md border">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
-                <TableRow>
-                  <TableHead>No. Visitor</TableHead>
-                  <TableHead>Identitas</TableHead>
-                  <TableHead>Nama Pengunjung</TableHead>
-                  <TableHead>Perusahaan</TableHead>
-                  <TableHead>Tanggal Blacklist</TableHead>
-                  <TableHead>Alasan Blacklist</TableHead>
-                  <TableHead className="text-center">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading && visitors.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
-                    </TableCell>
-                  </TableRow>
-                ) : visitors.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="h-24 text-center text-zinc-500"
-                    >
-                      Tidak ada pengunjung dalam daftar blacklist.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  visitors.map((visitor) => (
-                    <TableRow
-                      key={visitor.id}
-                      className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-                    >
-                      <TableCell className="font-mono text-xs font-semibold text-primary">
-                        {visitor.visitor_no || "-"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-mono text-xs text-muted-foreground uppercase">
-                            {visitor.id_type}
-                          </span>
-                          <span className="font-medium text-sm">
-                            {visitor.id_number}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium">{visitor.name}</TableCell>
-                      <TableCell>{visitor.company || "-"}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {visitor.blacklisted_at
-                          ? new Date(visitor.blacklisted_at).toLocaleString()
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="max-w-[280px]">
-                        <span
-                          className="line-clamp-2 text-sm text-red-700 dark:text-red-400 font-medium"
-                          title={visitor.blacklist_reason}
-                        >
-                          {visitor.blacklist_reason || "-"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="space-x-2 text-center whitespace-nowrap">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openPromote(visitor)}
-                        >
-                          <Globe className="mr-1.5 h-4 w-4" />
-                          Naikkan ke global
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => confirmUnblacklist(visitor.id)}
-                          className="text-emerald-600 hover:text-emerald-700 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-                        >
-                          <ShieldCheck className="mr-1.5 h-4 w-4" />
-                          Cabut Blacklist
-                        </Button>
-                      </TableCell>
+            {/* Table */}
+            <div className="overflow-hidden rounded-md border">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
+                    <TableRow>
+                      <TableHead>No. Visitor</TableHead>
+                      <TableHead>Identitas</TableHead>
+                      <TableHead>Nama Pengunjung</TableHead>
+                      <TableHead>Perusahaan</TableHead>
+                      <TableHead>Tanggal Blacklist</TableHead>
+                      <TableHead>Alasan Blacklist</TableHead>
+                      <TableHead className="text-center">Aksi</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
+                  </TableHeader>
+                  <TableBody>
+                    {loading && visitors.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-24 text-center">
+                          <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
+                        </TableCell>
+                      </TableRow>
+                    ) : visitors.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={7}
+                          className="h-24 text-center text-zinc-500"
+                        >
+                          Tidak ada pengunjung dalam daftar blacklist.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      visitors.map((visitor) => (
+                        <TableRow
+                          key={visitor.id}
+                          className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                        >
+                          <TableCell className="font-mono text-xs font-semibold text-primary">
+                            {visitor.visitor_no || "-"}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-mono text-xs text-muted-foreground uppercase">
+                                {visitor.id_type}
+                              </span>
+                              <span className="text-sm font-medium">
+                                {visitor.id_number}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {visitor.name}
+                          </TableCell>
+                          <TableCell>{visitor.company || "-"}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
+                            {visitor.blacklisted_at
+                              ? new Date(
+                                  visitor.blacklisted_at
+                                ).toLocaleString()
+                              : "-"}
+                          </TableCell>
+                          <TableCell className="max-w-[280px]">
+                            <span
+                              className="line-clamp-2 text-sm font-medium text-red-700 dark:text-red-400"
+                              title={visitor.blacklist_reason}
+                            >
+                              {visitor.blacklist_reason || "-"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="space-x-2 text-center whitespace-nowrap">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openPromote(visitor)}
+                            >
+                              <Globe className="mr-1.5 h-4 w-4" />
+                              Naikkan ke global
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => confirmUnblacklist(visitor.id)}
+                              className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/40"
+                            >
+                              <ShieldCheck className="mr-1.5 h-4 w-4" />
+                              Cabut Blacklist
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
 
-        {/* Pagination Controls */}
-        <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-zinc-500">
-            Menampilkan {visitors.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}{" "}
-            hingga {Math.min(currentPage * ITEMS_PER_PAGE, totalItems)} dari {totalItems} total blacklist
+            {/* Pagination Controls */}
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-sm text-zinc-500">
+                Menampilkan{" "}
+                {visitors.length > 0
+                  ? (currentPage - 1) * ITEMS_PER_PAGE + 1
+                  : 0}{" "}
+                hingga {Math.min(currentPage * ITEMS_PER_PAGE, totalItems)} dari{" "}
+                {totalItems} total blacklist
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1 || loading}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={
+                    currentPage >= totalPages || totalPages === 0 || loading
+                  }
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1 || loading}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages || totalPages === 0 || loading}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
         </TabsContent>
       </Tabs>
 
       {/* Dialog Naikkan ke Blacklist Global */}
-      <Dialog open={promoteTarget !== null} onOpenChange={(open) => !open && setPromoteTarget(null)}>
+      <Dialog
+        open={promoteTarget !== null}
+        onOpenChange={(open) => !open && setPromoteTarget(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Naikkan ke Blacklist Global</DialogTitle>
             <DialogDescription>
-              {promoteTarget?.name} ({promoteTarget?.id_number}) akan ditolak di semua yard setelah sinkron. Hanya
-              kategori yang dikirim ke yard lain; catatan di bawah tetap di yard ini.
+              {promoteTarget?.name} ({promoteTarget?.id_number}) akan ditolak di
+              semua yard setelah sinkron. Hanya kategori yang dikirim ke yard
+              lain; catatan di bawah tetap di yard ini.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -510,7 +545,9 @@ export default function BlacklistedVisitors() {
               <select
                 id="promote-category"
                 value={promoteCategory}
-                onChange={(e) => setPromoteCategory(e.target.value as ReasonCategory)}
+                onChange={(e) =>
+                  setPromoteCategory(e.target.value as ReasonCategory)
+                }
                 className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 text-sm dark:border-zinc-800"
               >
                 <option value="">-- Pilih kategori --</option>
@@ -522,12 +559,23 @@ export default function BlacklistedVisitors() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="promote-note">Catatan lokal (tidak dikirim)</Label>
-              <Textarea id="promote-note" rows={3} value={promoteNote} onChange={(e) => setPromoteNote(e.target.value)} />
+              <Label htmlFor="promote-note">
+                Catatan lokal (tidak dikirim)
+              </Label>
+              <Textarea
+                id="promote-note"
+                rows={3}
+                value={promoteNote}
+                onChange={(e) => setPromoteNote(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPromoteTarget(null)} disabled={promoting}>
+            <Button
+              variant="outline"
+              onClick={() => setPromoteTarget(null)}
+              disabled={promoting}
+            >
               Batal
             </Button>
             <Button
@@ -543,7 +591,10 @@ export default function BlacklistedVisitors() {
       </Dialog>
 
       {/* Dialog Tambah ke Daftar Blacklist */}
-      <Dialog open={addBlacklistModalOpen} onOpenChange={setAddBlacklistModalOpen}>
+      <Dialog
+        open={addBlacklistModalOpen}
+        onOpenChange={setAddBlacklistModalOpen}
+      >
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Tambah ke Daftar Blacklist</DialogTitle>
@@ -567,7 +618,11 @@ export default function BlacklistedVisitors() {
                   onClick={searchCandidates}
                   disabled={candidateLoading || !addSearch.trim()}
                 >
-                  {candidateLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cari"}
+                  {candidateLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Cari"
+                  )}
                 </Button>
               </div>
             </div>
@@ -575,7 +630,9 @@ export default function BlacklistedVisitors() {
             {/* Candidate Results */}
             {candidateVisitors.length > 0 && (
               <div className="space-y-1.5 rounded-md border p-2">
-                <p className="text-xs font-medium text-muted-foreground">Pilih pengunjung:</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Pilih pengunjung:
+                </p>
                 {candidateVisitors.map((cand) => (
                   <div
                     key={cand.id}
@@ -588,7 +645,8 @@ export default function BlacklistedVisitors() {
                   >
                     <p className="font-semibold">{cand.name}</p>
                     <p className="text-xs opacity-80">
-                      {cand.id_type?.toUpperCase()}: {cand.id_number} ({cand.company || "Independen"})
+                      {cand.id_type?.toUpperCase()}: {cand.id_number} (
+                      {cand.company || "Independen"})
                     </p>
                   </div>
                 ))}
@@ -596,10 +654,11 @@ export default function BlacklistedVisitors() {
             )}
 
             {selectedCandidate && (
-              <div className="rounded-md border border-amber-500/40 bg-amber-50 p-3 text-xs dark:bg-amber-950/30 text-amber-900 dark:text-amber-300">
+              <div className="rounded-md border border-amber-500/40 bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
                 <p className="font-semibold">Pengunjung Terpilih:</p>
                 <p>
-                  {selectedCandidate.name} ({selectedCandidate.id_number}) - {selectedCandidate.company || "-"}
+                  {selectedCandidate.name} ({selectedCandidate.id_number}) -{" "}
+                  {selectedCandidate.company || "-"}
                 </p>
               </div>
             )}
@@ -627,7 +686,9 @@ export default function BlacklistedVisitors() {
               <Button
                 type="submit"
                 variant="destructive"
-                disabled={!selectedCandidate || !addReason.trim() || submittingAdd}
+                disabled={
+                  !selectedCandidate || !addReason.trim() || submittingAdd
+                }
               >
                 {submittingAdd ? "Menyimpan..." : "Blacklist Pengunjung"}
               </Button>

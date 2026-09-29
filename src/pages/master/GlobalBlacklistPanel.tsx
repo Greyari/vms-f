@@ -53,7 +53,9 @@ export default function GlobalBlacklistPanel() {
       if (search.trim()) params.search = search.trim()
       const [list, queue] = await Promise.all([
         api.get("/global-blacklists", { params }),
-        api.get("/global-blacklists/outbox").catch(() => ({ data: { data: [] } })),
+        api
+          .get("/global-blacklists/outbox")
+          .catch(() => ({ data: { data: [] } })),
       ])
       setEntries(Array.isArray(list.data) ? list.data : (list.data?.data ?? []))
       setOutbox(queue.data?.data ?? [])
@@ -73,8 +75,12 @@ export default function GlobalBlacklistPanel() {
     if (!revoking || !note.trim()) return
     setSubmitting(true)
     try {
-      await api.post(`/global-blacklists/${revoking.id}/revoke`, { local_note: note.trim() })
-      toast.success("Pencabutan masuk antrean dan dikirim pada siklus sync berikutnya.")
+      await api.post(`/global-blacklists/${revoking.id}/revoke`, {
+        local_note: note.trim(),
+      })
+      toast.success(
+        "Pencabutan masuk antrean dan dikirim pada siklus sync berikutnya."
+      )
       setRevoking(null)
       setNote("")
       load()
@@ -123,8 +129,17 @@ export default function GlobalBlacklistPanel() {
               <option value="revoked">Dicabut</option>
               <option value="all">Semua</option>
             </select>
-            <Button variant="outline" size="sm" onClick={syncNow} disabled={syncing}>
-              {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={syncNow}
+              disabled={syncing}
+            >
+              {syncing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
               Sync sekarang
             </Button>
           </div>
@@ -151,7 +166,10 @@ export default function GlobalBlacklistPanel() {
                 </TableRow>
               ) : entries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-zinc-500">
+                  <TableCell
+                    colSpan={6}
+                    className="h-24 text-center text-zinc-500"
+                  >
                     Tidak ada entri blacklist global.
                   </TableCell>
                 </TableRow>
@@ -160,22 +178,35 @@ export default function GlobalBlacklistPanel() {
                   <TableRow key={entry.id}>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-mono text-xs text-muted-foreground uppercase">{entry.id_type}</span>
-                        <span className="text-sm font-medium">{entry.id_number}</span>
+                        <span className="font-mono text-xs text-muted-foreground uppercase">
+                          {entry.id_type}
+                        </span>
+                        <span className="text-sm font-medium">
+                          {entry.id_number}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{entry.name}</TableCell>
                     <TableCell>{entry.reason_label}</TableCell>
                     <TableCell>{entry.registered_by_yard}</TableCell>
-                    <TableCell>{entry.is_active ? "Aktif" : "Dicabut"}</TableCell>
+                    <TableCell>
+                      {entry.is_active ? "Aktif" : "Dicabut"}
+                    </TableCell>
                     <TableCell className="text-center">
                       {entry.can_revoke ? (
-                        <Button variant="outline" size="sm" onClick={() => setRevoking(entry)}>
-                          <ShieldCheck className="mr-1.5 h-4 w-4" /> Cabut global
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setRevoking(entry)}
+                        >
+                          <ShieldCheck className="mr-1.5 h-4 w-4" /> Cabut
+                          global
                         </Button>
                       ) : (
                         <span className="text-xs text-zinc-500">
-                          {entry.is_active ? `Hanya ${entry.registered_by_yard} yang bisa mencabut` : "-"}
+                          {entry.is_active
+                            ? `Hanya ${entry.registered_by_yard} yang bisa mencabut`
+                            : "-"}
                         </span>
                       )}
                     </TableCell>
@@ -189,7 +220,9 @@ export default function GlobalBlacklistPanel() {
 
       {outbox.length > 0 && (
         <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="mb-3 text-sm font-semibold">Antrean kirim ke Cloud Hub</h2>
+          <h2 className="mb-3 text-sm font-semibold">
+            Antrean kirim ke Cloud Hub
+          </h2>
           <div className="overflow-x-auto rounded-md border">
             <Table>
               <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
@@ -204,15 +237,30 @@ export default function GlobalBlacklistPanel() {
               <TableBody>
                 {outbox.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell>{row.action === "add" ? `Naikkan (${row.reason_label ?? "-"})` : "Cabut"}</TableCell>
                     <TableCell>
-                      {row.name} <span className="font-mono text-xs text-zinc-500">{row.id_number}</span>
+                      {row.action === "add"
+                        ? `Naikkan (${row.reason_label ?? "-"})`
+                        : "Cabut"}
                     </TableCell>
-                    <TableCell className="max-w-[260px] text-xs">{row.local_note ?? "-"}</TableCell>
-                    <TableCell className="text-xs">{row.requested_by ?? "-"}</TableCell>
+                    <TableCell>
+                      {row.name}{" "}
+                      <span className="font-mono text-xs text-zinc-500">
+                        {row.id_number}
+                      </span>
+                    </TableCell>
+                    <TableCell className="max-w-[260px] text-xs">
+                      {row.local_note ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {row.requested_by ?? "-"}
+                    </TableCell>
                     <TableCell className="text-xs">
                       {STATUS_LABEL[row.status]}
-                      {row.last_error && <div className="text-red-600 dark:text-red-400">{row.last_error}</div>}
+                      {row.last_error && (
+                        <div className="text-red-600 dark:text-red-400">
+                          {row.last_error}
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -222,24 +270,40 @@ export default function GlobalBlacklistPanel() {
         </div>
       )}
 
-      <Dialog open={revoking !== null} onOpenChange={(open) => !open && setRevoking(null)}>
+      <Dialog
+        open={revoking !== null}
+        onOpenChange={(open) => !open && setRevoking(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cabut dari blacklist global</DialogTitle>
             <DialogDescription>
-              {revoking?.name} ({revoking?.id_number}). Pencabutan dikirim ke Cloud Hub dan berlaku di semua yard
-              setelah sinkron. Alasan di bawah hanya tersimpan di yard ini.
+              {revoking?.name} ({revoking?.id_number}). Pencabutan dikirim ke
+              Cloud Hub dan berlaku di semua yard setelah sinkron. Alasan di
+              bawah hanya tersimpan di yard ini.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="revoke-note">Alasan pencabutan (lokal)</Label>
-            <Textarea id="revoke-note" value={note} onChange={(e) => setNote(e.target.value)} rows={3} />
+            <Textarea
+              id="revoke-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+            />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRevoking(null)} disabled={submitting}>
+            <Button
+              variant="outline"
+              onClick={() => setRevoking(null)}
+              disabled={submitting}
+            >
               Batal
             </Button>
-            <Button onClick={submitRevoke} disabled={submitting || !note.trim()}>
+            <Button
+              onClick={submitRevoke}
+              disabled={submitting || !note.trim()}
+            >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Cabut global
             </Button>
