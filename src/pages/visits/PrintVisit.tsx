@@ -6,6 +6,33 @@ import { FALLBACK_COMPANY_NAME, useAppConfig } from "@/lib/appConfig"
 import { useAuth } from "@/context/AuthContext"
 import { Loader2, Printer, PlusCircle, ArrowLeft } from "lucide-react"
 
+function Field({
+  label,
+  children,
+  mono,
+  bold,
+  last,
+}: {
+  label: string
+  children: React.ReactNode
+  mono?: boolean
+  bold?: boolean
+  last?: boolean
+}) {
+  return (
+    <div className={`flex pb-0.5 ${last ? "" : "border-b border-gray-300"}`}>
+      <span className="inline-block w-36 shrink-0 font-bold text-gray-700">
+        {label}
+      </span>
+      <span
+        className={`uppercase ${mono ? "font-mono" : ""} ${bold ? "font-bold" : ""}`}
+      >
+        : {children}
+      </span>
+    </div>
+  )
+}
+
 export default function PrintVisit() {
   const { id } = useParams<{ id: string }>()
   const location = useLocation()
@@ -92,273 +119,210 @@ export default function PrintVisit() {
   const companyName = config.company_name.trim()
 
   return (
-    <div className="min-h-screen bg-white font-sans text-black print:w-full print:p-0">
-      {/* CSS Injection for exact half-A4 landscape/portrait printable receipt */}
+    <div className="min-h-screen bg-white font-sans text-black print:h-[14cm] print:min-h-0 print:w-[24cm] print:overflow-hidden print:p-0">
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            @page { 
-              size: A4 portrait; 
-              margin: 8mm; 
+            /* Kertas continuous paper 24 cm x 14 cm (sobekan setengah), mode potret */
+            @page {
+              size: portrait;
+              margin: 0;
             }
             @media print {
-              body {
-                width: 210mm;
-                height: 297mm;
+              html, body {
+                width: 24cm;
+                height: 14cm;
                 margin: 0;
                 padding: 0;
                 background: white !important;
                 color: black !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
               }
               .print-container {
-                width: 100%;
-                max-height: 140mm; /* Exactly half page A4 */
+                width: 24cm !important;
+                max-width: 24cm !important;
+                height: 14cm !important;
+                max-height: 14cm !important;
+                margin: 0 !important;
+                /* Safe area: atas/bawah 0.35cm, kiri/kanan 1.2cm (jalur tractor/lubang kertas) */
+                padding: 0.35cm 0.50cm !important;
+                box-sizing: border-box;
                 overflow: hidden;
                 page-break-inside: avoid;
+                page-break-after: avoid;
               }
             }
           `,
         }}
       />
 
-      <div className="print-container mx-auto box-border flex w-full max-w-4xl flex-col p-4">
-        <div className="flex flex-col border-2 border-black p-3">
-          {/* Header Ticket */}
-          <div className="mb-2 border-b-2 border-black pb-1 text-center">
-            {config.logo_url && (
-              <img
-                src={config.logo_url}
-                alt=""
-                className="mx-auto mb-0.5 h-8 w-auto object-contain"
-              />
-            )}
-            <h1 className="text-lg font-black tracking-widest uppercase">
-              {(companyName || FALLBACK_COMPANY_NAME).toUpperCase()}
-            </h1>
-            {config.company_address && (
-              <p className="text-[9px] text-zinc-700">
-                {config.company_address}
-              </p>
-            )}
-            <h2 className="text-sm font-bold tracking-wider text-zinc-800 uppercase">
-              VISITOR ENTRY PASS
-            </h2>
-            <p className="font-mono text-xs font-bold tracking-widest text-zinc-900">
-              NO: {ticketNo}
+      {/* Area pass (satu-satunya yang tercetak) */}
+      <div className="print-container mx-auto box-border flex w-[24cm] max-w-full h-[14cm] flex-col border border-dashed border-zinc-300 p-4 print:border-0">
+        {/* Header */}
+        <div className="mb-2 border-b-2 border-black pb-1 text-center">
+          {config.logo_url && (
+            <img
+              src={config.logo_url}
+              alt=""
+              className="mx-auto mb-0.5 h-9 w-auto object-contain"
+            />
+          )}
+          <h1 className="text-xl leading-tight font-black tracking-widest uppercase">
+            {(companyName || FALLBACK_COMPANY_NAME).toUpperCase()}
+          </h1>
+          {config.company_address && (
+            <p className="text-[11px] leading-tight text-zinc-700">
+              {config.company_address}
+            </p>
+          )}
+          <h2 className="text-base leading-tight font-bold tracking-wider uppercase">
+            VISITOR ENTRY PASS
+          </h2>
+          <p className="font-mono text-sm leading-tight font-bold tracking-widest">
+            NO: {ticketNo}
+          </p>
+        </div>
+
+        {/* Data */}
+        <div className="grid grid-cols-2 gap-x-5 text-[13px] leading-snug font-semibold">
+          <div className="space-y-0.5 border-r border-gray-400 pr-4">
+            <Field label="VISITOR NAME" bold>
+              {visit.visitor?.name || visit.visitor_name || "-"}
+            </Field>
+            <Field
+              label={visit.visitor?.id_type?.toUpperCase() || "IDENTITAS"}
+              mono
+            >
+              {visit.visitor?.id_number || "-"}
+            </Field>
+            <Field label="COMPANY">
+              {visit.visitor_company || visit.visitor?.company || "-"}
+            </Field>
+            <Field label="DESTINATION" bold>
+              {visit.location_name || visit.location?.name || "-"}
+            </Field>
+            <Field label="HOST PERSON">
+              {visit.host_name || visit.staff?.name || "-"}
+            </Field>
+            <Field label="ID CARDS" mono bold last>
+              {cardsText}
+            </Field>
+          </div>
+
+          <div className="space-y-0.5 pl-1">
+            <Field label="DATE" mono>
+              {visit.date ||
+                (visit.check_in_at ? visit.check_in_at.slice(0, 10) : "-")}
+            </Field>
+            <Field label="TIME IN" mono bold>
+              {visit.time_in ||
+                (visit.check_in_at ? visit.check_in_at.slice(11, 16) : "-")}
+            </Field>
+            <Field label="VEHICLE NO" mono>
+              {visit.vehicle_plate || visit.vehicle_no || "-"}
+            </Field>
+            <Field label="VEHICLE CARD" mono>
+              {visit.vehicle_card?.card_no ||
+                visit.vehicleCard?.card_no ||
+                "-"}
+            </Field>
+            <Field label="TIME OUT" mono last>
+              {visit.time_out || "-"}
+            </Field>
+          </div>
+        </div>
+
+        {/* Purpose */}
+        <div className="mt-0.5 border-t border-gray-400 pt-0.5 text-[13px] leading-snug font-semibold">
+          <Field label="PURPOSE" last>
+            {visit.purpose || "-"}
+          </Field>
+        </div>
+
+        {/* Rules */}
+        <div className="my-1.5 grid grid-cols-2 gap-3 border-t-2 border-b-2 border-black py-1 text-[10px] leading-tight">
+          <div className="border-r border-black pr-2">
+            <p className="mb-0.5 font-bold uppercase underline">
+              Rules & Regulations:
+            </p>
+            <ul className="list-inside list-disc space-y-0.5 text-zinc-800">
+              <li>Visitor pass must be visibly worn at all times in yard.</li>
+              <li>
+                {companyName || "The company"} is not liable for injury or
+                property loss.
+              </li>
+              <li>
+                Report lost pass immediately to Security. Replacement fee: Rp.
+                50,000.
+              </li>
+            </ul>
+          </div>
+          <div className="pl-2">
+            <p className="mb-0.5 font-bold uppercase underline">
+              Ketentuan Yard:
+            </p>
+            <ul className="list-inside list-disc space-y-0.5 text-zinc-800">
+              <li>
+                Pass harus selalu dikenakan selama berada di area galangan.
+              </li>
+              <li>
+                Perusahaan tidak bertanggung jawab atas cedera atau kehilangan
+                barang.
+              </li>
+              <li>
+                Pass hilang segera lapor Pos Sekuriti. Biaya penggantian: Rp
+                50.000.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Signatures */}
+        <div className="mt-auto grid grid-cols-3 gap-6 text-center text-xs font-bold uppercase">
+          <div>
+            <div className="h-8" />
+            <div className="border-t border-black pt-0.5">Security Duty</div>
+            <p className="font-mono text-[10px] font-normal text-zinc-600 normal-case">
+              Printed By: {printedBy}
             </p>
           </div>
-
-          <table className="w-full border-collapse text-xs font-semibold">
-            <tbody>
-              <tr>
-                {/* Column 1 */}
-                <td className="w-1/2 space-y-1 border-r border-gray-400 pr-3 align-top">
-                  <div className="flex border-b border-gray-300 pb-0.5">
-                    <span className="inline-block w-32 font-bold text-gray-700">
-                      VISITOR NAME
-                    </span>
-                    <span className="font-bold uppercase">
-                      : {visit.visitor?.name || visit.visitor_name || "-"}
-                    </span>
-                  </div>
-                  <div className="flex border-b border-gray-300 pb-0.5">
-                    <span className="inline-block w-32 font-bold text-gray-700">
-                      {visit.visitor?.id_type?.toUpperCase() || "IDENTITAS"}
-                    </span>
-                    <span className="font-mono uppercase">
-                      : {visit.visitor?.id_number || "-"}
-                    </span>
-                  </div>
-                  <div className="flex border-b border-gray-300 pb-0.5">
-                    <span className="inline-block w-32 font-bold text-gray-700">
-                      COMPANY
-                    </span>
-                    <span className="uppercase">
-                      : {visit.visitor_company || visit.visitor?.company || "-"}
-                    </span>
-                  </div>
-                  <div className="flex border-b border-gray-300 pb-0.5">
-                    <span className="inline-block w-32 font-bold text-gray-700">
-                      DESTINATION
-                    </span>
-                    <span className="font-bold uppercase">
-                      : {visit.location_name || visit.location?.name || "-"}
-                    </span>
-                  </div>
-                  <div className="flex border-b border-gray-300 pb-0.5">
-                    <span className="inline-block w-32 font-bold text-gray-700">
-                      HOST PERSON
-                    </span>
-                    <span className="uppercase">
-                      : {visit.host_name || visit.staff?.name || "-"}
-                    </span>
-                  </div>
-                  <div className="flex pb-0.5">
-                    <span className="inline-block w-32 font-bold text-gray-700">
-                      ID CARDS
-                    </span>
-                    <span className="font-mono font-bold uppercase">
-                      : {cardsText}
-                    </span>
-                  </div>
-                </td>
-
-                {/* Column 2 */}
-                <td className="w-1/2 space-y-1 pl-3 align-top">
-                  <div className="flex border-b border-gray-300 pb-0.5">
-                    <span className="inline-block w-32 font-bold text-gray-700">
-                      DATE
-                    </span>
-                    <span className="font-mono uppercase">
-                      :{" "}
-                      {visit.date ||
-                        (visit.check_in_at
-                          ? visit.check_in_at.slice(0, 10)
-                          : "-")}
-                    </span>
-                  </div>
-                  <div className="flex border-b border-gray-300 pb-0.5">
-                    <span className="inline-block w-32 font-bold text-gray-700">
-                      TIME IN
-                    </span>
-                    <span className="font-mono font-bold uppercase">
-                      :{" "}
-                      {visit.time_in ||
-                        (visit.check_in_at
-                          ? visit.check_in_at.slice(11, 16)
-                          : "-")}
-                    </span>
-                  </div>
-                  <div className="flex border-b border-gray-300 pb-0.5">
-                    <span className="inline-block w-32 font-bold text-gray-700">
-                      VEHICLE NO
-                    </span>
-                    <span className="font-mono uppercase">
-                      : {visit.vehicle_plate || visit.vehicle_no || "-"}
-                    </span>
-                  </div>
-                  <div className="flex border-b border-gray-300 pb-0.5">
-                    <span className="inline-block w-32 font-bold text-gray-700">
-                      VEHICLE CARD
-                    </span>
-                    <span className="font-mono uppercase">
-                      :{" "}
-                      {visit.vehicle_card?.card_no ||
-                        visit.vehicleCard?.card_no ||
-                        "-"}
-                    </span>
-                  </div>
-                  <div className="flex pb-0.5">
-                    <span className="inline-block w-32 font-bold text-gray-700">
-                      TIME OUT
-                    </span>
-                    <span className="font-mono uppercase">
-                      : {visit.time_out || "-"}
-                    </span>
-                  </div>
-                </td>
-              </tr>
-
-              {/* Merged Purpose Row */}
-              <tr>
-                <td colSpan={2} className="border-t border-gray-400 pt-1">
-                  <div className="flex">
-                    <span className="inline-block w-32 font-bold text-gray-700">
-                      PURPOSE
-                    </span>
-                    <span className="font-semibold uppercase">
-                      : {visit.purpose || "-"}
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* Rules & Regulations Section */}
-          <div className="my-2 grid grid-cols-2 gap-3 border-t-2 border-b-2 border-black py-1.5 text-[8px]">
-            <div className="border-r border-black pr-2">
-              <p className="mb-0.5 font-bold uppercase underline">
-                Rules & Regulations:
-              </p>
-              <ul className="list-inside list-disc space-y-0.5 text-zinc-800">
-                <li>Visitor pass must be visibly worn at all times in yard.</li>
-                <li>
-                  {companyName || "The company"} is not liable for injury or
-                  property loss.
-                </li>
-                <li>
-                  Report lost pass immediately to Security. Replacement fee: Rp.
-                  50,000.
-                </li>
-              </ul>
-            </div>
-            <div className="pl-2">
-              <p className="mb-0.5 font-bold uppercase underline">
-                Ketentuan Yard:
-              </p>
-              <ul className="list-inside list-disc space-y-0.5 text-zinc-800">
-                <li>
-                  Pass harus selalu dikenakan selama berada di area galangan.
-                </li>
-                <li>
-                  Perusahaan tidak bertanggung jawab atas cedera atau kehilangan
-                  barang.
-                </li>
-                <li>
-                  Pass hilang segera lapor Pos Sekuriti. Biaya penggantian: Rp
-                  50.000.
-                </li>
-              </ul>
-            </div>
+          <div>
+            <div className="h-8" />
+            <div className="border-t border-black pt-0.5">Host / Staff</div>
           </div>
-
-          {/* 3 Box Signature Grid */}
-          <div className="mt-2 grid grid-cols-3 gap-4 text-center text-xs font-bold uppercase">
-            <div>
-              <div className="h-10"></div>
-              <div className="border-t border-black pt-1">Security Duty</div>
-              <p className="mt-0.5 font-mono text-[9px] font-normal text-zinc-600">
-                Printed By: {printedBy}
-              </p>
-            </div>
-            <div>
-              <div className="h-10"></div>
-              <div className="border-t border-black pt-1">Host / Staff</div>
-            </div>
-            <div>
-              <div className="h-10"></div>
-              <div className="border-t border-black pt-1">
-                Visitor Signature
-              </div>
+          <div>
+            <div className="h-8" />
+            <div className="border-t border-black pt-0.5">
+              Visitor Signature
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Screen Action Buttons (Print:hidden) */}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3 print:hidden">
-          <button
-            onClick={() => window.print()}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800"
-          >
-            <Printer className="h-4 w-4" />
-            Print Pass Now
-          </button>
-          <button
-            onClick={() => navigate("/visits/create")}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Add New Visit
-          </button>
-          <button
-            onClick={() => navigate("/visits/activate")}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Active Visits
-          </button>
-        </div>
+      {/* Tombol layar (tidak ikut tercetak) */}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3 print:hidden">
+        <button
+          onClick={() => window.print()}
+          className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800"
+        >
+          <Printer className="h-4 w-4" />
+          Print Pass Now
+        </button>
+        <button
+          onClick={() => navigate("/visits/create")}
+          className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+        >
+          <PlusCircle className="h-4 w-4" />
+          Add New Visit
+        </button>
+        <button
+          onClick={() => navigate("/visits/activate")}
+          className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Active Visits
+        </button>
       </div>
     </div>
   )
