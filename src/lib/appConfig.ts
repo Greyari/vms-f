@@ -24,6 +24,25 @@ export const FALLBACK_COMPANY_NAME = "Visitor Management System"
 
 let pending: Promise<AppConfig> | null = null
 
+export function resolveLogoUrl(path: string | null): string | null {
+  if (!path) return null
+  if (path.startsWith("http://") || path.startsWith("https://")) return path
+
+  const apiBase = import.meta.env.VITE_API_BASE_URL
+  if (
+    apiBase &&
+    (apiBase.startsWith("http://") || apiBase.startsWith("https://"))
+  ) {
+    try {
+      const parsed = new URL(apiBase)
+      return `${parsed.origin}${path.startsWith("/") ? path : `/${path}`}`
+    } catch {
+      // fallback
+    }
+  }
+  return path
+}
+
 function asAppConfig(data: unknown): AppConfig {
   const d = (data && typeof data === "object" ? data : {}) as Record<
     string,
@@ -37,7 +56,9 @@ function asAppConfig(data: unknown): AppConfig {
     company_address: text(d.company_address),
     // Only a file the gate itself serves from public/branding/.
     logo_url:
-      typeof logo === "string" && logo.startsWith("/branding/") ? logo : null,
+      typeof logo === "string" && logo.startsWith("/branding/")
+        ? resolveLogoUrl(logo)
+        : null,
     yard_code: text(d.yard_code),
   }
 }
