@@ -113,7 +113,7 @@ export default function VesselArrivalDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pr-6">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
