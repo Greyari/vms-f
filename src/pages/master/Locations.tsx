@@ -44,9 +44,7 @@ import {
   ChevronRight,
   RotateCw,
 } from "lucide-react"
-import MasterImportDialog, {
-  type ImportColumnDef,
-} from "@/components/master/MasterImportDialog"
+import MasterImportDialog from "@/components/master/MasterImportDialog"
 
 export interface LocationItem {
   id: string
@@ -654,7 +652,7 @@ export default function Locations() {
         open={importOpen}
         onOpenChange={setImportOpen}
         title="Import Lokasi & Kapal"
-        description="Unggah berkas Excel (.xlsx / .csv) berisi daftar lokasi darat, dermaga, atau kapal sandar."
+        description="Unggah berkas Excel (.xlsx / .xls / .csv) berisi daftar lokasi darat, dermaga, atau kapal sandar."
         templateEndpoint="/locations/template"
         templateFileName="template_locations_vessels.xlsx"
         previewEndpoint="/locations/import-preview"

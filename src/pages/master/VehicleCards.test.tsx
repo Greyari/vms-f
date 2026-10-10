@@ -54,11 +54,10 @@ describe('Vehicle Cards Master Page', () => {
     fireEvent.click(filterButton)
 
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/cards', expect.objectContaining({
+      expect(api.get).toHaveBeenCalledWith('/vehicle-cards', expect.objectContaining({
         params: expect.objectContaining({
           card_no_from: 'VEH-001',
           card_no_to: 'VEH-050',
-          card_type: 'vehicle',
         }),
       }))
     })
@@ -75,9 +74,9 @@ describe('Vehicle Cards Master Page', () => {
     expect(deleteButtons[1]).toBeDisabled()
   })
 
-  it('submits new vehicle card sending card_type: vehicle', async () => {
+  it('submits new vehicle card to /vehicle-cards', async () => {
     vi.mocked(api.post).mockResolvedValue({
-      data: { id: 12, card_no: 'VEH-003', card_type: 'vehicle', status: 'available' },
+      data: { id: 12, card_no: 'VEH-003', status: 'available' },
     })
 
     render(<VehicleCards />)
@@ -100,10 +99,9 @@ describe('Vehicle Cards Master Page', () => {
     fireEvent.click(saveButton)
 
     await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/cards', {
+      expect(api.post).toHaveBeenCalledWith('/vehicle-cards', expect.objectContaining({
         card_no: 'VEH-003',
-        card_type: 'vehicle',
-      })
+      }))
     })
   })
 })

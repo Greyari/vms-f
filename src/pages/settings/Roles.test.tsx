@@ -54,7 +54,7 @@ describe("Roles settings page", () => {
     )
   })
 
-  it("shows a built-in role as read-only and a custom role as editable", async () => {
+  it("shows a built-in role with edit permissions and a custom role as fully editable", async () => {
     render(<Roles />)
 
     const builtInRow = (await screen.findByText("security")).closest(
@@ -62,11 +62,8 @@ describe("Roles settings page", () => {
     ) as HTMLElement
     expect(within(builtInRow).getByText(/bawaan/i)).toBeInTheDocument()
     expect(
-      within(builtInRow).getByRole("button", { name: /lihat/i })
+      within(builtInRow).getByRole("button", { name: /edit/i })
     ).toBeInTheDocument()
-    expect(
-      within(builtInRow).queryByRole("button", { name: /edit/i })
-    ).not.toBeInTheDocument()
     expect(
       within(builtInRow).queryByRole("button", { name: /delete/i })
     ).not.toBeInTheDocument()
@@ -82,21 +79,20 @@ describe("Roles settings page", () => {
     ).toBeInTheDocument()
   })
 
-  it("opens a built-in role without a way to save it", async () => {
+  it("opens a built-in role with locked name field", async () => {
     render(<Roles />)
 
     const builtInRow = (await screen.findByText("security")).closest(
       "tr"
     ) as HTMLElement
-    fireEvent.click(within(builtInRow).getByRole("button", { name: /lihat/i }))
+    fireEvent.click(within(builtInRow).getByRole("button", { name: /edit/i }))
 
     const dialog = await screen.findByRole("dialog")
+    const nameInput = within(dialog).getByLabelText(/nama role/i)
+    expect(nameInput).toBeDisabled()
     expect(
-      within(dialog).queryByRole("button", { name: /save/i })
-    ).not.toBeInTheDocument()
-    within(dialog)
-      .getAllByRole("checkbox")
-      .forEach((box) => expect(box).toBeDisabled())
+      within(dialog).getByRole("button", { name: /save/i })
+    ).toBeInTheDocument()
   })
 
   it("hides every change control from a user who may only view roles", async () => {

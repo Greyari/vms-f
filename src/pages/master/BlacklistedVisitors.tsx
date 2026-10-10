@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GlobalBlacklistPanel from "./GlobalBlacklistPanel"
+import MasterImportDialog from "@/components/master/MasterImportDialog"
 import { REASON_CATEGORIES, type ReasonCategory } from "@/types/hybrid"
 import {
   AlertDialog,
@@ -47,6 +48,7 @@ import {
   ArrowLeft,
   Plus,
   Globe,
+  Pencil,
 } from "lucide-react"
 
 interface BlacklistedVisitor {
@@ -55,11 +57,34 @@ interface BlacklistedVisitor {
   id_type: string
   id_number: string
   name: string
+  badge_code?: string
+  offences?: string
+  blacklist_reason?: string
+  date?: string
+  blacklisted_at?: string
+  remark?: string
   company?: string
   is_blacklisted: boolean
-  blacklist_reason?: string
-  blacklisted_at?: string
-  blacklisted_by?: string
+}
+
+interface BlacklistFormState {
+  name: string
+  badge_code: string
+  id_number: string
+  offences: string
+  date: string
+  remark: string
+  company: string
+}
+
+const initialFormState: BlacklistFormState = {
+  name: "",
+  badge_code: "",
+  id_number: "",
+  offences: "",
+  date: new Date().toISOString().slice(0, 10),
+  remark: "",
+  company: "",
 }
 
 const ITEMS_PER_PAGE = 10
@@ -81,20 +106,16 @@ export default function BlacklistedVisitors() {
     number | string | null
   >(null)
 
-  // Add Blacklist Modal State
-  const [addBlacklistModalOpen, setAddBlacklistModalOpen] = useState(false)
-  const [addSearch, setAddSearch] = useState("")
-  const [candidateVisitors, setCandidateVisitors] = useState<any[]>([])
-  const [candidateLoading, setCandidateLoading] = useState(false)
-  const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null)
-  const [addReason, setAddReason] = useState("")
-  const [submittingAdd, setSubmittingAdd] = useState(false)
+  // Form Modal State (Create / Edit)
+  const [formModalOpen, setFormModalOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editId, setEditId] = useState<string | number | null>(null)
+  const [formData, setFormData] = useState<BlacklistFormState>(initialFormState)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
 
   // Import / Export State
   const [importModalOpen, setImportModalOpen] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
-  const [importLoading, setImportLoading] = useState(false)
-  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
 
   // "Naikkan ke global" (hybrid decisions PE-5, FE-4b): a fixed category travels, the note stays here.
@@ -110,7 +131,7 @@ export default function BlacklistedVisitors() {
   const openPromote = (visitor: BlacklistedVisitor) => {
     setPromoteTarget(visitor)
     setPromoteCategory("")
-    setPromoteNote(visitor.blacklist_reason ?? "")
+    setPromoteNote(visitor.offences || visitor.blacklist_reason || "")
   }
 
   const submitPromote = async () => {
@@ -172,52 +193,84 @@ export default function BlacklistedVisitors() {
     fetchBlacklisted()
   }, [fetchBlacklisted])
 
-  // Search candidate visitors to blacklist
-  const searchCandidates = async () => {
-    if (!addSearch.trim()) return
-    setCandidateLoading(true)
-    try {
-      const res = await api.get("/visitors", {
-        params: { search: addSearch, is_blacklisted: "0", per_page: 5 },
-      })
-      const list = Array.isArray(res.data?.data)
-        ? res.data.data
-        : Array.isArray(res.data)
-          ? res.data
-          : []
-      setCandidateVisitors(list)
-    } catch (error) {
-      console.error(error)
-    } finally {
-      setCandidateLoading(false)
-    }
+  const openCreateModal = () => {
+    setFormData({
+      ...initialFormState,
+      date: new Date().toISOString().slice(0, 10),
+    })
+    setFormErrors({})
+    setIsEditing(false)
+    setEditId(null)
+    setFormModalOpen(true)
   }
 
-  const handleAddBlacklistSubmit = async (e: React.FormEvent) => {
+  const openEditModal = (visitor: BlacklistedVisitor) => {
+    const rawDate = visitor.blacklisted_at || visitor.date || ""
+    const formattedDate = rawDate ? rawDate.slice(0, 10) : new Date().toISOString().slice(0, 10)
+
+    setFormData({
+      name: visitor.name || "",
+      badge_code: visitor.badge_code || "",
+      id_number:
+        visitor.id_number && !visitor.id_number.startsWith("NOKTP")
+          ? visitor.id_number
+          : "",
+      offences: visitor.offences || visitor.blacklist_reason || "",
+      date: formattedDate,
+      remark: visitor.remark || "",
+      company: visitor.company || "",
+    })
+    setFormErrors({})
+    setIsEditing(true)
+    setEditId(visitor.id)
+    setFormModalOpen(true)
+  }
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedCandidate) {
-      toast.error("Pilih pengunjung yang akan dimasukkan ke blacklist")
+
+    const errors: Record<string, string> = {}
+    if (!formData.name.trim()) {
+      errors.name = "NAME OF OFFENDER wajib diisi."
+    }
+    if (!formData.offences.trim()) {
+      errors.offences = "OFFENCES wajib diisi."
+    }
+    if (!formData.date.trim()) {
+      errors.date = "DATE wajib diisi."
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
       return
     }
-    setSubmittingAdd(true)
+
+    setSaving(true)
     try {
-      await api.post(`/visitors/${selectedCandidate.id}/blacklist`, {
-        reason: addReason,
-      })
-      toast.success("Pengunjung berhasil dimasukkan ke daftar blacklist")
-      setAddBlacklistModalOpen(false)
-      setSelectedCandidate(null)
-      setAddReason("")
-      setAddSearch("")
-      setCandidateVisitors([])
+      if (isEditing && editId) {
+        await api.put(`/visitors/blacklisted/${editId}`, formData)
+        toast.success("Data blacklist berhasil diperbarui.")
+      } else {
+        await api.post("/visitors/blacklisted", formData)
+        toast.success("Data blacklist berhasil ditambahkan.")
+      }
+      setFormModalOpen(false)
       fetchBlacklisted()
     } catch (error: any) {
       console.error(error)
+      const backendErrors = error.response?.data?.errors
+      if (backendErrors) {
+        const formatted: Record<string, string> = {}
+        for (const [key, msgs] of Object.entries(backendErrors)) {
+          if (Array.isArray(msgs)) formatted[key] = msgs[0]
+        }
+        setFormErrors(formatted)
+      }
       toast.error(
-        error.response?.data?.message || "Gagal memasukkan ke daftar blacklist"
+        error.response?.data?.message || "Gagal menyimpan data blacklist."
       )
     } finally {
-      setSubmittingAdd(false)
+      setSaving(false)
     }
   }
 
@@ -240,52 +293,6 @@ export default function BlacklistedVisitors() {
     } finally {
       setUnblacklistAlertOpen(false)
       setSelectedUnblacklistId(null)
-    }
-  }
-
-  const handleDownloadTemplate = async () => {
-    setIsDownloadingTemplate(true)
-    try {
-      const res = await api.get("/visitors/blacklisted/template", {
-        responseType: "blob",
-      })
-      const url = window.URL.createObjectURL(new Blob([res.data]))
-      const link = document.createElement("a")
-      link.href = url
-      link.setAttribute("download", "blacklist_template.xlsx")
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-    } catch (error) {
-      console.error(error)
-      toast.error("Gagal mengunduh template.")
-    } finally {
-      setIsDownloadingTemplate(false)
-    }
-  }
-
-  const handleImport = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!file) return
-    setImportLoading(true)
-    const formData = new FormData()
-    formData.append("file", file)
-    try {
-      const res = await api.post("/visitors/blacklisted/import", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
-      setImportModalOpen(false)
-      setFile(null)
-      fetchBlacklisted()
-      toast.success(res.data?.message || "Import data blacklist selesai.")
-    } catch (error: any) {
-      console.error(error)
-      toast.error(
-        error.response?.data?.message ||
-          "Format file import tidak sesuai template."
-      )
-    } finally {
-      setImportLoading(false)
     }
   }
 
@@ -349,16 +356,7 @@ export default function BlacklistedVisitors() {
             )}
             Export Excel
           </Button>
-          <Button
-            variant="destructive"
-            onClick={() => {
-              setSelectedCandidate(null)
-              setAddReason("")
-              setAddSearch("")
-              setCandidateVisitors([])
-              setAddBlacklistModalOpen(true)
-            }}
-          >
+          <Button variant="destructive" onClick={openCreateModal}>
             <Plus className="mr-2 h-4 w-4" /> Tambah Blacklist
           </Button>
         </div>
@@ -381,7 +379,7 @@ export default function BlacklistedVisitors() {
               <div className="relative w-full md:w-1/3">
                 <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />
                 <Input
-                  placeholder="Cari nama, KTP, atau perusahaan..."
+                  placeholder="Cari nama, KTP, badge, atau pelanggaran..."
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value)
@@ -392,96 +390,132 @@ export default function BlacklistedVisitors() {
               </div>
             </div>
 
-            {/* Table */}
+            {/* Table with EXACT Columns */}
             <div className="overflow-hidden rounded-md border">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
                     <TableRow>
-                      <TableHead>No. Visitor</TableHead>
-                      <TableHead>Identitas</TableHead>
-                      <TableHead>Nama Pengunjung</TableHead>
-                      <TableHead>Perusahaan</TableHead>
-                      <TableHead>Tanggal Blacklist</TableHead>
-                      <TableHead>Alasan Blacklist</TableHead>
+                      <TableHead className="w-12 text-center">NO</TableHead>
+                      <TableHead>NAME OF OFFENDER</TableHead>
+                      <TableHead>Badge / H.I.D code</TableHead>
+                      <TableHead>KTP NO</TableHead>
+                      <TableHead>OFFENCES</TableHead>
+                      <TableHead>DATE</TableHead>
+                      <TableHead>REMARK</TableHead>
+                      <TableHead>COMPANY NAME</TableHead>
                       <TableHead className="text-center">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading && visitors.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center">
+                        <TableCell colSpan={9} className="h-24 text-center">
                           <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
                         </TableCell>
                       </TableRow>
                     ) : visitors.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={7}
+                          colSpan={9}
                           className="h-24 text-center text-zinc-500"
                         >
                           Tidak ada pengunjung dalam daftar blacklist.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      visitors.map((visitor) => (
-                        <TableRow
-                          key={visitor.id}
-                          className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-                        >
-                          <TableCell className="font-mono text-xs font-semibold text-primary">
-                            {visitor.visitor_no || "-"}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-mono text-xs text-muted-foreground uppercase">
-                                {visitor.id_type}
+                      visitors.map((visitor, idx) => {
+                        const rowNumber =
+                          (currentPage - 1) * ITEMS_PER_PAGE + idx + 1
+                        const displayDate = visitor.blacklisted_at
+                          ? visitor.blacklisted_at.slice(0, 10)
+                          : visitor.date
+                            ? visitor.date.slice(0, 10)
+                            : "-"
+
+                        return (
+                          <TableRow
+                            key={visitor.id}
+                            className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                          >
+                            <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                              {rowNumber}
+                            </TableCell>
+                            <TableCell className="font-semibold text-zinc-900 dark:text-zinc-100">
+                              {visitor.name}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {visitor.badge_code || "-"}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs font-medium">
+                              {visitor.id_number &&
+                              !visitor.id_number.startsWith("NOKTP") ? (
+                                visitor.id_number
+                              ) : (
+                                <span className="text-zinc-400 dark:text-zinc-500">
+                                  -
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-[240px]">
+                              <span
+                                className="line-clamp-2 text-sm font-medium text-red-600 dark:text-red-400"
+                                title={
+                                  visitor.offences || visitor.blacklist_reason
+                                }
+                              >
+                                {visitor.offences ||
+                                  visitor.blacklist_reason ||
+                                  "-"}
                               </span>
-                              <span className="text-sm font-medium">
-                                {visitor.id_number}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {visitor.name}
-                          </TableCell>
-                          <TableCell>{visitor.company || "-"}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
-                            {visitor.blacklisted_at
-                              ? new Date(
-                                  visitor.blacklisted_at
-                                ).toLocaleString()
-                              : "-"}
-                          </TableCell>
-                          <TableCell className="max-w-[280px]">
-                            <span
-                              className="line-clamp-2 text-sm font-medium text-red-700 dark:text-red-400"
-                              title={visitor.blacklist_reason}
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
+                              {displayDate}
+                            </TableCell>
+                            <TableCell
+                              className="max-w-[200px] truncate text-xs text-muted-foreground"
+                              title={visitor.remark}
                             >
-                              {visitor.blacklist_reason || "-"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="space-x-2 text-center whitespace-nowrap">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openPromote(visitor)}
-                            >
-                              <Globe className="mr-1.5 h-4 w-4" />
-                              Naikkan ke global
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => confirmUnblacklist(visitor.id)}
-                              className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/40"
-                            >
-                              <ShieldCheck className="mr-1.5 h-4 w-4" />
-                              Cabut Blacklist
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                              {visitor.remark || "-"}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {visitor.company || "-"}
+                            </TableCell>
+                            <TableCell className="space-x-1.5 text-center whitespace-nowrap">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openEditModal(visitor)}
+                                title="Ubah Data"
+                              >
+                                <Pencil className="mr-1 h-3.5 w-3.5" />
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openPromote(visitor)}
+                                aria-label="Naikkan ke global"
+                                title="Naikkan ke global"
+                              >
+                                <Globe className="mr-1 h-3.5 w-3.5" />
+                                Global
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => confirmUnblacklist(visitor.id)}
+                                aria-label="Cabut Blacklist"
+                                title="Cabut Blacklist"
+                                className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/40"
+                              >
+                                <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                                Cabut
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -548,7 +582,7 @@ export default function BlacklistedVisitors() {
                 onChange={(e) =>
                   setPromoteCategory(e.target.value as ReasonCategory)
                 }
-                className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 text-sm dark:border-zinc-800"
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
               >
                 <option value="">-- Pilih kategori --</option>
                 {REASON_CATEGORIES.map((c) => (
@@ -590,109 +624,149 @@ export default function BlacklistedVisitors() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Tambah ke Daftar Blacklist */}
-      <Dialog
-        open={addBlacklistModalOpen}
-        onOpenChange={setAddBlacklistModalOpen}
-      >
+      {/* Dialog Tambah / Edit Blacklist */}
+      <Dialog open={formModalOpen} onOpenChange={setFormModalOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Tambah ke Daftar Blacklist</DialogTitle>
+            <DialogTitle>
+              {isEditing ? "Edit Data Blacklist" : "Tambah Data Blacklist"}
+            </DialogTitle>
             <DialogDescription>
-              Cari data pengunjung dan masukkan alasan pemblokiran akses.
+              {isEditing
+                ? "Perbarui informasi pelanggaran dan identitas pelaku."
+                : "Masukkan identitas dan catatan pelanggaran untuk memasukkan ke daftar blacklist."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleAddBlacklistSubmit} className="space-y-4">
+          <form onSubmit={handleFormSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="search_candidate">Cari Pengunjung</Label>
-              <div className="flex gap-2">
+              <Label htmlFor="name">NAME OF OFFENDER *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
+                placeholder="Nama lengkap pelaku..."
+                required
+              />
+              {formErrors.name && (
+                <p className="text-xs text-red-500">{formErrors.name}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="id_number">KTP NO / Dokumen Identitas (Opsional)</Label>
                 <Input
-                  id="search_candidate"
-                  value={addSearch}
-                  onChange={(e) => setAddSearch(e.target.value)}
-                  placeholder="Ketik nama atau nomor KTP..."
+                  id="id_number"
+                  value={formData.id_number}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      id_number: e.target.value,
+                    }))
+                  }
+                  placeholder="Nomor KTP, Passport, atau kosongkan..."
+                  maxLength={50}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={searchCandidates}
-                  disabled={candidateLoading || !addSearch.trim()}
-                >
-                  {candidateLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Cari"
-                  )}
-                </Button>
+                {formErrors.id_number && (
+                  <p className="text-xs text-red-500">{formErrors.id_number}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="badge_code">Badge / H.I.D code</Label>
+                <Input
+                  id="badge_code"
+                  value={formData.badge_code}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      badge_code: e.target.value,
+                    }))
+                  }
+                  placeholder="Contoh: HID-1029"
+                />
               </div>
             </div>
 
-            {/* Candidate Results */}
-            {candidateVisitors.length > 0 && (
-              <div className="space-y-1.5 rounded-md border p-2">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Pilih pengunjung:
-                </p>
-                {candidateVisitors.map((cand) => (
-                  <div
-                    key={cand.id}
-                    onClick={() => setSelectedCandidate(cand)}
-                    className={`cursor-pointer rounded p-2 text-sm transition-colors ${
-                      selectedCandidate?.id === cand.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
-                    }`}
-                  >
-                    <p className="font-semibold">{cand.name}</p>
-                    <p className="text-xs opacity-80">
-                      {cand.id_type?.toUpperCase()}: {cand.id_number} (
-                      {cand.company || "Independen"})
-                    </p>
-                  </div>
-                ))}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="date">DATE *</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, date: e.target.value }))
+                  }
+                  required
+                />
+                {formErrors.date && (
+                  <p className="text-xs text-red-500">{formErrors.date}</p>
+                )}
               </div>
-            )}
 
-            {selectedCandidate && (
-              <div className="rounded-md border border-amber-500/40 bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-                <p className="font-semibold">Pengunjung Terpilih:</p>
-                <p>
-                  {selectedCandidate.name} ({selectedCandidate.id_number}) -{" "}
-                  {selectedCandidate.company || "-"}
-                </p>
+              <div className="space-y-2">
+                <Label htmlFor="company">COMPANY NAME</Label>
+                <Input
+                  id="company"
+                  value={formData.company}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      company: e.target.value,
+                    }))
+                  }
+                  placeholder="Nama instansi/perusahaan..."
+                />
               </div>
-            )}
+            </div>
 
             <div className="space-y-2">
-              <Label htmlFor="add_reason">Alasan Blacklist *</Label>
+              <Label htmlFor="offences">OFFENCES *</Label>
               <Textarea
-                id="add_reason"
-                value={addReason}
-                onChange={(e) => setAddReason(e.target.value)}
-                placeholder="Tuliskan alasan penolakan atau pelanggaran..."
+                id="offences"
+                value={formData.offences}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, offences: e.target.value }))
+                }
+                placeholder="Tuliskan bentuk pelanggaran yang dilakukan..."
                 rows={3}
                 required
               />
+              {formErrors.offences && (
+                <p className="text-xs text-red-500">{formErrors.offences}</p>
+              )}
             </div>
 
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="space-y-2">
+              <Label htmlFor="remark">REMARK</Label>
+              <Textarea
+                id="remark"
+                value={formData.remark}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, remark: e.target.value }))
+                }
+                placeholder="Catatan tambahan (opsional)..."
+                rows={2}
+              />
+            </div>
+
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setAddBlacklistModalOpen(false)}
+                onClick={() => setFormModalOpen(false)}
+                disabled={saving}
               >
                 Batal
               </Button>
-              <Button
-                type="submit"
-                variant="destructive"
-                disabled={
-                  !selectedCandidate || !addReason.trim() || submittingAdd
-                }
-              >
-                {submittingAdd ? "Menyimpan..." : "Blacklist Pengunjung"}
+              <Button type="submit" variant="destructive" disabled={saving}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isEditing ? "Simpan Perubahan" : "Tambahkan ke Blacklist"}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -722,66 +796,27 @@ export default function BlacklistedVisitors() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Import Modal */}
-      <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Import Data Blacklist</DialogTitle>
-            <DialogDescription>
-              Unggah file spreadsheet untuk memasukkan data blacklist sekaligus.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="text-sm">
-                <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                  Unduh Template Excel
-                </p>
-                <p className="text-zinc-500">
-                  Format template untuk data blacklist pengunjung.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadTemplate}
-                disabled={isDownloadingTemplate}
-              >
-                {isDownloadingTemplate ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <FileDown className="mr-2 h-4 w-4" />
-                )}
-                Unduh
-              </Button>
-            </div>
-            <form onSubmit={handleImport} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="import_file">Unggah File Excel</Label>
-                <Input
-                  id="import_file"
-                  type="file"
-                  accept=".xlsx,.csv"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  required
-                />
-              </div>
-              <div className="mt-4 flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setImportModalOpen(false)}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" disabled={!file || importLoading}>
-                  {importLoading ? "Mengimpor..." : "Upload & Import"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Master Import Dialog with Preview & Duplicate Confirmation */}
+      <MasterImportDialog
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        title="Import Data Blacklist"
+        description="Unggah file spreadsheet Excel (.xlsx / .xls / .csv) daftar blacklist dengan kolom: NO, NAME OF OFFENDER, Badge / H.I.D code, KTP NO, OFFENCES, DATE, REMARK, COMPANY NAME."
+        templateEndpoint="/visitors/blacklisted/template"
+        templateFileName="template_blacklist.xlsx"
+        previewEndpoint="/visitors/blacklisted/import-preview"
+        importEndpoint="/visitors/blacklisted/import"
+        columns={[
+          { key: "name_of_offender", label: "NAME OF OFFENDER" },
+          { key: "badge_/_h.i.d_code", label: "Badge / H.I.D code" },
+          { key: "ktp_no", label: "KTP NO" },
+          { key: "offences", label: "OFFENCES" },
+          { key: "date", label: "DATE" },
+          { key: "remark", label: "REMARK" },
+          { key: "company_name", label: "COMPANY NAME" },
+        ]}
+        onSuccess={fetchBlacklisted}
+      />
     </div>
   )
 }

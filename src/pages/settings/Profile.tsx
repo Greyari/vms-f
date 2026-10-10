@@ -49,7 +49,13 @@ export default function Profile() {
       const res = await api.put("/profile", payload)
       toast.success("Profil berhasil diperbarui.")
       if (res.data?.user && token) {
-        login(token, res.data.user)
+        const mergedUser = {
+          ...user,
+          ...res.data.user,
+          roles: res.data.user.roles || user?.roles,
+          permissions: res.data.user.permissions || user?.permissions,
+        }
+        login(token, mergedUser)
       }
     } catch (error: any) {
       console.error(error)

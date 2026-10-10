@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest"
 import { MemoryRouter } from "react-router-dom"
 import AppLayout from "./AppLayout"
 import * as AuthContextModule from "../context/AuthContext"
+import { ThemeProvider } from "../context/ThemeContext"
 import type { User } from "../types/auth"
 
 // The header's sync indicator polls /sync/status; nothing here should reach the network.
@@ -45,7 +46,9 @@ describe("AppLayout RBAC Navigation", () => {
 
     render(
       <MemoryRouter>
-        <AppLayout />
+        <ThemeProvider>
+          <AppLayout />
+        </ThemeProvider>
       </MemoryRouter>
     )
 
@@ -87,7 +90,9 @@ describe("AppLayout RBAC Navigation", () => {
 
     render(
       <MemoryRouter>
-        <AppLayout />
+        <ThemeProvider>
+          <AppLayout />
+        </ThemeProvider>
       </MemoryRouter>
     )
 
@@ -123,7 +128,9 @@ describe("AppLayout RBAC Navigation", () => {
 
     render(
       <MemoryRouter>
-        <AppLayout />
+        <ThemeProvider>
+          <AppLayout />
+        </ThemeProvider>
       </MemoryRouter>
     )
 

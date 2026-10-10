@@ -28,10 +28,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const login = (newToken: string, newUser: User) => {
+    const finalUser: User = {
+      ...newUser,
+      roles: newUser.roles ?? user?.roles ?? [],
+      permissions: newUser.permissions ?? user?.permissions ?? [],
+    }
     localStorage.setItem("token", newToken)
-    localStorage.setItem("user", JSON.stringify(newUser))
+    localStorage.setItem("user", JSON.stringify(finalUser))
     setToken(newToken)
-    setUser(newUser)
+    setUser(finalUser)
   }
 
   const logout = async () => {

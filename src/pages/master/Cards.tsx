@@ -44,9 +44,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
-import MasterImportDialog, {
-  type ImportColumnDef,
-} from "@/components/master/MasterImportDialog"
+import MasterImportDialog from "@/components/master/MasterImportDialog"
 
 export interface CardItem {
   id: number | string
@@ -566,7 +564,7 @@ export default function Cards() {
         open={importOpen}
         onOpenChange={setImportOpen}
         title="Import Kartu Visitor"
-        description="Unggah berkas Excel (.xlsx / .csv) berisi daftar nomor kartu fisik visitor."
+        description="Unggah berkas Excel (.xlsx / .xls / .csv) berisi daftar nomor kartu fisik visitor."
         templateEndpoint="/cards/template"
         templateFileName="template_cards.xlsx"
         previewEndpoint="/cards/import-preview"

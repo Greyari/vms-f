@@ -33,16 +33,13 @@ import {
 import {
   Search,
   Loader2,
-  FileDown,
   Upload,
   Plus,
   ChevronLeft,
   ChevronRight,
   Download,
 } from "lucide-react"
-import MasterImportDialog, {
-  type ImportColumnDef,
-} from "@/components/master/MasterImportDialog"
+import MasterImportDialog from "@/components/master/MasterImportDialog"
 
 interface Staff {
   id: string
@@ -65,7 +62,6 @@ export default function Staffs() {
   const [modalOpen, setModalOpen] = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [trashedModalOpen, setTrashedModalOpen] = useState(false)
-  const [isDownloading, setIsDownloading] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
 
   // Filters & Pagination
@@ -90,7 +86,6 @@ export default function Staffs() {
     address: "",
     is_active: true,
   })
-  const [file, setFile] = useState<File | null>(null)
 
   // Alert Dialog States (Delete)
   const [alertOpen, setAlertOpen] = useState(false)
@@ -260,51 +255,6 @@ export default function Staffs() {
     }
   }
 
-  const handleDownloadTemplate = async () => {
-    setIsDownloading(true)
-    try {
-      const res = await api.get("/staffs/template/download", {
-        responseType: "blob",
-      })
-      const url = window.URL.createObjectURL(new Blob([res.data]))
-      const link = document.createElement("a")
-      link.href = url
-      link.setAttribute("download", "staff_template.xlsx")
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-    } catch (error) {
-      console.error(error)
-      showError("Gagal mengunduh template.")
-    } finally {
-      setIsDownloading(false)
-    }
-  }
-
-  const handleImport = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!file) return
-    setLoading(true)
-    const formData = new FormData()
-    formData.append("file", file)
-    try {
-      await api.post("/staffs/import", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
-      setImportModalOpen(false)
-      setFile(null)
-      fetchStaffs()
-    } catch (error: any) {
-      console.error(error)
-      const msg =
-        error.response?.data?.message ||
-        "Gagal mengimpor file. Pastikan format file sesuai template."
-      showError(msg)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <div className="p-6">
       {/* Header */}
@@ -384,11 +334,11 @@ export default function Staffs() {
                 setStatusFilter(e.target.value)
                 setCurrentPage(1)
               }}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex h-9 w-full rounded-md border border-input bg-white text-zinc-900 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-800"
             >
-              <option value="">Semua Status</option>
-              <option value="1">Aktif</option>
-              <option value="0">Nonaktif</option>
+              <option value="" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Semua Status</option>
+              <option value="1" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Aktif</option>
+              <option value="0" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Nonaktif</option>
             </select>
           </div>
         </div>
@@ -571,11 +521,11 @@ export default function Staffs() {
                   id="form_gender"
                   value={form.gender}
                   onChange={(e) => setForm({ ...form, gender: e.target.value })}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-9 w-full rounded-md border border-input bg-white text-zinc-900 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-800"
                 >
-                  <option value="">Pilih Jenis Kelamin</option>
-                  <option value="M">Laki-laki (M)</option>
-                  <option value="F">Perempuan (F)</option>
+                  <option value="" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Pilih Jenis Kelamin</option>
+                  <option value="M" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Laki-laki (M)</option>
+                  <option value="F" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Perempuan (F)</option>
                 </select>
               </div>
             </div>
@@ -634,7 +584,7 @@ export default function Staffs() {
         open={importModalOpen}
         onOpenChange={setImportModalOpen}
         title="Import Data Staf"
-        description="Unggah file spreadsheet Excel (.xlsx / .csv) untuk memperbarui data staf sekaligus."
+        description="Unggah file spreadsheet Excel (.xlsx / .xls / .csv) untuk memperbarui data staf sekaligus."
         templateEndpoint="/staffs/template"
         templateFileName="template_staff.xlsx"
         previewEndpoint="/staffs/import-preview"

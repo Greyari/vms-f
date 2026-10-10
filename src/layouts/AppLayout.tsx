@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import { useTheme } from "../context/ThemeContext"
 import { permissionFor, type GuardedPath } from "../lib/routePermissions"
 import SyncIndicator from "../components/sync/SyncIndicator"
 import {
@@ -19,10 +20,13 @@ import {
   Ship,
   Building2,
   KeyRound,
+  Sun,
+  Moon,
 } from "lucide-react"
 
 export default function AppLayout() {
   const { user, logout, hasPermission } = useAuth()
+  const { isDark, toggleTheme } = useTheme()
   const location = useLocation()
   const [profileOpen, setProfileOpen] = useState(false)
 
@@ -176,6 +180,23 @@ export default function AppLayout() {
     },
   ]
 
+  // Flatten all visible navigation items to determine the most specific active route
+  const allVisibleItems = menuItems.flatMap((group) =>
+    group.items.filter((item) => item.show)
+  )
+
+  const activeNavItem = allVisibleItems
+    .filter((item) => {
+      if (item.path === "/") {
+        return location.pathname === "/"
+      }
+      return (
+        location.pathname === item.path ||
+        location.pathname.startsWith(item.path + "/")
+      )
+    })
+    .sort((a, b) => b.path.length - a.path.length)[0]
+
   return (
     <div className="flex h-screen w-full bg-zinc-50 dark:bg-zinc-900">
       {/* Sidebar */}
@@ -197,9 +218,7 @@ export default function AppLayout() {
                 <div className="space-y-1">
                   {visibleItems.map((item, j) => {
                     const Icon = item.icon
-                    const isActive =
-                      location.pathname === item.path ||
-                      location.pathname.startsWith(item.path + "/")
+                    const isActive = activeNavItem?.path === item.path
 
                     return (
                       <Link
@@ -269,9 +288,26 @@ export default function AppLayout() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
-        {/* Cloud hub sync indicator (hybrid decisions FE-4c, PE-6) */}
-        <div className="flex h-14 items-center justify-end border-b border-zinc-200 bg-white px-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <SyncIndicator canRun={hasPermission("manage_blacklist")} />
+        {/* Top Header bar with Theme Toggle and Cloud hub sync indicator */}
+        <div className="flex h-14 items-center justify-between border-b border-zinc-200 bg-white px-6 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+            Visitor Management System
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+              title={isDark ? "Beralih ke mode terang" : "Beralih ke mode gelap"}
+              aria-label={isDark ? "Beralih ke mode terang" : "Beralih ke mode gelap"}
+            >
+              {isDark ? (
+                <Sun className="h-4 w-4 text-amber-400" />
+              ) : (
+                <Moon className="h-4 w-4 text-zinc-600" />
+              )}
+            </button>
+            <SyncIndicator canRun={hasPermission("manage_blacklist")} />
+          </div>
         </div>
         <div className="max-w-10xl container mx-auto p-6">
           <Outlet />

@@ -44,9 +44,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
-import MasterImportDialog, {
-  type ImportColumnDef,
-} from "@/components/master/MasterImportDialog"
+import MasterImportDialog from "@/components/master/MasterImportDialog"
 
 export interface VehicleCardItem {
   id: number | string
@@ -87,7 +85,6 @@ export default function VehicleCards() {
     setLoading(true)
     try {
       const params: Record<string, string | number> = {
-        card_type: "vehicle",
         page: currentPage,
         per_page: perPage,
       }
@@ -96,7 +93,7 @@ export default function VehicleCards() {
       if (cardNoFrom.trim()) params.card_no_from = cardNoFrom.trim()
       if (cardNoTo.trim()) params.card_no_to = cardNoTo.trim()
 
-      const res = await api.get("/cards", { params })
+      const res = await api.get("/vehicle-cards", { params })
       const resData = res.data?.data || (Array.isArray(res.data) ? res.data : [])
       setCards(resData)
       setTotalPages(res.data?.last_page || 1)
@@ -141,12 +138,12 @@ export default function VehicleCards() {
     setSubmitting(true)
     try {
       if (editingCard) {
-        await api.put(`/cards/${editingCard.id}`, { card_no: cardNo.trim() })
+        await api.put(`/vehicle-cards/${editingCard.id}`, { card_no: cardNo.trim() })
         toast.success("Nomor kartu kendaraan berhasil diperbarui.")
       } else {
-        await api.post("/cards", {
+        await api.post("/vehicle-cards", {
           card_no: cardNo.trim(),
-          card_type: "vehicle",
+          status: "available",
         })
         toast.success("Kartu kendaraan baru berhasil ditambahkan.")
       }
@@ -171,7 +168,7 @@ export default function VehicleCards() {
 
     setDeleting(true)
     try {
-      await api.delete(`/cards/${deleteTarget.id}`)
+      await api.delete(`/vehicle-cards/${deleteTarget.id}`)
       toast.success("Kartu kendaraan berhasil dihapus.")
       setDeleteTarget(null)
       fetchCards()
@@ -187,8 +184,14 @@ export default function VehicleCards() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      const res = await api.get("/cards/export", {
-        params: { card_type: "vehicle" },
+      const params: Record<string, string> = {}
+      if (search.trim()) params.search = search.trim()
+      if (statusFilter) params.status = statusFilter
+      if (cardNoFrom.trim()) params.card_no_from = cardNoFrom.trim()
+      if (cardNoTo.trim()) params.card_no_to = cardNoTo.trim()
+
+      const res = await api.get("/vehicle-cards/export", {
+        params,
         responseType: "blob",
       })
       const url = window.URL.createObjectURL(new Blob([res.data]))
@@ -308,12 +311,12 @@ export default function VehicleCards() {
                 id="vehicle-cards-status-filter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className="w-full rounded-md border border-zinc-300 bg-white text-zinc-900 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               >
-                <option value="">Semua Status</option>
-                <option value="available">Available</option>
-                <option value="in_use">In Use</option>
-                <option value="lost">Lost</option>
+                <option value="" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Semua Status</option>
+                <option value="available" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Available</option>
+                <option value="in_use" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">In Use</option>
+                <option value="lost" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Lost</option>
               </select>
             </div>
 
@@ -564,7 +567,7 @@ export default function VehicleCards() {
         open={importOpen}
         onOpenChange={setImportOpen}
         title="Import Kartu Kendaraan"
-        description="Unggah berkas Excel (.xlsx / .csv) berisi nomor kartu fisik kendaraan."
+        description="Unggah berkas Excel (.xlsx / .xls / .csv) berisi nomor kartu fisik kendaraan."
         templateEndpoint="/vehicle-cards/template"
         templateFileName="template_vehicle_cards.xlsx"
         previewEndpoint="/vehicle-cards/import-preview"

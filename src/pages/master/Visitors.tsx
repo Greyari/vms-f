@@ -703,7 +703,7 @@ export default function Visitors() {
                 <Input
                   id="import_file"
                   type="file"
-                  accept=".xlsx,.csv"
+                  accept=".xlsx, .xls, .csv"
                   onChange={(e) => setImportFile(e.target.files?.[0] || null)}
                   required
                 />

@@ -39,7 +39,7 @@ describe("BlacklistedVisitors Master Page", () => {
     })
   })
 
-  it("renders blacklisted visitors with visitor_no, name, and reason", async () => {
+  it("renders blacklisted visitors with name, KTP, and offences", async () => {
     render(
       <BrowserRouter>
         <BlacklistedVisitors />
@@ -47,7 +47,6 @@ describe("BlacklistedVisitors Master Page", () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText("VIS-2026-0099")).toBeInTheDocument()
       expect(screen.getByText("Doni Kusuma")).toBeInTheDocument()
       expect(screen.getByText("2171019999990001")).toBeInTheDocument()
       expect(
@@ -72,7 +71,7 @@ describe("BlacklistedVisitors Master Page", () => {
     })
 
     const unblacklistBtn = screen.getByRole("button", {
-      name: /unblacklist|cabut blacklist/i,
+      name: /cabut/i,
     })
     fireEvent.click(unblacklistBtn)
 
@@ -110,7 +109,7 @@ describe("BlacklistedVisitors Master Page", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: /tambah ke daftar blacklist/i })
+        screen.getByRole("heading", { name: /tambah.*blacklist/i })
       ).toBeInTheDocument()
     })
   })

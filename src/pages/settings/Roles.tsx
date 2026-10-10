@@ -44,6 +44,7 @@ export default function Roles() {
   const [permissions, setPermissions] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
+  const [isBuiltinRole, setIsBuiltinRole] = useState(false)
   const [form, setForm] = useState<{
     id: string | null
     name: string
@@ -81,6 +82,7 @@ export default function Roles() {
 
   const openForm = (role: any = null, viewOnly = false) => {
     setReadOnly(viewOnly)
+    setIsBuiltinRole(Boolean(role?.is_builtin))
     if (role) {
       setForm({
         id: role.id,
@@ -113,15 +115,16 @@ export default function Roles() {
     try {
       if (form.id) {
         await api.put(`/roles/${form.id}`, form)
+        toast.success("Perubahan role berhasil disimpan.")
       } else {
         await api.post("/roles", form)
+        toast.success("Role baru berhasil ditambahkan.")
       }
       setModalOpen(false)
-      toast.success("Role saved")
       fetchRoles()
     } catch (error: any) {
       console.error(error)
-      toast.error(error.response?.data?.message || "Failed to save role")
+      toast.error(error.response?.data?.message || "Gagal menyimpan role.")
     } finally {
       setLoading(false)
     }
@@ -197,7 +200,7 @@ export default function Roles() {
                       </span>
                     </TableCell>
                     <TableCell className="space-x-2 text-right">
-                      {role.is_builtin || !canManage ? (
+                      {!canManage ? (
                         <Button
                           variant="outline"
                           size="sm"
@@ -210,17 +213,19 @@ export default function Roles() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => openForm(role)}
+                            onClick={() => openForm(role, false)}
                           >
                             Edit
                           </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => confirmDelete(role.id)}
-                          >
-                            Delete
-                          </Button>
+                          {!role.is_builtin && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => confirmDelete(role.id)}
+                            >
+                              Delete
+                            </Button>
+                          )}
                         </>
                       )}
                     </TableCell>
@@ -240,19 +245,29 @@ export default function Roles() {
             </DialogTitle>
             <DialogDescription>
               {readOnly
-                ? "Role bawaan dikelola seeder sistem dan tidak bisa diubah langsung. Anda dapat menyalin hak aksesnya ke role kustom baru."
-                : "Atur nama role dan pilih izin/hak akses (permissions) yang dimiliki role ini."}
+                ? "Melihat detail hak akses role."
+                : isBuiltinRole
+                  ? "Role bawaan sistem: nama role dikunci agar integritas sistem terjaga, namun izin/hak akses (permissions) dapat disesuaikan."
+                  : "Atur nama role dan pilih izin/hak akses (permissions) yang dimiliki role ini."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label>Nama Role</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="role_name">Nama Role</Label>
+                {isBuiltinRole && (
+                  <span className="text-xs text-amber-600 dark:text-amber-400">
+                    (Role Sistem — nama tidak dapat diubah)
+                  </span>
+                )}
+              </div>
               <Input
+                id="role_name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
                 placeholder="cth. supervisor_lapangan"
-                disabled={readOnly}
+                disabled={readOnly || isBuiltinRole}
               />
             </div>
 

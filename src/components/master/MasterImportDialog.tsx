@@ -241,7 +241,7 @@ export default function MasterImportDialog({
             {title}
           </DialogTitle>
           <DialogDescription>
-            {description || "Unggah data secara massal menggunakan file Excel (.xlsx / .csv)."}
+            {description || "Unggah data secara massal menggunakan file Excel (.xlsx / .xls / .csv)."}
           </DialogDescription>
         </DialogHeader>
 
@@ -530,7 +530,7 @@ export default function MasterImportDialog({
                           </TableCell>
                           {columns.map((col) => (
                             <TableCell key={col.key} className="max-w-[200px] truncate">
-                              {col.render ? col.render(row) : (row[col.key] ?? "-")}
+                              {col.render ? col.render(row) : String(row[col.key] ?? "-")}
                             </TableCell>
                           ))}
                         </TableRow>
