@@ -109,6 +109,12 @@ export default function AppLayout() {
           show: can("/master/cards"),
         },
         {
+          name: "Card Vehicles",
+          path: "/master/vehicle-cards",
+          icon: CreditCard,
+          show: can("/master/vehicle-cards"),
+        },
+        {
           name: "Visitors",
           path: "/master/visitors",
           icon: Users,

@@ -39,10 +39,14 @@ import {
   Trash2,
   Building2,
   Ship,
+  Upload,
   ChevronLeft,
   ChevronRight,
   RotateCw,
 } from "lucide-react"
+import MasterImportDialog, {
+  type ImportColumnDef,
+} from "@/components/master/MasterImportDialog"
 
 export interface LocationItem {
   id: string
@@ -85,6 +89,7 @@ export default function Locations() {
   // Delete Alert Dialog State
   const [deleteTarget, setDeleteTarget] = useState<LocationItem | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   const fetchLocations = useCallback(async () => {
     setLoading(true)
@@ -231,10 +236,21 @@ export default function Locations() {
           </p>
         </div>
 
-        <Button onClick={openCreateModal} className="cursor-pointer">
-          <Plus className="h-4 w-4 mr-1.5" />
-          Tambah Lokasi / Kapal
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setImportOpen(true)}
+            className="cursor-pointer"
+          >
+            <Upload className="h-4 w-4 mr-1.5" />
+            Import Excel
+          </Button>
+
+          <Button onClick={openCreateModal} className="cursor-pointer">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Tambah Lokasi / Kapal
+          </Button>
+        </div>
       </div>
 
       {/* Filter Card */}
@@ -632,6 +648,26 @@ export default function Locations() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Master Import Dialog */}
+      <MasterImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Import Lokasi & Kapal"
+        description="Unggah berkas Excel (.xlsx / .csv) berisi daftar lokasi darat, dermaga, atau kapal sandar."
+        templateEndpoint="/locations/template"
+        templateFileName="template_locations_vessels.xlsx"
+        previewEndpoint="/locations/import-preview"
+        importEndpoint="/locations/import"
+        columns={[
+          { key: "name", label: "Nama Lokasi / Kapal" },
+          { key: "type", label: "Tipe" },
+          { key: "code", label: "Kode / IMO" },
+          { key: "pic", label: "PIC / Penanggung Jawab" },
+          { key: "port", label: "Pelabuhan Asal" },
+        ]}
+        onSuccess={fetchLocations}
+      />
     </div>
   )
 }

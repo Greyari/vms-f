@@ -40,6 +40,9 @@ import {
   ChevronRight,
   Download,
 } from "lucide-react"
+import MasterImportDialog, {
+  type ImportColumnDef,
+} from "@/components/master/MasterImportDialog"
 
 interface Staff {
   id: string
@@ -626,66 +629,26 @@ export default function Staffs() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal Import Excel */}
-      <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Import Data Staf</DialogTitle>
-            <DialogDescription>
-              Unggah file spreadsheet Excel untuk memperbarui data staf sekaligus.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="text-sm">
-                <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                  Unduh Template
-                </p>
-                <p className="text-zinc-500">
-                  Gunakan template Excel ini agar format kolom sesuai sistem.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadTemplate}
-                disabled={isDownloading}
-              >
-                {isDownloading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <FileDown className="mr-2 h-4 w-4" />
-                )}
-                {isDownloading ? "Mengunduh..." : "Download"}
-              </Button>
-            </div>
-            <form onSubmit={handleImport} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="import_file">Unggah File Excel</Label>
-                <Input
-                  id="import_file"
-                  type="file"
-                  accept=".xlsx,.csv"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  required
-                />
-              </div>
-              <div className="mt-4 flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setImportModalOpen(false)}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" disabled={!file || loading}>
-                  {loading ? "Mengimpor..." : "Upload & Import"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Modal Import Excel (Tahap 3 Standard) */}
+      <MasterImportDialog
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        title="Import Data Staf"
+        description="Unggah file spreadsheet Excel (.xlsx / .csv) untuk memperbarui data staf sekaligus."
+        templateEndpoint="/staffs/template"
+        templateFileName="template_staff.xlsx"
+        previewEndpoint="/staffs/import-preview"
+        importEndpoint="/staffs/import"
+        columns={[
+          { key: "staff_id", label: "Staff ID / NIK" },
+          { key: "name", label: "Nama Lengkap" },
+          { key: "department", label: "Departemen" },
+          { key: "company", label: "Perusahaan" },
+          { key: "occupation", label: "Jabatan" },
+          { key: "gender", label: "Gender" },
+        ]}
+        onSuccess={fetchStaffs}
+      />
 
       {/* Alert Dialog Konfirmasi Hapus */}
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>

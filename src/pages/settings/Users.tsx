@@ -157,7 +157,11 @@ export default function Users() {
   }
 
   const handleOpenEdit = (user: UserItem) => {
-    const primaryRole = user.roles?.[0]?.name || "security"
+    const firstRole = user.roles?.[0]
+    const primaryRole =
+      typeof firstRole === "string"
+        ? firstRole
+        : firstRole?.name || "security"
     setForm({
       id: user.id,
       name: user.name,
@@ -185,8 +189,13 @@ export default function Users() {
       return
     }
 
-    if (!form.id && !form.password) {
-      setValidationError("Password wajib diisi untuk pengguna baru.")
+    if (!form.id && (!form.password || form.password.length < 8)) {
+      setValidationError("Password wajib diisi minimal 8 karakter untuk pengguna baru.")
+      return
+    }
+
+    if (form.id && form.password && form.password.length < 8) {
+      setValidationError("Password baru minimal 8 karakter jika ingin diubah.")
       return
     }
 
@@ -196,6 +205,7 @@ export default function Users() {
         name: form.name.trim(),
         username: form.username.trim() ? form.username.trim().toUpperCase() : null,
         email: form.email.trim() ? form.email.trim().toLowerCase() : null,
+        roles: [form.role],
         role: form.role,
         is_active: form.is_active,
       }
@@ -413,7 +423,7 @@ export default function Users() {
 
       {/* Form Modal (Create / Edit) */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {form.id ? "Edit Pengguna" : "Tambah Pengguna Baru"}
@@ -478,7 +488,7 @@ export default function Users() {
               <Input
                 id="user-password-input"
                 type="password"
-                placeholder="Minimal 6 karakter..."
+                placeholder="Minimal 8 karakter..."
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className="h-9 text-sm"

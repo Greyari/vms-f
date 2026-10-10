@@ -39,10 +39,14 @@ import {
   Trash2,
   CreditCard,
   FileDown,
+  Upload,
   RotateCw,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
+import MasterImportDialog, {
+  type ImportColumnDef,
+} from "@/components/master/MasterImportDialog"
 
 export interface CardItem {
   id: number | string
@@ -77,6 +81,7 @@ export default function Cards() {
   const [deleteTarget, setDeleteTarget] = useState<CardItem | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   const fetchCards = useCallback(async () => {
     setLoading(true)
@@ -240,6 +245,15 @@ export default function Cards() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setImportOpen(true)}
+            className="cursor-pointer"
+          >
+            <Upload className="h-4 w-4 mr-1.5" />
+            Import Excel
+          </Button>
+
           <Button
             variant="outline"
             onClick={handleExport}
@@ -546,6 +560,24 @@ export default function Cards() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Master Import Dialog */}
+      <MasterImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Import Kartu Visitor"
+        description="Unggah berkas Excel (.xlsx / .csv) berisi daftar nomor kartu fisik visitor."
+        templateEndpoint="/cards/template"
+        templateFileName="template_cards.xlsx"
+        previewEndpoint="/cards/import-preview"
+        importEndpoint="/cards/import"
+        columns={[
+          { key: "card_no", label: "Nomor Kartu" },
+          { key: "card_type", label: "Tipe Kartu" },
+          { key: "note", label: "Catatan" },
+        ]}
+        onSuccess={fetchCards}
+      />
     </div>
   )
 }

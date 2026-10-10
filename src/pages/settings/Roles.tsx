@@ -233,69 +233,269 @@ export default function Roles() {
       </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[85vh] sm:max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {readOnly ? "Lihat Role" : form.id ? "Edit Role" : "Add Role"}
             </DialogTitle>
             <DialogDescription>
               {readOnly
-                ? "Role bawaan dikelola seeder sistem dan tidak bisa diubah di sini."
-                : "Pilih permission yang dimiliki role ini."}
+                ? "Role bawaan dikelola seeder sistem dan tidak bisa diubah langsung. Anda dapat menyalin hak aksesnya ke role kustom baru."
+                : "Atur nama role dan pilih izin/hak akses (permissions) yang dimiliki role ini."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label>Role Name</Label>
+              <Label>Nama Role</Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
-                placeholder="e.g. manager"
+                placeholder="cth. supervisor_lapangan"
                 disabled={readOnly}
               />
             </div>
 
-            <div className="space-y-3">
-              <Label>Assign Permissions</Label>
-              <div className="grid grid-cols-1 gap-4 rounded-md border bg-zinc-50 p-4 md:grid-cols-2 dark:bg-zinc-900/50">
-                {permissions.map((perm) => (
-                  <div key={perm.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`perm-${perm.id}`}
-                      checked={form.permissions.includes(perm.name)}
-                      onCheckedChange={() => togglePermission(perm.name)}
-                      disabled={readOnly}
-                    />
-                    <label
-                      htmlFor={`perm-${perm.id}`}
-                      className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">
+                  Daftar Hak Akses (Permissions) — ({form.permissions.length} dipilih)
+                </Label>
+                {!readOnly && permissions.length > 0 && (
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          permissions: permissions.map((p) => p.name),
+                        })
+                      }
                     >
-                      {perm.name}
-                    </label>
+                      Pilih Semua
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setForm({ ...form, permissions: [] })}
+                    >
+                      Batal Semua
+                    </Button>
                   </div>
-                ))}
+                )}
+              </div>
+
+              {/* Categorized Permissions Grid */}
+              <div className="space-y-4">
+                {[
+                  {
+                    title: "1. Kunjungan & Tamu (Visits)",
+                    filter: (p: any) =>
+                      p.name.includes("visit") && !p.name.includes("report") && !p.name.includes("export"),
+                  },
+                  {
+                    title: "2. Master Data (Cards, Staff, Location, Visitor)",
+                    filter: (p: any) =>
+                      p.name.includes("card") ||
+                      p.name.includes("staff") ||
+                      p.name.includes("location") ||
+                      p.name.includes("visitor") ||
+                      p.name.includes("blacklist"),
+                  },
+                  {
+                    title: "3. Kedatangan Kapal (Vessels)",
+                    filter: (p: any) => p.name.includes("vessel"),
+                  },
+                  {
+                    title: "4. Laporan & Ekspor (Reports)",
+                    filter: (p: any) =>
+                      p.name.includes("report") || p.name.includes("export"),
+                  },
+                  {
+                    title: "5. Pengaturan Sistem & Audit Log",
+                    filter: (p: any) =>
+                      p.name.includes("user") ||
+                      p.name.includes("role") ||
+                      p.name.includes("log"),
+                  },
+                ].map((category, idx) => {
+                  const catPerms = permissions.filter(category.filter)
+                  if (catPerms.length === 0) return null
+
+                  const allCatSelected = catPerms.every((p) =>
+                    form.permissions.includes(p.name)
+                  )
+
+                  return (
+                    <div
+                      key={idx}
+                      className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-3.5 dark:border-zinc-800 dark:bg-zinc-900/40"
+                    >
+                      <div className="mb-2.5 flex items-center justify-between border-b pb-1.5 dark:border-zinc-800">
+                        <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                          {category.title}
+                        </span>
+                        {!readOnly && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-[11px] text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                            onClick={() => {
+                              const permNames = catPerms.map((p) => p.name)
+                              if (allCatSelected) {
+                                setForm((prev) => ({
+                                  ...prev,
+                                  permissions: prev.permissions.filter(
+                                    (name) => !permNames.includes(name)
+                                  ),
+                                }))
+                              } else {
+                                setForm((prev) => ({
+                                  ...prev,
+                                  permissions: Array.from(
+                                    new Set([...prev.permissions, ...permNames])
+                                  ),
+                                }))
+                              }
+                            }}
+                          >
+                            {allCatSelected ? "Batal Kategori Ini" : "Pilih Semua Kategori Ini"}
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3">
+                        {catPerms.map((perm) => (
+                          <div
+                            key={perm.id}
+                            className="flex items-center space-x-2 rounded bg-white p-2 border border-zinc-100 dark:border-zinc-800 dark:bg-zinc-900"
+                          >
+                            <Checkbox
+                              id={`perm-${perm.id}`}
+                              checked={form.permissions.includes(perm.name)}
+                              onCheckedChange={() => togglePermission(perm.name)}
+                              disabled={readOnly}
+                            />
+                            <label
+                              htmlFor={`perm-${perm.id}`}
+                              className="text-xs font-mono text-zinc-700 dark:text-zinc-300 cursor-pointer"
+                            >
+                              {perm.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* Uncategorized permissions if any */}
+                {(() => {
+                  const categorizedIds = new Set(
+                    permissions
+                      .filter(
+                        (p) =>
+                          p.name.includes("visit") ||
+                          p.name.includes("card") ||
+                          p.name.includes("staff") ||
+                          p.name.includes("location") ||
+                          p.name.includes("visitor") ||
+                          p.name.includes("blacklist") ||
+                          p.name.includes("vessel") ||
+                          p.name.includes("report") ||
+                          p.name.includes("export") ||
+                          p.name.includes("user") ||
+                          p.name.includes("role") ||
+                          p.name.includes("log")
+                      )
+                      .map((p) => p.id)
+                  )
+                  const otherPerms = permissions.filter(
+                    (p) => !categorizedIds.has(p.id)
+                  )
+                  if (otherPerms.length === 0) return null
+
+                  return (
+                    <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-3.5 dark:border-zinc-800 dark:bg-zinc-900/40">
+                      <div className="mb-2 text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                        Lainnya
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+                        {otherPerms.map((perm) => (
+                          <div
+                            key={perm.id}
+                            className="flex items-center space-x-2 rounded bg-white p-2 border dark:border-zinc-800 dark:bg-zinc-900"
+                          >
+                            <Checkbox
+                              id={`perm-${perm.id}`}
+                              checked={form.permissions.includes(perm.name)}
+                              onCheckedChange={() => togglePermission(perm.name)}
+                              disabled={readOnly}
+                            />
+                            <label
+                              htmlFor={`perm-${perm.id}`}
+                              className="text-xs font-mono text-zinc-700 dark:text-zinc-300"
+                            >
+                              {perm.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 {permissions.length === 0 && (
-                  <div className="text-sm text-zinc-500">
-                    No permissions loaded.
+                  <div className="text-center py-6 text-sm text-zinc-500">
+                    Memuat permissions...
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setModalOpen(false)}
-              >
-                {readOnly ? "Tutup" : "Cancel"}
-              </Button>
-              {!readOnly && (
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Saving..." : "Save"}
+            <div className="mt-4 flex items-center justify-between border-t pt-4 dark:border-zinc-800">
+              {readOnly && canManage ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setReadOnly(false)
+                    setForm({
+                      id: null,
+                      name: `${form.name}_custom`,
+                      permissions: [...form.permissions],
+                    })
+                    toast.info(
+                      "Role disalin sebagai template kustom baru. Anda dapat mengubah nama dan hak aksesnya lalu menyimpannya."
+                    )
+                  }}
+                >
+                  Salin ke Role Kustom Baru
                 </Button>
+              ) : (
+                <div />
               )}
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setModalOpen(false)}
+                >
+                  {readOnly ? "Tutup" : "Cancel"}
+                </Button>
+                {!readOnly && (
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Saving..." : "Save Role"}
+                  </Button>
+                )}
+              </div>
             </div>
           </form>
         </DialogContent>

@@ -10,9 +10,13 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2, User, KeyRound, Shield, CheckCircle2 } from "lucide-react"
 
 export default function Profile() {
-  const { user } = useAuth()
+  const { user, token, login } = useAuth()
 
-  const [profileForm, setProfileForm] = useState({ name: "", email: "" })
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+    username: "",
+    email: "",
+  })
   const [passwordForm, setPasswordForm] = useState({
     current_password: "",
     new_password: "",
@@ -27,6 +31,7 @@ export default function Profile() {
     if (user) {
       setProfileForm({
         name: user.name || "",
+        username: user.username || "",
         email: user.email || "",
       })
     }
@@ -36,8 +41,16 @@ export default function Profile() {
     e.preventDefault()
     setLoadingProfile(true)
     try {
-      await api.put("/profile", profileForm)
+      const payload = {
+        name: profileForm.name.trim(),
+        username: profileForm.username.trim() ? profileForm.username.trim().toUpperCase() : null,
+        email: profileForm.email.trim() ? profileForm.email.trim().toLowerCase() : null,
+      }
+      const res = await api.put("/profile", payload)
       toast.success("Profil berhasil diperbarui.")
+      if (res.data?.user && token) {
+        login(token, res.data.user)
+      }
     } catch (error: any) {
       console.error(error)
       toast.error(error.response?.data?.message || "Gagal memperbarui profil.")
@@ -161,12 +174,34 @@ export default function Profile() {
             </div>
 
             <div className="space-y-1.5">
+              <Label htmlFor="profile-username-input" className="text-xs">
+                Username Login <span className="text-zinc-400 font-normal">(opsional jika ada email)</span>
+              </Label>
+              <Input
+                id="profile-username-input"
+                placeholder="cth. POS1 atau ADMIN"
+                value={profileForm.username}
+                onChange={(e) =>
+                  setProfileForm({
+                    ...profileForm,
+                    username: e.target.value.toUpperCase(),
+                  })
+                }
+                className="h-9 text-sm font-mono uppercase"
+              />
+              <p className="text-[11px] text-zinc-500">
+                Huruf besar otomatis. Dapat digunakan sebagai identitas login cepat.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
               <Label htmlFor="profile-email-input" className="text-xs">
-                Alamat Email <span className="text-zinc-400 font-normal">(opsional)</span>
+                Alamat Email <span className="text-zinc-400 font-normal">(opsional jika ada username)</span>
               </Label>
               <Input
                 id="profile-email-input"
                 type="email"
+                placeholder="cth. user@vms.local"
                 value={profileForm.email}
                 onChange={(e) =>
                   setProfileForm({ ...profileForm, email: e.target.value })

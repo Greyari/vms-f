@@ -39,10 +39,14 @@ import {
   Trash2,
   Car,
   FileDown,
+  Upload,
   RotateCw,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
+import MasterImportDialog, {
+  type ImportColumnDef,
+} from "@/components/master/MasterImportDialog"
 
 export interface VehicleCardItem {
   id: number | string
@@ -77,6 +81,7 @@ export default function VehicleCards() {
   const [deleteTarget, setDeleteTarget] = useState<VehicleCardItem | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   const fetchCards = useCallback(async () => {
     setLoading(true)
@@ -239,6 +244,15 @@ export default function VehicleCards() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setImportOpen(true)}
+            className="cursor-pointer"
+          >
+            <Upload className="h-4 w-4 mr-1.5" />
+            Import Excel
+          </Button>
+
           <Button
             variant="outline"
             onClick={handleExport}
@@ -544,6 +558,23 @@ export default function VehicleCards() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Master Import Dialog */}
+      <MasterImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Import Kartu Kendaraan"
+        description="Unggah berkas Excel (.xlsx / .csv) berisi nomor kartu fisik kendaraan."
+        templateEndpoint="/vehicle-cards/template"
+        templateFileName="template_vehicle_cards.xlsx"
+        previewEndpoint="/vehicle-cards/import-preview"
+        importEndpoint="/vehicle-cards/import"
+        columns={[
+          { key: "card_no", label: "Nomor Kartu Kendaraan" },
+          { key: "status", label: "Status" },
+        ]}
+        onSuccess={fetchCards}
+      />
     </div>
   )
 }
