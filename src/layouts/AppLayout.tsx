@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { useTheme } from "../context/ThemeContext"
+import { useTranslation } from "../context/I18nContext"
 import { permissionFor, type GuardedPath } from "../lib/routePermissions"
 import SyncIndicator from "../components/sync/SyncIndicator"
 import {
@@ -22,11 +23,13 @@ import {
   KeyRound,
   Sun,
   Moon,
+  Globe,
 } from "lucide-react"
 
 export default function AppLayout() {
   const { user, logout, hasPermission } = useAuth()
   const { isDark, toggleTheme } = useTheme()
+  const { t, language, setLanguage } = useTranslation()
   const location = useLocation()
   const [profileOpen, setProfileOpen] = useState(false)
 
@@ -52,10 +55,10 @@ export default function AppLayout() {
 
   const menuItems = [
     {
-      title: "Overview",
+      title: t("nav.overview"),
       items: [
         {
-          name: "Dashboard",
+          name: t("nav.dashboard"),
           path: "/",
           icon: LayoutDashboard,
           show: hasPermission("view_visits"),
@@ -63,28 +66,28 @@ export default function AppLayout() {
       ],
     },
     {
-      title: "Visitor Management",
+      title: t("nav.visitor_management"),
       items: [
         {
-          name: "Add Visit",
+          name: t("nav.add_visit"),
           path: "/visits/create",
           icon: ClipboardList,
           show: can("/visits/create"),
         },
         {
-          name: "Active Visitors",
+          name: t("nav.active_visitors"),
           path: "/visits/activate",
           icon: Users,
           show: can("/visits/activate"),
         },
         {
-          name: "Reprint Pass",
+          name: t("nav.reprint_pass"),
           path: "/visits/reprint",
           icon: Printer,
           show: can("/visits/reprint"),
         },
         {
-          name: "Crew Arrivals",
+          name: t("nav.crew_arrivals"),
           path: "/vessel-arrivals",
           icon: Ship,
           show: can("/vessel-arrivals"),
@@ -92,40 +95,40 @@ export default function AppLayout() {
       ],
     },
     {
-      title: "Master Data",
+      title: t("nav.master_data"),
       items: [
         {
-          name: "Locations & Vessels",
+          name: t("nav.locations_vessels"),
           path: "/master/locations",
           icon: Building2,
           show: can("/master/locations"),
         },
         {
-          name: "Staffs",
+          name: t("nav.staffs"),
           path: "/master/staffs",
           icon: Users,
           show: can("/master/staffs"),
         },
         {
-          name: "Cards",
+          name: t("nav.cards"),
           path: "/master/cards",
           icon: CreditCard,
           show: can("/master/cards"),
         },
         {
-          name: "Card Vehicles",
+          name: t("nav.card_vehicles"),
           path: "/master/vehicle-cards",
           icon: CreditCard,
           show: can("/master/vehicle-cards"),
         },
         {
-          name: "Visitors",
+          name: t("nav.visitors"),
           path: "/master/visitors",
           icon: Users,
           show: can("/master/visitors"),
         },
         {
-          name: "Blacklist",
+          name: t("nav.blacklist"),
           path: "/master/visitors/blacklist",
           icon: ShieldOff,
           show: can("/master/visitors/blacklist"),
@@ -133,16 +136,16 @@ export default function AppLayout() {
       ],
     },
     {
-      title: "Reports",
+      title: t("nav.reports"),
       items: [
         {
-          name: "Visitor Report",
+          name: t("nav.visitor_report"),
           path: "/reports/visits",
           icon: FileText,
           show: can("/reports/visits"),
         },
         {
-          name: "Vessel Report",
+          name: t("nav.vessel_report"),
           path: "/reports/vessels",
           icon: Ship,
           show: can("/reports/vessels"),
@@ -150,28 +153,28 @@ export default function AppLayout() {
       ],
     },
     {
-      title: "System Settings",
+      title: t("nav.system_settings"),
       items: [
         {
-          name: "System Users",
+          name: t("nav.system_users"),
           path: "/settings/users",
           icon: Settings,
           show: can("/settings/users"),
         },
         {
-          name: "Activity Logs",
+          name: t("nav.activity_logs"),
           path: "/settings/logs",
           icon: History,
           show: can("/settings/logs"),
         },
         {
-          name: "Roles",
+          name: t("nav.roles"),
           path: "/settings/roles",
           icon: KeyRound,
           show: can("/settings/roles"),
         },
         {
-          name: "My Profile",
+          name: t("nav.my_profile"),
           path: "/settings/profile",
           icon: UserCircle,
           show: true,
@@ -255,7 +258,7 @@ export default function AppLayout() {
                 className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
               >
                 <LogOut className="h-4 w-4" />
-                Logout
+                {t("nav.logout")}
               </button>
             </div>
           )}
@@ -294,6 +297,37 @@ export default function AppLayout() {
             Visitor Management System
           </div>
           <div className="flex items-center gap-3">
+            {/* Language Switcher */}
+            <div className="flex items-center rounded-md border border-zinc-200 bg-white p-0.5 text-xs font-semibold dark:border-zinc-800 dark:bg-zinc-900">
+              <Globe className="mx-1.5 h-3.5 w-3.5 text-zinc-400" />
+              <button
+                type="button"
+                onClick={() => setLanguage("id")}
+                className={`rounded px-2 py-1 text-xs transition-colors ${
+                  language === "id"
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                }`}
+                title="Bahasa Indonesia"
+                aria-label="Bahasa Indonesia"
+              >
+                ID
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("en")}
+                className={`rounded px-2 py-1 text-xs transition-colors ${
+                  language === "en"
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                }`}
+                title="English"
+                aria-label="English"
+              >
+                EN
+              </button>
+            </div>
+
             <button
               onClick={toggleTheme}
               className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"

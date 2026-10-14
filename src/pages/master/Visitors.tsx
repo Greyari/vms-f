@@ -55,12 +55,20 @@ import VisitorFormModal from "@/components/master/VisitorFormModal"
 
 export interface Visitor {
   id: number | string
-  visitor_no?: string
+  visitor_no?: string | number
   id_type: string
   id_number: string
   name: string
   company?: string
+  occupation?: string
   visitor_type?: string
+  phone?: string
+  email?: string
+  address?: string
+  birth_place?: string
+  birth_date?: string
+  gender?: string
+  nationality?: string
   is_blacklisted: boolean
   blacklist_reason?: string
   blacklisted_by?: string
@@ -465,7 +473,14 @@ export default function Visitors() {
                         </div>
                       </TableCell>
                       <TableCell className="font-medium">{visitor.name}</TableCell>
-                      <TableCell>{visitor.company || "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span>{visitor.company || "-"}</span>
+                          {visitor.occupation && (
+                            <span className="text-xs text-muted-foreground">{visitor.occupation}</span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{getVisitorTypeBadge(visitor.visitor_type)}</TableCell>
                       <TableCell>
                         {visitor.is_blacklisted ? (

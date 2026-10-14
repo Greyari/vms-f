@@ -27,6 +27,9 @@ import {
   Phone,
   Mail,
   MapPin,
+  ShieldAlert,
+  ShieldCheck,
+  CheckCircle2,
 } from "lucide-react"
 
 interface VisitRecord {
@@ -44,7 +47,7 @@ interface VisitRecord {
 
 interface VisitorProfile {
   id: number | string
-  visitor_no?: string
+  visitor_no?: string | number
   id_type: string
   id_number: string
   name: string
@@ -52,6 +55,8 @@ interface VisitorProfile {
   occupation?: string
   pob?: string
   dob?: string
+  birth_place?: string
+  birth_date?: string
   gender?: string
   nationality?: string
   phone?: string
@@ -82,7 +87,7 @@ export default function VisitorDetailModal({
   const [visitor, setVisitor] = useState<VisitorProfile | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<"profile" | "history">("profile")
+  const [activeTab, setActiveTab] = useState<"profile" | "history" | "security">("profile")
 
   const fetchVisitorDetail = useCallback(async () => {
     if (!visitorId) return
@@ -90,9 +95,52 @@ export default function VisitorDetailModal({
     setError(null)
     try {
       const res = await api.get(`/visitors/${visitorId}`)
-      // Respons bisa langsung object atau dibungkus { data: ... }
-      const data = res.data?.data ? res.data.data : res.data
-      setVisitor(data)
+      const raw = res.data?.visitor || (res.data?.data ? res.data.data : res.data)
+      
+      let visitsList: VisitRecord[] = []
+      if (raw.visits && Array.isArray(raw.visits) && raw.visits.length > 0) {
+        visitsList = raw.visits.map((v: any) => ({
+          id: v.id,
+          ticket_no: v.ticket_number || v.ticket_no,
+          check_in_at: v.check_in_at || (v.date && v.time_in ? `${v.date} ${v.time_in}` : v.time_in || v.date),
+          check_out_at: v.check_out_at || (v.date && v.time_out ? `${v.date} ${v.time_out}` : v.checked_out_at),
+          status: v.status || (v.checked_out_at || v.time_out ? "closed" : "open"),
+          location: v.location || { name: v.location_name || "-" },
+          location_name: v.location_name || v.location?.name,
+          staff: v.staff || { name: v.host_name || "-" },
+          host_name: v.host_name || v.staff?.name,
+          purpose: v.purpose || "-",
+        }))
+      } else {
+        try {
+          const visitsRes = await api.get(`/visitors/${visitorId}/visits`)
+          if (visitsRes.data?.visits && Array.isArray(visitsRes.data.visits)) {
+            visitsList = visitsRes.data.visits.map((v: any) => ({
+              id: v.id,
+              ticket_no: v.ticket_number || v.ticket_no,
+              check_in_at: v.check_in_at || (v.date && v.time_in ? `${v.date} ${v.time_in}` : v.time_in || v.date),
+              check_out_at: v.check_out_at || (v.date && v.time_out ? `${v.date} ${v.time_out}` : v.checked_out_at),
+              status: v.status || (v.checked_out_at || v.time_out ? "closed" : "open"),
+              location: v.location || { name: v.location_name || "-" },
+              location_name: v.location_name || v.location?.name,
+              staff: v.staff || { name: v.host_name || "-" },
+              host_name: v.host_name || v.staff?.name,
+              purpose: v.purpose || "-",
+            }))
+          }
+        } catch {
+          // Non-critical if visits history endpoint is quiet
+        }
+      }
+
+      setVisitor({
+        ...raw,
+        pob: raw.pob || raw.birth_place || "",
+        dob: raw.dob || raw.birth_date || "",
+        birth_place: raw.birth_place || raw.pob || "",
+        birth_date: raw.birth_date || raw.dob || "",
+        visits: visitsList,
+      })
     } catch (err: any) {
       console.error(err)
       setError(err.response?.data?.message || "Gagal memuat profil pengunjung")
@@ -119,6 +167,17 @@ export default function VisitorDetailModal({
             {visitor?.visitor_type && (
               <Badge variant="outline" className="capitalize">
                 {visitor.visitor_type}
+              </Badge>
+            )}
+            {visitor?.is_blacklisted ? (
+              <Badge variant="destructive" className="flex items-center gap-1">
+                <ShieldAlert className="h-3 w-3" />
+                Blacklisted
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                <CheckCircle2 className="mr-1 h-3 w-3" />
+                Aktif
               </Badge>
             )}
           </div>
@@ -193,9 +252,23 @@ export default function VisitorDetailModal({
                 <History className="h-4 w-4" />
                 Riwayat Kunjungan ({visitor.visits?.length || 0})
               </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "security"}
+                onClick={() => setActiveTab("security")}
+                className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+                  activeTab === "security"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <ShieldAlert className="h-4 w-4" />
+                Status Keamanan
+              </button>
             </div>
 
-            {/* Tab Content: Profile */}
+            {/* Tab Content: Profile (Identitas & Kontak) */}
             {activeTab === "profile" && (
               <div className="space-y-6 pt-2">
                 {/* Identitas Diri */}
@@ -208,7 +281,7 @@ export default function VisitorDetailModal({
                     <div>
                       <p className="text-xs text-muted-foreground">Nomor Visitor</p>
                       <p className="font-mono font-medium text-sm text-primary">
-                        {visitor.visitor_no || "-"}
+                        {visitor.visitor_no ? String(visitor.visitor_no) : "-"}
                       </p>
                     </div>
                     <div>
@@ -224,7 +297,7 @@ export default function VisitorDetailModal({
                     <div>
                       <p className="text-xs text-muted-foreground">Tempat / Tanggal Lahir</p>
                       <p className="text-sm">
-                        {visitor.pob || "-"}, {visitor.dob || "-"}
+                        {visitor.birth_place || visitor.pob || "-"}, {visitor.birth_date || visitor.dob || "-"}
                       </p>
                     </div>
                     <div>
@@ -248,55 +321,51 @@ export default function VisitorDetailModal({
                 <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/30">
                   <h4 className="mb-3 flex items-center gap-2 font-semibold text-sm">
                     <Building className="h-4 w-4 text-primary" />
-                    Perusahaan & Kontak
+                    Kontak & Alamat Domisili
                   </h4>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <p className="text-xs text-muted-foreground">Perusahaan / Instansi</p>
                       <p className="font-medium text-sm">{visitor.company || "-"}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Jabatan / Posisi</p>
+                      <p className="text-xs text-muted-foreground">Jabatan / Profesi</p>
                       <p className="text-sm">{visitor.occupation || "-"}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Nomor Telepon</p>
-                      <p className="flex items-center gap-1.5 text-sm">
-                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                        {visitor.phone || "-"}
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Phone className="h-3 w-3" />
+                        Nomor Telepon
                       </p>
+                      <p className="font-mono text-sm">{visitor.phone || "-"}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Email</p>
-                      <p className="flex items-center gap-1.5 text-sm">
-                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                        {visitor.email || "-"}
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Mail className="h-3 w-3" />
+                        Email
                       </p>
+                      <p className="text-sm">{visitor.email || "-"}</p>
                     </div>
                     <div className="sm:col-span-2">
-                      <p className="text-xs text-muted-foreground">Alamat Domisili</p>
-                      <p className="flex items-start gap-1.5 text-sm">
-                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        {visitor.address || "-"}
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        Alamat Domisili
                       </p>
+                      <p className="text-sm">{visitor.address || "-"}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Dokumen Maritim (jika kru atau data tersedia) */}
-                {(visitor.visitor_type === "crew" ||
-                  visitor.certificate_no ||
-                  visitor.seaman_book_no ||
-                  visitor.vessel ||
-                  visitor.vessel_name) && (
-                  <div className="rounded-lg border border-blue-500/20 bg-blue-50/30 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
-                    <h4 className="mb-3 flex items-center gap-2 font-semibold text-blue-900 text-sm dark:text-blue-300">
-                      <Anchor className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                {/* Dokumen Crew / Maritim jika tipe Crew */}
+                {visitor.visitor_type === "crew" && (
+                  <div className="rounded-lg border border-sky-200 bg-sky-50/30 p-4 dark:border-sky-900/40 dark:bg-sky-950/20">
+                    <h4 className="mb-3 flex items-center gap-2 font-semibold text-sky-900 text-sm dark:text-sky-300">
+                      <Anchor className="h-4 w-4 text-sky-600 dark:text-sky-400" />
                       Dokumen Maritim & Kru Kapal
                     </h4>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                       <div>
-                        <p className="text-xs text-muted-foreground">No. Sertifikat Keahlian</p>
+                        <p className="text-xs text-muted-foreground">Nomor Sertifikat</p>
                         <p className="font-mono font-medium text-sm">
                           {visitor.certificate_no || "-"}
                         </p>
@@ -373,6 +442,37 @@ export default function VisitorDetailModal({
                       )}
                     </TableBody>
                   </Table>
+                </div>
+              </div>
+            )}
+
+            {/* Tab Content: Security / Blacklist */}
+            {activeTab === "security" && (
+              <div className="space-y-4 pt-2">
+                <div className="rounded-lg border p-4">
+                  <h4 className="mb-2 font-semibold text-sm">Status Keamanan Pengunjung</h4>
+                  {visitor.is_blacklisted ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-red-600 font-medium">
+                        <ShieldAlert className="h-5 w-5" />
+                        <span>Status: DIBLACKLIST (Dilarang Masuk Area)</span>
+                      </div>
+                      <div className="rounded-md bg-red-50 p-3 text-sm text-red-900 dark:bg-red-950/40 dark:text-red-200">
+                        <p className="font-medium">Alasan Pelanggaran:</p>
+                        <p className="mt-1">{visitor.blacklist_reason || "Tidak ada alasan spesifik tercatat."}</p>
+                        {visitor.blacklisted_at && (
+                          <p className="mt-2 text-xs text-red-700 dark:text-red-300">
+                            Waktu Ditindak: {new Date(visitor.blacklisted_at).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-emerald-600">
+                      <ShieldCheck className="h-5 w-5" />
+                      <span className="font-medium">Status: Bersih / Aktif (Izin kunjungan normal)</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

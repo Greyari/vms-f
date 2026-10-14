@@ -43,8 +43,13 @@ import {
   CreditCard,
   User,
   Printer,
+  ChevronDown,
+  ChevronUp,
+  Edit2,
+  AlertCircle,
 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import type { GlobalBlacklistHit, PreRegistration } from "@/types/hybrid"
 
@@ -95,6 +100,7 @@ export default function CreateVisit() {
   const [loading, setLoading] = useState(false)
   const [checkingKtp, setCheckingKtp] = useState(false)
   const [loadingMaster, setLoadingMaster] = useState(true)
+  const [savingVisitorToMaster, setSavingVisitorToMaster] = useState(false)
 
   const idInputRef = useRef<HTMLInputElement>(null)
 
@@ -109,15 +115,19 @@ export default function CreateVisit() {
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [openKtp, setOpenKtp] = useState(false)
   const [openName, setOpenName] = useState(false)
+  const [nameSearchQuery, setNameSearchQuery] = useState("")
   const [searching, setSearching] = useState(false)
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  // Visitor check-ktp status
+  // Visitor check-ktp status & details
   const [visitorStatus, setVisitorStatus] = useState<
     "idle" | "new" | "registered" | "blacklisted"
   >("idle")
   const [blacklistReason, setBlacklistReason] = useState<string>("")
+  const [foundVisitor, setFoundVisitor] = useState<any | null>(null)
+  const [isEditLockedVisitor, setIsEditLockedVisitor] = useState(true)
+  const [showAdditionalData, setShowAdditionalData] = useState(false)
 
   // Combobox states
   const [openStaff, setOpenStaff] = useState(false)
@@ -147,6 +157,14 @@ export default function CreateVisit() {
     id_number: string
     name: string
     company: string
+    occupation: string
+    visitor_type: string
+    phone: string
+    email: string
+    birth_place: string
+    birth_date: string
+    nationality: string
+    address: string
     location_id: string
     purpose: string
     is_custom_host: boolean
@@ -160,6 +178,14 @@ export default function CreateVisit() {
     id_number: "",
     name: "",
     company: "",
+    occupation: "",
+    visitor_type: "visitor",
+    phone: "",
+    email: "",
+    birth_place: "",
+    birth_date: "",
+    nationality: "Indonesia",
+    address: "",
     location_id: "",
     purpose: "",
     is_custom_host: false,
@@ -182,7 +208,6 @@ export default function CreateVisit() {
         setLocations(cachedMasterData.locations)
         setStaffList(cachedMasterData.staffList)
         setPurposeSuggestions(cachedMasterData.purposeSuggestions)
-        setLoadingMaster(false)
         if (cachedMasterData.locations.length > 0 && !form.location_id) {
           setForm((prev) => ({
             ...prev,
@@ -195,67 +220,41 @@ export default function CreateVisit() {
             staff_id: cachedMasterData!.staffList[0].id.toString(),
           }))
         }
+        setLoadingMaster(false)
       }
 
+      // 2. Fetch fresh dynamic data from backend
       try {
-        let locData: LocationItem[] = []
-        let staffData: StaffItem[] = []
-        let rawCards: CardItem[] = []
-        let rawVehicles: CardItem[] = []
-        let pList: string[] = []
+        const [locRes, staffRes, cardsRes, vehRes, purposeRes] =
+          await Promise.all([
+            api.get("/locations").catch(() => ({ data: [] })),
+            api.get("/staffs").catch(() => ({ data: [] })),
+            api.get("/cards").catch(() => ({ data: [] })),
+            api.get("/vehicle-cards").catch(() => ({ data: [] })),
+            api.get("/lookups/purposes").catch(() => ({ data: [] })),
+          ])
 
-        // Try single consolidated endpoint first
-        let bundledSuccess = false
-        try {
-          const bundleRes = await api.get("/lookups/visit-form-data")
-          if (bundleRes?.data && Array.isArray(bundleRes.data.locations)) {
-            bundledSuccess = true
-            locData = bundleRes.data.locations || []
-            staffData = bundleRes.data.staffs || []
-            rawCards = bundleRes.data.cards || []
-            rawVehicles = bundleRes.data.vehicle_cards || []
-            pList = Array.isArray(bundleRes.data.purposes)
-              ? bundleRes.data.purposes
-              : []
-          }
-        } catch {
-          bundledSuccess = false
-        }
-
-        // Fallback to separate endpoints if bundled endpoint is not available
-        if (!bundledSuccess) {
-          const [locRes, staffRes, cardRes, vehicleRes, purposeRes] =
-            await Promise.all([
-              api.get("/locations").catch(() => ({ data: [] })),
-              api.get("/staffs").catch(() => ({ data: [] })),
-              api.get("/cards").catch(() => ({ data: [] })),
-              api.get("/vehicle-cards").catch(() => ({ data: [] })),
-              api.get("/lookups/purposes").catch(() => ({ data: [] })),
-            ])
-
-          locData = Array.isArray(locRes.data)
-            ? locRes.data
-            : locRes.data?.data || []
-          staffData = Array.isArray(staffRes.data)
-            ? staffRes.data
-            : staffRes.data?.data || []
-          rawCards = Array.isArray(cardRes.data)
-            ? cardRes.data
-            : cardRes.data?.data || []
-          rawVehicles = Array.isArray(vehicleRes.data)
-            ? vehicleRes.data
-            : vehicleRes.data?.data || []
-          const rawPurposes = Array.isArray(purposeRes.data)
-            ? purposeRes.data
-            : purposeRes.data?.data || []
-          pList = rawPurposes.map((p: PurposeItem | string) =>
-            typeof p === "string" ? p : p.purpose || ""
-          )
-        }
+        const locData = Array.isArray(locRes.data)
+          ? locRes.data
+          : locRes.data?.data || []
+        const staffData = Array.isArray(staffRes.data)
+          ? staffRes.data
+          : staffRes.data?.data || []
+        const rawCards = Array.isArray(cardsRes.data)
+          ? cardsRes.data
+          : cardsRes.data?.data || []
+        const rawVehicles = Array.isArray(vehRes.data)
+          ? vehRes.data
+          : vehRes.data?.data || []
+        const rawPurposes = Array.isArray(purposeRes.data)
+          ? purposeRes.data
+          : purposeRes.data?.data || []
+        const pList = rawPurposes.map((p: PurposeItem | string) =>
+          typeof p === "string" ? p : p.purpose || ""
+        )
 
         if (!isMounted) return
 
-        // Update module-level cache
         cachedMasterData = {
           locations: locData,
           staffList: staffData,
@@ -318,7 +317,7 @@ export default function CreateVisit() {
   }, [])
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
@@ -328,12 +327,10 @@ export default function CreateVisit() {
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
-  // Same number, same document type = blocked; another type = the officer checks the document (SEC-4).
   const globalBlock =
     globalEntries.find((e) => e.id_type === form.id_type) ?? null
   const globalWarnings = globalEntries.filter((e) => e.id_type !== form.id_type)
 
-  // A USB 2D scanner types the token and presses Enter; no webcam (decision FE-4a).
   const handlePreRegLookup = async (e?: React.FormEvent) => {
     e?.preventDefault()
     const code = preRegCode.trim().toUpperCase()
@@ -383,7 +380,6 @@ export default function CreateVisit() {
     }
   }
 
-  // Probe check-ktp endpoint directly
   const handleCheckKtp = () => checkIdentity(form.id_number.trim())
 
   const checkIdentity = async (idVal: string) => {
@@ -407,9 +403,12 @@ export default function CreateVisit() {
       if (!visitor) {
         setVisitorStatus("new")
         setBlacklistReason("")
+        setFoundVisitor(null)
+        setIsEditLockedVisitor(false)
         toast.info("New visitor detected. Please complete registration fields.")
       } else if (visitor.is_blacklisted) {
         setVisitorStatus("blacklisted")
+        setFoundVisitor(visitor)
         setBlacklistReason(
           visitor.blacklist_reason || "Identified in visitor security blacklist"
         )
@@ -417,29 +416,39 @@ export default function CreateVisit() {
           ...prev,
           name: visitor.name || prev.name,
           company: visitor.company || prev.company,
+          occupation: visitor.occupation || prev.occupation,
+          phone: visitor.phone || prev.phone,
+          email: visitor.email || prev.email,
         }))
+        setIsEditLockedVisitor(true)
         toast.error("Warning: This visitor is blacklisted!", {
           description: visitor.blacklist_reason,
         })
       } else {
         setVisitorStatus("registered")
+        setFoundVisitor(visitor)
         setBlacklistReason("")
         setForm((prev) => ({
           ...prev,
           name: visitor.name || prev.name,
           company: visitor.company || prev.company,
+          occupation: visitor.occupation || prev.occupation,
+          phone: visitor.phone || prev.phone,
+          email: visitor.email || prev.email,
         }))
+        setIsEditLockedVisitor(true)
         toast.success(`Visitor found: ${visitor.name}`)
       }
     } catch (err) {
       console.error("Check KTP failed:", err)
       setVisitorStatus("new")
+      setFoundVisitor(null)
+      setIsEditLockedVisitor(false)
     } finally {
       setCheckingKtp(false)
     }
   }
 
-  // Trigger search logic for suggestions popover
   const searchVisitor = (query: string, source: "ktp" | "name") => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current)
     abortRef.current?.abort()
@@ -480,12 +489,16 @@ export default function CreateVisit() {
   }
 
   const selectVisitor = (visitor: any) => {
+    setFoundVisitor(visitor)
     setForm((prev) => ({
       ...prev,
       id_type: visitor.id_type || "ktp",
       id_number: visitor.id_number,
       name: visitor.name,
       company: visitor.company || "",
+      occupation: visitor.occupation || prev.occupation,
+      phone: visitor.phone || prev.phone,
+      email: visitor.email || prev.email,
     }))
 
     if (visitor.is_blacklisted) {
@@ -493,15 +506,56 @@ export default function CreateVisit() {
       setBlacklistReason(
         visitor.blacklist_reason || "Identified in visitor security blacklist"
       )
+      setIsEditLockedVisitor(true)
       toast.warning("This visitor is blacklisted", {
         description: visitor.blacklist_reason ?? undefined,
       })
     } else {
       setVisitorStatus("registered")
       setBlacklistReason("")
+      setIsEditLockedVisitor(true)
+      toast.success(`Visitor selected: ${visitor.name}`)
     }
     setOpenKtp(false)
     setOpenName(false)
+  }
+
+  const handleSaveNewVisitorToMaster = async () => {
+    if (!form.name.trim() || !form.id_number.trim()) {
+      toast.error("Nama lengkap dan nomor identitas wajib diisi.")
+      return
+    }
+
+    setSavingVisitorToMaster(true)
+    try {
+      const payload: Record<string, any> = {
+        name: form.name.trim(),
+        id_type: form.id_type,
+        id_number: form.id_number.trim(),
+        company: form.company.trim() || null,
+        occupation: form.occupation.trim() || null,
+        visitor_type: form.visitor_type || "visitor",
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
+        birth_place: form.birth_place.trim() || null,
+        birth_date: form.birth_date || null,
+        gender: gender || null,
+        nationality: form.nationality.trim() || "Indonesia",
+        address: form.address.trim() || null,
+      }
+
+      const res = await api.post("/visitors", payload)
+      const saved = res.data?.visitor || res.data?.data || res.data
+      setFoundVisitor(saved)
+      setVisitorStatus("registered")
+      setIsEditLockedVisitor(true)
+      toast.success("Pengunjung baru berhasil disimpan ke Master Data.")
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.response?.data?.message || "Gagal menyimpan data pengunjung baru.")
+    } finally {
+      setSavingVisitorToMaster(false)
+    }
   }
 
   const submitVisit = async (closeOpenVisits = false, override?: string) => {
@@ -509,6 +563,11 @@ export default function CreateVisit() {
       toast.error(
         "Cannot check-in a blacklisted visitor. Contact security administrator."
       )
+      return
+    }
+
+    if (!form.id_number.trim() || !form.name.trim()) {
+      toast.error("Nomor identitas dan nama pengunjung wajib diisi.")
       return
     }
 
@@ -522,7 +581,6 @@ export default function CreateVisit() {
       return
     }
 
-    // A pre-registration leaves gender empty; the officer completes it here (decision BE-2).
     if (preReg && !gender) {
       toast.error("Pilih jenis kelamin tamu pra-registrasi.")
       return
@@ -542,56 +600,60 @@ export default function CreateVisit() {
         vehicle_card_id: form.vehicle_card_id || undefined,
       }
 
+      if (form.occupation.trim()) payload.occupation = form.occupation.trim()
+      if (form.phone.trim()) payload.phone = form.phone.trim()
+      if (form.email.trim()) payload.email = form.email.trim()
+      if (form.address.trim()) payload.address = form.address.trim()
+      if (form.birth_place.trim()) payload.birth_place = form.birth_place.trim()
+      if (form.birth_date) payload.birth_date = form.birth_date
+      if (form.visitor_type) payload.visitor_type = form.visitor_type
+
+      if (form.is_custom_host || form.host_name) {
+        payload.host_name = form.host_name.trim()
+      } else if (form.staff_id) {
+        payload.staff_id = form.staff_id
+      }
+
       if (gender) payload.gender = gender
       if (preReg) payload.pre_registration_token = preReg.token
       if (override) {
         payload.override_global_blacklist = true
         payload.override_reason = override
       }
-
-      if (form.is_custom_host) {
-        payload.host_name = form.host_name.trim() || "Visitor Host"
-      } else if (form.staff_id) {
-        payload.staff_id = form.staff_id
-      } else if (form.host_name) {
-        payload.host_name = form.host_name.trim()
-      }
-
       if (closeOpenVisits) {
         payload.close_open_visits = true
       }
 
       const res = await api.post("/visits", payload)
-      const newVisit = res.data?.visit || res.data?.data || res.data
+      toast.success("Visit successfully registered!")
 
-      for (const warning of (res.data?.warnings ??
-        []) as GlobalBlacklistHit[]) {
-        toast.warning(
-          `Nomor ini ada di blacklist global sebagai ${warning.id_type.toUpperCase()} (${warning.reason_label}, ${warning.registered_by_yard}).`
-        )
+      const visit = res.data?.visit || res.data
+      if (visit && visit.id) {
+        navigate(`/visits/${visit.id}/print`, {
+          state: { visit },
+        })
+      } else {
+        navigate("/active-visitors")
       }
-      toast.success("Visitor checked in successfully!")
-      navigate(`/visits/${newVisit.id}/print`, { state: { visit: newVisit } })
     } catch (err: any) {
       console.error("Visit submission error:", err)
+      const data = err.response?.data
       const status = err.response?.status
-      const msg = err.response?.data?.message || ""
+      const msg = data?.message || ""
 
-      // Global blacklist (SEC-7): a supervisor may let this one visit through with a reason.
-      if (status === 422 && err.response?.data?.global_blacklist) {
-        const hit = err.response.data.global_blacklist as GlobalBlacklistHit
-        if (err.response.data.can_override) {
-          setOverrideEntry(hit)
+      if (status === 422 && data?.global_blacklist) {
+        if (data.can_override) {
+          setOverrideEntry(data.global_blacklist)
           setOverrideReason("")
         } else {
           toast.error(
-            `Ditolak: blacklist global (${hit.reason_label}, didaftarkan ${hit.registered_by_yard}). Hubungi supervisor.`
+            data.message ||
+              "Tamu ini ada di blacklist global. Check-in ditolak."
           )
         }
         return
       }
 
-      // Detect active open visit conflict
       if (
         status === 422 &&
         (msg.toLowerCase().includes("kunjungan terbuka") ||
@@ -620,33 +682,38 @@ export default function CreateVisit() {
   }
 
   return (
-    <div className="relative mx-auto max-w-4xl rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+    <div className="relative mx-auto w-full max-w-[1600px] space-y-6 pb-24">
+      {/* Top Header */}
+      <div className="flex flex-col items-start justify-between gap-4 border-b border-zinc-200 pb-4 sm:flex-row sm:items-center dark:border-zinc-800">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Add New Visit</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+            Pendaftaran Kunjungan (Add Visit)
+          </h1>
           <p className="text-sm text-zinc-500">
-            Check ID card, select mandatory location, assign cards, and register
-            visit.
+            Periksa identitas pengunjung, pilih tujuan & host, alokasikan kartu akses, dan cetak tiket.
           </p>
         </div>
-      </div>
 
-      <div className="absolute top-6 right-6 hidden text-right sm:block">
-        <p className="text-xs font-medium tracking-wider text-zinc-500 uppercase">
-          Current Time
-        </p>
-        <div className="mt-1 inline-block rounded bg-zinc-100 px-3 py-1 font-mono text-2xl font-bold text-zinc-900 dark:bg-zinc-900 dark:text-zinc-50">
-          {currentTime.toLocaleTimeString("id-ID", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          })}
+        {/* Current Time Clock */}
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
+              Current Time
+            </p>
+            <div className="rounded bg-zinc-100 px-3 py-1 font-mono text-xl font-bold text-zinc-900 dark:bg-zinc-900 dark:text-zinc-50">
+              {currentTime.toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Blacklist banner */}
       {visitorStatus === "blacklisted" && (
-        <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
+        <div className="flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
           <div>
             <span className="rounded-full bg-red-200 px-2 py-0.5 text-xs font-bold tracking-wider text-red-900 uppercase dark:bg-red-900 dark:text-red-100">
@@ -656,28 +723,25 @@ export default function CreateVisit() {
               Alasan: {blacklistReason}
             </p>
             <p className="mt-1 text-xs text-red-700 dark:text-red-400">
-              Entry denied. Form submission is disabled for security policy
-              enforcement.
+              Entry denied. Form submission is disabled for security policy enforcement.
             </p>
           </div>
         </div>
       )}
 
-      {/* Global blacklist (hybrid spec §6.2): red = refused, yellow = verify the document (SEC-4) */}
+      {/* Global blacklist (hybrid spec §6.2) */}
       {globalBlock && (
-        <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
+        <div className="flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
           <Globe className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
           <div>
             <span className="rounded-full bg-red-200 px-2 py-0.5 text-xs font-bold tracking-wider text-red-900 uppercase dark:bg-red-900 dark:text-red-100">
               BLACKLIST GLOBAL
             </span>
             <p className="mt-1 text-sm font-medium">
-              {globalBlock.reason_label} · didaftarkan{" "}
-              {globalBlock.registered_by_yard}
+              {globalBlock.reason_label} · didaftarkan {globalBlock.registered_by_yard}
             </p>
             <p className="mt-1 text-xs text-red-700 dark:text-red-400">
-              Check-in ditolak. Supervisor dapat meloloskan satu kunjungan
-              dengan alasan tertulis.
+              Check-in ditolak. Supervisor dapat meloloskan satu kunjungan dengan alasan tertulis.
             </p>
           </div>
         </div>
@@ -685,431 +749,916 @@ export default function CreateVisit() {
       {globalWarnings.map((w) => (
         <div
           key={`${w.id_type}-${w.registered_by_yard}`}
-          className="mb-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+          className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
           <span>
-            Nomor yang sama ada di blacklist global sebagai{" "}
-            {w.id_type.toUpperCase()} ({w.reason_label}, didaftarkan{" "}
-            {w.registered_by_yard}). Periksa dokumen fisik dan cocokkan nama
-            sebelum melanjutkan.
+            Nomor yang sama ada di blacklist global sebagai {w.id_type.toUpperCase()} ({w.reason_label}, didaftarkan {w.registered_by_yard}). Periksa dokumen fisik dan cocokkan nama sebelum melanjutkan.
           </span>
         </div>
       ))}
 
-      {/* Visitor Status Badges */}
-      {visitorStatus === "registered" && (
-        <div className="mb-4 flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-          <UserCheck className="h-4 w-4 text-emerald-600" />
-          <span>Registered visitor profile loaded.</span>
-        </div>
-      )}
-      {visitorStatus === "new" && (
-        <div className="mb-4 flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300">
-          <UserPlus className="h-4 w-4 text-sky-600" />
-          <span>
-            New visitor detected. Please complete registration details below.
-          </span>
-        </div>
-      )}
-
-      {/* Pre-registration (decision FE-4a): the QR code carries only the token; read from the local mirror */}
-      <form
-        onSubmit={handlePreRegLookup}
-        className="mt-2 flex flex-col gap-2 rounded-lg border border-dashed border-zinc-300 p-4 md:flex-row md:items-end dark:border-zinc-700"
-      >
-        <div className="flex-1 space-y-2">
-          <Label htmlFor="pre_registration_code">
-            Kode pra-registrasi / scan QR
-          </Label>
-          <Input
-            id="pre_registration_code"
-            value={preRegCode}
-            onChange={(e) => setPreRegCode(e.target.value)}
-            placeholder="PR-XXXX-XXXX-XXXX"
-            autoComplete="off"
-          />
-        </div>
-        <Button
-          type="submit"
-          variant="outline"
-          disabled={lookingUpPreReg || !preRegCode.trim()}
+      {/* Pre-registration bar */}
+      <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <form
+          onSubmit={handlePreRegLookup}
+          className="flex flex-col gap-3 md:flex-row md:items-end"
         >
-          {lookingUpPreReg ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <ScanLine className="mr-2 h-4 w-4" />
-          )}
-          Muat
-        </Button>
-      </form>
-      {preReg && (
-        <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-400">
-          Pra-registrasi {preReg.token} · rencana datang {preReg.scheduled_date}
-          {preReg.host_department ? ` · ${preReg.host_department}` : ""}
-        </p>
-      )}
-
-      <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-        {/* Step 1: Identity & ID Check */}
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
-          <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-              1
-            </span>
-            <User className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              Identitas Pengunjung (Visitor Identity)
-            </h2>
+          <div className="flex-1 space-y-1.5">
+            <Label htmlFor="pre_registration_code" className="text-xs font-semibold">
+              Kode Pra-registrasi / Scan QR (Opsional)
+            </Label>
+            <Input
+              id="pre_registration_code"
+              value={preRegCode}
+              onChange={(e) => setPreRegCode(e.target.value)}
+              placeholder="PR-XXXX-XXXX-XXXX"
+              autoComplete="off"
+              className="bg-white dark:bg-zinc-950"
+            />
           </div>
+          <Button
+            type="submit"
+            variant="outline"
+            disabled={lookingUpPreReg || !preRegCode.trim()}
+          >
+            {lookingUpPreReg ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <ScanLine className="mr-2 h-4 w-4" />
+            )}
+            Muat
+          </Button>
+        </form>
+        {preReg && (
+          <p className="mt-2 text-xs text-emerald-700 font-medium dark:text-emerald-400">
+            ✓ Pra-registrasi {preReg.token} · rencana datang: {preReg.scheduled_date}
+            {preReg.host_department ? ` · ${preReg.host_department}` : ""}
+          </p>
+        )}
+      </div>
 
-          <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-4">
-            <div className="space-y-2">
-              <Label htmlFor="id_type">ID Type</Label>
-              <select
-                id="id_type"
-                name="id_type"
-                value={form.id_type}
-                onChange={handleChange}
-                className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
-              >
-                <option value="ktp">KTP</option>
-                <option value="sim">SIM</option>
-                <option value="passport">Passport</option>
-              </select>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* 3-Column Responsive Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
+          {/* ======================================================== */}
+          {/* KOLOM KIRI: SECTION 1 - Identitas Pengunjung             */}
+          {/* ======================================================== */}
+          <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+                1
+              </span>
+              <User className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                Identitas Pengunjung (Visitor Identity)
+              </h2>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="id_number">ID Number</Label>
-              <Popover open={openKtp} onOpenChange={setOpenKtp}>
-                <PopoverAnchor asChild>
-                  <Input
-                    ref={idInputRef}
-                    id="id_number"
-                    name="id_number"
-                    value={form.id_number}
-                    onChange={(e) => {
-                      handleChange(e)
-                      searchVisitor(e.target.value, "ktp")
-                    }}
-                    onFocus={() => {
-                      if (form.id_number.length >= 2) setOpenKtp(true)
-                    }}
-                    required
-                    autoComplete="off"
-                    placeholder="Type ID number..."
-                  />
-                </PopoverAnchor>
-                <PopoverContent
-                  className="w-[350px] p-0"
-                  align="start"
-                  onOpenAutoFocus={(e) => e.preventDefault()}
-                >
-                  <Command shouldFilter={false}>
-                    <CommandList>
-                      <CommandGroup>
-                        {searching ? (
-                          <div className="flex items-center justify-center p-4 text-sm text-zinc-500">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                            Searching...
-                          </div>
-                        ) : suggestions.length > 0 ? (
-                          suggestions.map((s) => (
-                            <CommandItem
-                              key={s.id}
-                              value={s.id_number}
-                              onSelect={() => selectVisitor(s)}
-                            >
-                              <div className="flex flex-col">
-                                <span className="font-semibold">
-                                  {s.id_number}
-                                </span>
-                                <span className="text-xs text-zinc-500">
-                                  {s.name} - {s.company || "No Company"}
-                                </span>
+            {/* LANGKAH A: Input Cek / Cari Pengunjung */}
+            <div className="rounded-md border border-zinc-200 bg-zinc-50/70 p-3.5 space-y-3 dark:border-zinc-800 dark:bg-zinc-900/30">
+              <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                Langkah A: Cek / Cari Pengunjung
+              </p>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-1 space-y-1">
+                  <Label htmlFor="id_type" className="text-xs">ID Type</Label>
+                  <select
+                    id="id_type"
+                    name="id_type"
+                    value={form.id_type}
+                    onChange={handleChange}
+                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
+                  >
+                    <option value="ktp">KTP</option>
+                    <option value="sim">SIM</option>
+                    <option value="passport">Passport</option>
+                  </select>
+                </div>
+
+                <div className="col-span-2 space-y-1">
+                  <Label htmlFor="id_number" className="text-xs">ID Number *</Label>
+                  <Popover open={openKtp} onOpenChange={setOpenKtp}>
+                    <PopoverAnchor asChild>
+                      <Input
+                        ref={idInputRef}
+                        id="id_number"
+                        name="id_number"
+                        value={form.id_number}
+                        onChange={(e) => {
+                          handleChange(e)
+                          searchVisitor(e.target.value, "ktp")
+                        }}
+                        onFocus={() => {
+                          if (form.id_number.length >= 2) setOpenKtp(true)
+                        }}
+                        required
+                        autoComplete="off"
+                        placeholder="Ketik nomor identitas..."
+                        className="h-9 bg-white text-xs dark:bg-zinc-950"
+                      />
+                    </PopoverAnchor>
+                    <PopoverContent
+                      className="w-[300px] p-0"
+                      align="start"
+                      onOpenAutoFocus={(e) => e.preventDefault()}
+                    >
+                      <Command shouldFilter={false}>
+                        <CommandList>
+                          <CommandGroup>
+                            {searching ? (
+                              <div className="flex items-center justify-center p-3 text-xs text-zinc-500">
+                                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Mencari...
                               </div>
-                              {s.is_blacklisted && (
-                                <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 dark:bg-red-950/50 dark:text-red-400">
-                                  BLACKLISTED
-                                </span>
-                              )}
-                            </CommandItem>
-                          ))
-                        ) : (
-                          <div className="p-4 text-center text-sm text-zinc-500">
-                            New visitor. Click Check to verify.
-                          </div>
-                        )}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleCheckKtp}
-                disabled={checkingKtp || !form.id_number}
-                className="h-10 w-full cursor-pointer"
-              >
-                {checkingKtp ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="mr-2 h-4 w-4" />
-                )}
-                Check / Search
-              </Button>
-            </div>
-          </div>
-
-          {/* Visitor Profile Details */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">Visitor Name</Label>
-              <Popover open={openName} onOpenChange={setOpenName}>
-                <PopoverAnchor asChild>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={form.name}
-                    onChange={(e) => {
-                      handleChange(e)
-                      searchVisitor(e.target.value, "name")
-                    }}
-                    onFocus={() => {
-                      if (form.name.length >= 2) setOpenName(true)
-                    }}
-                    required
-                    autoComplete="off"
-                    placeholder="Visitor full name..."
-                  />
-                </PopoverAnchor>
-                <PopoverContent
-                  className="w-[350px] p-0"
-                  align="start"
-                  onOpenAutoFocus={(e) => e.preventDefault()}
-                >
-                  <Command shouldFilter={false}>
-                    <CommandList>
-                      <CommandGroup>
-                        {suggestions.map((s) => (
-                          <CommandItem
-                            key={s.id}
-                            value={s.id_number}
-                            onSelect={() => selectVisitor(s)}
-                          >
-                            <div className="flex flex-col">
-                              <span className="font-semibold">{s.name}</span>
-                              <span className="text-xs text-zinc-500">
-                                {s.id_number} - {s.company || "No Company"}
-                              </span>
-                            </div>
-                            {s.is_blacklisted && (
-                              <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 dark:bg-red-950/50 dark:text-red-400">
-                                BLACKLISTED
-                              </span>
+                            ) : suggestions.length > 0 ? (
+                              suggestions.map((s) => (
+                                <CommandItem
+                                  key={s.id}
+                                  value={s.id_number}
+                                  onSelect={() => selectVisitor(s)}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-semibold text-xs">{s.id_number}</span>
+                                    <span className="text-[11px] text-zinc-500">
+                                      {s.name} {s.company ? `· ${s.company}` : ""}
+                                    </span>
+                                  </div>
+                                  {s.is_blacklisted && (
+                                    <span className="ml-auto rounded bg-red-100 px-1.5 py-0.5 text-[9px] font-bold text-red-700">
+                                      BLACKLIST
+                                    </span>
+                                  )}
+                                </CommandItem>
+                              ))
+                            ) : (
+                              <div className="p-3 text-center text-xs text-zinc-500">
+                                Pengunjung baru. Klik Cek/Cari untuk verifikasi.
+                              </div>
                             )}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="company">Company / Agency (Optional)</Label>
-              <Input
-                id="company"
-                name="company"
-                value={form.company}
-                onChange={handleChange}
-                placeholder="e.g. PT Mitra Maritim"
-              />
-            </div>
-
-            {preReg && (
-              <div className="space-y-2">
-                <Label htmlFor="gender">Jenis Kelamin</Label>
-                <select
-                  id="gender"
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                  required
-                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleCheckKtp}
+                  disabled={checkingKtp || !form.id_number}
+                  className="w-full cursor-pointer text-xs"
                 >
-                  <option value="">-- Pilih --</option>
-                  <option value="M">Laki-laki</option>
-                  <option value="F">Perempuan</option>
-                </select>
+                  {checkingKtp ? (
+                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Search className="mr-2 h-3.5 w-3.5" />
+                  )}
+                  Check / Search ID
+                </Button>
+              </div>
+
+              {/* Cari berdasarkan Nama (Autocomplete) */}
+              <div className="space-y-1 pt-1">
+                <Label htmlFor="search_name" className="text-xs text-zinc-500">
+                  Atau cari berdasarkan Nama Pengunjung:
+                </Label>
+                <Popover open={openName} onOpenChange={setOpenName}>
+                  <PopoverAnchor asChild>
+                    <div className="relative">
+                      <Input
+                        id="search_name"
+                        value={nameSearchQuery}
+                        onChange={(e) => {
+                          setNameSearchQuery(e.target.value)
+                          searchVisitor(e.target.value, "name")
+                        }}
+                        onFocus={() => {
+                          if (nameSearchQuery.length >= 2) setOpenName(true)
+                        }}
+                        autoComplete="off"
+                        placeholder="Ketik nama untuk mencari..."
+                        className="h-9 bg-white pr-8 text-xs dark:bg-zinc-950"
+                      />
+                      <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
+                    </div>
+                  </PopoverAnchor>
+                  <PopoverContent
+                    className="w-[300px] p-0"
+                    align="start"
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                  >
+                    <Command shouldFilter={false}>
+                      <CommandList>
+                        <CommandGroup>
+                          {searching ? (
+                            <div className="flex items-center justify-center p-3 text-xs text-zinc-500">
+                              <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Mencari...
+                            </div>
+                          ) : suggestions.length > 0 ? (
+                            suggestions.map((s) => (
+                              <CommandItem
+                                key={s.id}
+                                value={s.id_number}
+                                onSelect={() => selectVisitor(s)}
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-xs">{s.name}</span>
+                                  <span className="text-[11px] text-zinc-500">
+                                    {s.id_number} {s.company ? `· ${s.company}` : ""}
+                                  </span>
+                                </div>
+                                {s.is_blacklisted && (
+                                  <span className="ml-auto rounded bg-red-100 px-1.5 py-0.5 text-[9px] font-bold text-red-700">
+                                    BLACKLIST
+                                  </span>
+                                )}
+                              </CommandItem>
+                            ))
+                          ) : (
+                            <div className="p-3 text-center text-xs text-zinc-500">
+                              Tidak ada saran nama ditemukan.
+                            </div>
+                          )}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {/* LANGKAH B: Hasil Pengecekan */}
+            {visitorStatus === "registered" && (
+              <div className="rounded-md border border-emerald-300 bg-emerald-50/80 p-3.5 space-y-3 dark:border-emerald-800 dark:bg-emerald-950/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-emerald-800 font-semibold text-xs dark:text-emerald-300">
+                    <UserCheck className="h-4 w-4 text-emerald-600" />
+                    <span>Pengunjung Ditemukan / Visitor Found</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditLockedVisitor(!isEditLockedVisitor)}
+                    className="h-7 text-xs text-emerald-800 hover:bg-emerald-100 dark:text-emerald-300"
+                  >
+                    <Edit2 className="mr-1 h-3 w-3" />
+                    {isEditLockedVisitor ? "Edit Data" : "Kunci Data"}
+                  </Button>
+                </div>
+
+                {/* Kartu Ringkasan Data */}
+                <div className="rounded border border-emerald-200 bg-white p-2.5 text-xs space-y-1 text-zinc-800 dark:border-emerald-900/60 dark:bg-zinc-950 dark:text-zinc-200">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Nama:</span>
+                    <span className="font-semibold">{form.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">ID:</span>
+                    <span className="font-mono">{form.id_type.toUpperCase()} - {form.id_number}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Perusahaan:</span>
+                    <span>{form.company || "-"}</span>
+                  </div>
+                  {foundVisitor?.visits_count !== undefined && (
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Riwayat Kunjungan:</span>
+                      <span className="font-medium text-primary">{foundVisitor.visits_count} kali</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Step 2: Location / Vessel & Purpose & Host */}
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
-          <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-              2
-            </span>
-            <Building2 className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              Tujuan Kunjungan & Host (Destination & Host)
-            </h2>
-          </div>
+            {visitorStatus === "new" && (
+              <div className="rounded-md border border-sky-300 bg-sky-50/80 p-3.5 space-y-3 dark:border-sky-800 dark:bg-sky-950/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sky-800 font-semibold text-xs dark:text-sky-300">
+                    <UserPlus className="h-4 w-4 text-sky-600" />
+                    <span>Pengunjung Belum Terdaftar / New Visitor</span>
+                  </div>
+                </div>
+                <p className="text-xs text-sky-700 dark:text-sky-400">
+                  Data pengunjung belum ada di master. Lengkapi formulir di bawah ini untuk didaftarkan secara otomatis.
+                </p>
+              </div>
+            )}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="location_id">Location / Vessel (Mandatory)</Label>
-              <select
-                id="location_id"
-                name="location_id"
-                value={form.location_id}
-                onChange={handleChange}
-                required
-                disabled={loadingMaster}
-                className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
-              >
-                {loadingMaster ? (
-                  <option value="">Memuat daftar lokasi...</option>
-                ) : (
-                  <option value="">-- Select Location / Vessel --</option>
+            {/* Form Input Detail Identitas (Editable / Read-only state) */}
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-xs">Visitor Name *</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={form.name}
+                  readOnly={visitorStatus === "registered" && isEditLockedVisitor}
+                  onChange={handleChange}
+                  required
+                  placeholder="Nama lengkap pengunjung..."
+                  className={cn(
+                    "h-9 text-xs",
+                    visitorStatus === "registered" && isEditLockedVisitor && "bg-zinc-100 dark:bg-zinc-900"
+                  )}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="company" className="text-xs">Company / Agency (Optional)</Label>
+                <Input
+                  id="company"
+                  name="company"
+                  value={form.company}
+                  readOnly={visitorStatus === "registered" && isEditLockedVisitor}
+                  onChange={handleChange}
+                  placeholder="Contoh: PT Mitra Maritim"
+                  className={cn(
+                    "h-9 text-xs",
+                    visitorStatus === "registered" && isEditLockedVisitor && "bg-zinc-100 dark:bg-zinc-900"
+                  )}
+                />
+              </div>
+
+              {/* Bagian Collapsible: Data Tambahan */}
+              <div className="rounded border border-zinc-200 bg-zinc-50/50 p-2.5 dark:border-zinc-800 dark:bg-zinc-900/30">
+                <button
+                  type="button"
+                  onClick={() => setShowAdditionalData(!showAdditionalData)}
+                  className="flex w-full items-center justify-between text-xs font-semibold text-zinc-700 hover:text-zinc-900 dark:text-zinc-300"
+                >
+                  <span>Data Tambahan / Additional Data (Opsional)</span>
+                  {showAdditionalData ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+
+                {showAdditionalData && (
+                  <div className="mt-3 space-y-3 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="occupation" className="text-[11px]">Jabatan / Profesi</Label>
+                        <Input
+                          id="occupation"
+                          name="occupation"
+                          value={form.occupation}
+                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
+                          onChange={handleChange}
+                          placeholder="Teknisi, Surveyor..."
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="visitor_type" className="text-[11px]">Tipe Pengunjung</Label>
+                        <select
+                          id="visitor_type"
+                          name="visitor_type"
+                          value={form.visitor_type}
+                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
+                          onChange={handleChange}
+                          className="flex h-8 w-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-800 dark:bg-zinc-950"
+                        >
+                          <option value="visitor">Pengunjung Umum</option>
+                          <option value="crew">Crew Kapal</option>
+                          <option value="temporary_worker">Tenaga Kerja Sementara</option>
+                          <option value="supplier">Supplier / Vendor</option>
+                          <option value="others">Lainnya</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="phone" className="text-[11px]">Nomor Telepon</Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          value={form.phone}
+                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
+                          onChange={handleChange}
+                          placeholder="08123456789"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="email" className="text-[11px]">Email</Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={form.email}
+                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
+                          onChange={handleChange}
+                          placeholder="email@domain.com"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="birth_place" className="text-[11px]">Tempat Lahir</Label>
+                        <Input
+                          id="birth_place"
+                          name="birth_place"
+                          value={form.birth_place}
+                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
+                          onChange={handleChange}
+                          placeholder="Kota lahir..."
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="birth_date" className="text-[11px]">Tanggal Lahir</Label>
+                        <Input
+                          id="birth_date"
+                          name="birth_date"
+                          type="date"
+                          value={form.birth_date}
+                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
+                          onChange={handleChange}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="address" className="text-[11px]">Alamat Domisili</Label>
+                      <Textarea
+                        id="address"
+                        name="address"
+                        value={form.address}
+                        disabled={visitorStatus === "registered" && isEditLockedVisitor}
+                        onChange={handleChange}
+                        placeholder="Alamat lengkap..."
+                        rows={2}
+                        className="text-xs"
+                      />
+                    </div>
+
+                    {visitorStatus === "new" && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSaveNewVisitorToMaster}
+                        disabled={savingVisitorToMaster || !form.name.trim() || !form.id_number.trim()}
+                        className="w-full text-xs"
+                      >
+                        {savingVisitorToMaster ? (
+                          <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <UserPlus className="mr-2 h-3.5 w-3.5" />
+                        )}
+                        Simpan ke Master Pengunjung
+                      </Button>
+                    )}
+                  </div>
                 )}
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
+              </div>
+
+              {/* Pre-reg gender input requirement */}
+              {preReg && (
+                <div className="space-y-1 pt-2">
+                  <Label htmlFor="gender" className="text-xs text-amber-700 font-semibold dark:text-amber-400">
+                    Jenis Kelamin * (Wajib untuk Pra-registrasi)
+                  </Label>
+                  <select
+                    id="gender"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    required
+                    className="flex h-9 w-full rounded-md border border-amber-300 bg-amber-50/50 px-3 py-1 text-xs dark:border-amber-900 dark:bg-zinc-950"
+                  >
+                    <option value="">-- Pilih Jenis Kelamin --</option>
+                    <option value="M">Laki-laki (M)</option>
+                    <option value="F">Perempuan (F)</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ======================================================== */}
+          {/* KOLOM TENGAH: SECTION 2 - Tujuan Kunjungan & Host        */}
+          {/* ======================================================== */}
+          <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+                2
+              </span>
+              <Building2 className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                Tujuan Kunjungan & Host (Destination & Host)
+              </h2>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="purpose">Purpose of Visit</Label>
-              <Input
-                id="purpose"
-                name="purpose"
-                value={form.purpose}
-                onChange={handleChange}
-                list="purpose-suggestions"
-                required
-                placeholder="e.g. Survey, Meeting, Maintenance..."
-              />
-              <datalist id="purpose-suggestions">
-                {purposeSuggestions.map((p, idx) => (
-                  <option key={idx} value={p} />
-                ))}
-              </datalist>
+            <div className="space-y-4">
+              {/* Lokasi / Vessel */}
+              <div className="space-y-1.5">
+                <Label htmlFor="location_id" className="text-xs font-semibold">
+                  Location / Vessel (Mandatory) *
+                </Label>
+                <select
+                  id="location_id"
+                  name="location_id"
+                  value={form.location_id}
+                  onChange={handleChange}
+                  required
+                  disabled={loadingMaster}
+                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                  {loadingMaster ? (
+                    <option value="">Memuat daftar lokasi...</option>
+                  ) : (
+                    <option value="">-- Select Location / Vessel --</option>
+                  )}
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              {/* Quick Purpose Chips */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[11px] font-medium text-zinc-500">
-                  Quick Suggestions:
-                </span>
-                {POPULAR_PURPOSES.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() =>
-                      setForm((prev) => ({ ...prev, purpose: tag }))
-                    }
-                    className={cn(
-                      "rounded border px-2 py-0.5 text-xs transition-colors cursor-pointer",
-                      form.purpose === tag
-                        ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                    )}
-                  >
-                    {tag}
-                  </button>
-                ))}
+              {/* Purpose of Visit */}
+              <div className="space-y-1.5">
+                <Label htmlFor="purpose" className="text-xs font-semibold">
+                  Purpose of Visit *
+                </Label>
+                <Input
+                  id="purpose"
+                  name="purpose"
+                  value={form.purpose}
+                  onChange={handleChange}
+                  list="purpose-suggestions"
+                  required
+                  placeholder="Contoh: Survey, Meeting, Maintenance..."
+                  className="h-10 text-xs"
+                />
+                <datalist id="purpose-suggestions">
+                  {purposeSuggestions.map((p, idx) => (
+                    <option key={idx} value={p} />
+                  ))}
+                </datalist>
+
+                {/* Quick Purpose Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[11px] font-medium text-zinc-500">
+                    Saran Cepat:
+                  </span>
+                  {POPULAR_PURPOSES.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({ ...prev, purpose: tag }))
+                      }
+                      className={cn(
+                        "rounded border px-2 py-0.5 text-[11px] transition-colors cursor-pointer",
+                        form.purpose === tag
+                          ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      )}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Host Destination Section */}
+              <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                    Host Destination
+                  </Label>
+                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-zinc-600 select-none dark:text-zinc-400">
+                    <input
+                      type="checkbox"
+                      checked={form.is_custom_host}
+                      onChange={(e) =>
+                        setForm({ ...form, is_custom_host: e.target.checked })
+                      }
+                      className="rounded border-zinc-300"
+                    />
+                    <span>Custom Host Name</span>
+                  </label>
+                </div>
+
+                {!form.is_custom_host ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="staff_id" className="text-xs">Staff Host PIC</Label>
+                    <Popover open={openStaff} onOpenChange={setOpenStaff}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          disabled={loadingMaster}
+                          className={cn(
+                            "w-full justify-between bg-white text-xs font-normal dark:bg-zinc-950",
+                            !form.staff_id && "text-muted-foreground"
+                          )}
+                        >
+                          {loadingMaster
+                            ? "Memuat daftar staf..."
+                            : form.staff_id
+                              ? staffList.find(
+                                  (item) => item.id.toString() === form.staff_id
+                                )?.name
+                              : "Pilih Staf PIC Host..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[320px]">
+                        <Command
+                          filter={(value, search) =>
+                            value.toLowerCase().includes(search.toLowerCase())
+                              ? 1
+                              : 0
+                          }
+                        >
+                          <CommandInput placeholder="Cari nama staf atau departemen..." />
+                          <CommandList>
+                            <CommandEmpty>Staf tidak ditemukan.</CommandEmpty>
+                            <CommandGroup>
+                              {staffList.map((item) => (
+                                <CommandItem
+                                  key={item.id}
+                                  value={`${item.name} ${item.department || ""} ${item.id}`}
+                                  onSelect={() => {
+                                    handleSelectChange(
+                                      "staff_id",
+                                      item.id.toString()
+                                    )
+                                    setOpenStaff(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      form.staff_id === item.id.toString()
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-medium">{item.name}</span>
+                                    <span className="text-[10px] text-zinc-500">
+                                      {item.department || "No Department"}
+                                    </span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="host_name" className="text-xs">Custom Host Name *</Label>
+                    <Input
+                      id="host_name"
+                      name="host_name"
+                      value={form.host_name}
+                      onChange={handleChange}
+                      placeholder="Masukkan nama staf / penanggung jawab..."
+                      required={form.is_custom_host}
+                      className="h-9 text-xs"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Host Destination Section */}
-          <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold">Host Destination</Label>
-              <label className="flex cursor-pointer items-center gap-2 text-xs select-none">
-                <input
-                  type="checkbox"
-                  checked={form.is_custom_host}
-                  onChange={(e) =>
-                    setForm({ ...form, is_custom_host: e.target.checked })
-                  }
-                  className="rounded border-zinc-300"
-                />
-                <span>Specify Custom Host Name</span>
-              </label>
+          {/* ======================================================== */}
+          {/* KOLOM KANAN: SECTION 3 - Kartu Akses & Kendaraan         */}
+          {/* ======================================================== */}
+          <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+                3
+              </span>
+              <CreditCard className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                Kartu Akses & Kendaraan (Pass & Vehicle)
+              </h2>
             </div>
 
-            {!form.is_custom_host ? (
+            <div className="space-y-4">
+              {/* Alokasi Kartu Akses Pengunjung */}
               <div className="space-y-2">
-                <Label htmlFor="staff_id">Staff Host</Label>
-                <Popover open={openStaff} onOpenChange={setOpenStaff}>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="card_ids" className="text-xs font-semibold">
+                    Assign Visitor Cards
+                  </Label>
+                  <Badge variant="outline" className="text-[11px] font-mono">
+                    {loadingMaster
+                      ? "Memuat..."
+                      : `${cardList.length} kartu tersedia`}
+                  </Badge>
+                </div>
+
+                {cardList.length === 0 && !loadingMaster ? (
+                  <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300 flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+                    <span>
+                      Tidak ada kartu pengunjung yang tersedia. Pastikan ada kartu fisik berstatus "available" di sistem.
+                    </span>
+                  </div>
+                ) : (
+                  <Popover open={openCard} onOpenChange={setOpenCard}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        disabled={loadingMaster}
+                        className={cn(
+                          "w-full justify-between text-xs font-normal",
+                          form.card_ids.length === 0 && "text-muted-foreground"
+                        )}
+                      >
+                        {loadingMaster
+                          ? "Memuat daftar kartu..."
+                          : form.card_ids.length > 0
+                            ? form.card_ids
+                                .map(
+                                  (id) =>
+                                    cardList.find((c) => c.id.toString() === id)
+                                      ?.card_no
+                                )
+                                .filter(Boolean)
+                                .join(", ")
+                            : "Pilih Kartu Akses Pengunjung..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[320px]">
+                      <Command
+                        filter={(value, search) =>
+                          value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
+                        }
+                      >
+                        <CommandInput placeholder="Cari nomor kartu..." />
+                        <CommandList>
+                          <CommandEmpty>Kartu tidak ditemukan.</CommandEmpty>
+                          <CommandGroup>
+                            {cardList.map((item) => {
+                              const isSelected = form.card_ids.includes(
+                                item.id.toString()
+                              )
+                              return (
+                                <CommandItem
+                                  key={item.id}
+                                  value={`${item.card_no} ${item.id}`}
+                                  onSelect={() => {
+                                    const newSelection = isSelected
+                                      ? form.card_ids.filter(
+                                          (id) => id !== item.id.toString()
+                                        )
+                                      : [...form.card_ids, item.id.toString()]
+                                    handleSelectChange("card_ids", newSelection)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      isSelected ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <span className="text-xs font-mono">{item.card_no}</span>
+                                </CommandItem>
+                              )
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                )}
+
+                {/* Selected Cards Chips */}
+                {form.card_ids.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[11px] font-medium text-zinc-500">
+                      Terpilih:
+                    </span>
+                    {form.card_ids.map((id) => {
+                      const card = cardList.find((c) => c.id.toString() === id)
+                      return (
+                        <span
+                          key={id}
+                          className="inline-flex items-center gap-1 rounded bg-zinc-100 px-2 py-0.5 text-xs font-mono font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
+                        >
+                          {card ? card.card_no : `Card #${id}`}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleSelectChange(
+                                "card_ids",
+                                form.card_ids.filter((cId) => cId !== id)
+                              )
+                            }
+                            className="ml-0.5 text-zinc-400 hover:text-red-600 cursor-pointer"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Kartu Akses Kendaraan */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="vehicle_card_id" className="text-xs font-semibold">
+                    Vehicle Card (Optional)
+                  </Label>
+                  <span className="text-[11px] text-zinc-500 font-mono">
+                    {loadingMaster
+                      ? ""
+                      : `${vehicleList.length} kartu`}
+                  </span>
+                </div>
+                <Popover open={openVehicle} onOpenChange={setOpenVehicle}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
                       disabled={loadingMaster}
                       className={cn(
-                        "w-full justify-between bg-white font-normal dark:bg-zinc-950",
-                        !form.staff_id && "text-muted-foreground"
+                        "w-full justify-between text-xs font-normal",
+                        !form.vehicle_card_id && "text-muted-foreground"
                       )}
                     >
                       {loadingMaster
-                        ? "Memuat daftar staf..."
-                        : form.staff_id
-                          ? staffList.find(
-                              (item) => item.id.toString() === form.staff_id
-                            )?.name
-                          : "Select Host Staff..."}
+                        ? "Memuat..."
+                        : form.vehicle_card_id
+                          ? vehicleList.find(
+                              (item) =>
+                                item.id.toString() === form.vehicle_card_id
+                            )?.card_no
+                          : "None / Select Vehicle Card..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[350px]">
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[320px]">
                     <Command
                       filter={(value, search) =>
-                        value.toLowerCase().includes(search.toLowerCase())
-                          ? 1
-                          : 0
+                        value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
                       }
                     >
-                      <CommandInput placeholder="Search staff by name or dept..." />
+                      <CommandInput placeholder="Cari nomor kartu kendaraan..." />
                       <CommandList>
-                        <CommandEmpty>No staff found.</CommandEmpty>
+                        <CommandEmpty>Kartu kendaraan tidak ditemukan.</CommandEmpty>
                         <CommandGroup>
-                          {staffList.map((item) => (
+                          <CommandItem
+                            onSelect={() => {
+                              handleSelectChange("vehicle_card_id", "")
+                              setOpenVehicle(false)
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                !form.vehicle_card_id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <span className="text-xs text-zinc-500 italic">Tidak menggunakan kartu</span>
+                          </CommandItem>
+                          {vehicleList.map((item) => (
                             <CommandItem
                               key={item.id}
-                              value={`${item.name} ${item.department || ""} ${item.id}`}
+                              value={`${item.card_no} ${item.id}`}
                               onSelect={() => {
                                 handleSelectChange(
-                                  "staff_id",
+                                  "vehicle_card_id",
                                   item.id.toString()
                                 )
-                                setOpenStaff(false)
+                                setOpenVehicle(false)
                               }}
                             >
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  form.staff_id === item.id.toString()
+                                  form.vehicle_card_id === item.id.toString()
                                     ? "opacity-100"
                                     : "opacity-0"
                                 )}
                               />
-                              <div className="flex flex-col">
-                                <span>{item.name}</span>
-                                <span className="text-xs text-zinc-500">
-                                  {item.department}
-                                </span>
-                              </div>
+                              <span className="text-xs font-mono">{item.card_no}</span>
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -1118,251 +1667,57 @@ export default function CreateVisit() {
                   </PopoverContent>
                 </Popover>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="host_name">Custom Host Name</Label>
+
+              {/* Plat Nomor Kendaraan */}
+              <div className="space-y-1.5">
+                <Label htmlFor="vehicle_no" className="text-xs font-semibold">
+                  Vehicle Plate Number (Optional)
+                </Label>
                 <Input
-                  id="host_name"
-                  name="host_name"
-                  value={form.host_name}
+                  id="vehicle_no"
+                  name="vehicle_no"
+                  className="w-full text-xs"
+                  value={form.vehicle_no}
                   onChange={handleChange}
-                  placeholder="Enter host person or department..."
-                  required={form.is_custom_host}
+                  placeholder="Contoh: BP 1234 XY"
                 />
               </div>
-            )}
+            </div>
           </div>
         </div>
 
-        {/* Step 3: Card Assignment & Vehicle */}
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
-          <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-              3
-            </span>
-            <CreditCard className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              Kartu Akses & Kendaraan (Pass & Vehicle)
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="flex flex-col space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="card_ids">Assign Visitor Cards</Label>
-                <span className="text-xs text-zinc-500">
-                  {loadingMaster
-                    ? "Memuat..."
-                    : `${cardList.length} kartu tersedia`}
-                </span>
-              </div>
-              <Popover open={openCard} onOpenChange={setOpenCard}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    disabled={loadingMaster}
-                    className={cn(
-                      "w-full justify-between font-normal",
-                      form.card_ids.length === 0 && "text-muted-foreground"
-                    )}
-                  >
-                    {loadingMaster
-                      ? "Memuat daftar kartu..."
-                      : form.card_ids.length > 0
-                        ? form.card_ids
-                            .map(
-                              (id) =>
-                                cardList.find((c) => c.id.toString() === id)
-                                  ?.card_no
-                            )
-                            .filter(Boolean)
-                            .join(", ")
-                        : "Select Available Cards..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[350px]">
-                  <Command
-                    filter={(value, search) =>
-                      value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
-                    }
-                  >
-                    <CommandInput placeholder="Search cards..." />
-                    <CommandList>
-                      <CommandEmpty>No available card found.</CommandEmpty>
-                      <CommandGroup>
-                        {cardList.map((item) => {
-                          const isSelected = form.card_ids.includes(
-                            item.id.toString()
-                          )
-                          return (
-                            <CommandItem
-                              key={item.id}
-                              value={`${item.card_no} ${item.id}`}
-                              onSelect={() => {
-                                const newSelection = isSelected
-                                  ? form.card_ids.filter(
-                                      (id) => id !== item.id.toString()
-                                    )
-                                  : [...form.card_ids, item.id.toString()]
-                                handleSelectChange("card_ids", newSelection)
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  isSelected ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {item.card_no}
-                            </CommandItem>
-                          )
-                        })}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-
-              {/* Selected Cards Chips */}
-              {form.card_ids.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-xs font-medium text-zinc-500">
-                    Terpilih:
-                  </span>
-                  {form.card_ids.map((id) => {
-                    const card = cardList.find((c) => c.id.toString() === id)
-                    return (
-                      <span
-                        key={id}
-                        className="inline-flex items-center gap-1 rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
-                      >
-                        {card ? card.card_no : `Card #${id}`}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleSelectChange(
-                              "card_ids",
-                              form.card_ids.filter((cId) => cId !== id)
-                            )
-                          }
-                          className="ml-0.5 text-zinc-400 hover:text-red-600 cursor-pointer"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col space-y-2">
-              <Label htmlFor="vehicle_card_id">Vehicle Card (Optional)</Label>
-              <Popover open={openVehicle} onOpenChange={setOpenVehicle}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    disabled={loadingMaster}
-                    className={cn(
-                      "w-full justify-between font-normal",
-                      !form.vehicle_card_id && "text-muted-foreground"
-                    )}
-                  >
-                    {loadingMaster
-                      ? "Memuat..."
-                      : form.vehicle_card_id
-                        ? vehicleList.find(
-                            (item) =>
-                              item.id.toString() === form.vehicle_card_id
-                          )?.card_no
-                        : "None / Select Vehicle Card..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[350px]">
-                  <Command
-                    filter={(value, search) =>
-                      value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
-                    }
-                  >
-                    <CommandInput placeholder="Search vehicle card..." />
-                    <CommandList>
-                      <CommandEmpty>No vehicle card found.</CommandEmpty>
-                      <CommandGroup>
-                        <CommandItem
-                          onSelect={() => {
-                            handleSelectChange("vehicle_card_id", "")
-                            setOpenVehicle(false)
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              !form.vehicle_card_id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          <span className="text-zinc-500 italic">None</span>
-                        </CommandItem>
-                        {vehicleList.map((item) => (
-                          <CommandItem
-                            key={item.id}
-                            value={`${item.card_no} ${item.id}`}
-                            onSelect={() => {
-                              handleSelectChange(
-                                "vehicle_card_id",
-                                item.id.toString()
-                              )
-                              setOpenVehicle(false)
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                form.vehicle_card_id === item.id.toString()
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            {item.card_no}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="vehicle_no">Vehicle Plate Number (Optional)</Label>
-            <Input
-              id="vehicle_no"
-              name="vehicle_no"
-              className="w-full"
-              value={form.vehicle_no}
-              onChange={handleChange}
-              placeholder="e.g. BP 1234 XY"
-            />
-          </div>
-        </div>
-
-        <div className="pt-2">
-          <Button
-            type="submit"
-            disabled={loading || visitorStatus === "blacklisted"}
-            className="w-full cursor-pointer md:w-auto h-11 px-6 font-semibold"
-          >
-            {loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        {/* Sticky Bottom Bar with Save & Print Ticket */}
+        <div className="sticky bottom-0 z-20 -mx-4 -mb-4 bg-white/95 backdrop-blur border-t border-zinc-200 p-4 shadow-lg sm:mx-0 sm:mb-0 sm:rounded-lg dark:bg-zinc-950/95 dark:border-zinc-800 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <div className="text-xs text-zinc-500 hidden sm:block">
+            {visitorStatus === "blacklisted" ? (
+              <span className="text-red-600 font-medium">
+                Pendaftaran diblokir karena pengunjung berada dalam daftar blacklist.
+              </span>
             ) : (
-              <Printer className="mr-2 h-4 w-4" />
+              <span>
+                Pastikan data Section 1, 2, dan 3 telah lengkap sebelum mencetak tiket.
+              </span>
             )}
-            {loading ? "Processing..." : "Save & Print Ticket"}
-          </Button>
+          </div>
+          <div className="w-full sm:w-auto">
+            <Button
+              type="submit"
+              disabled={loading || visitorStatus === "blacklisted"}
+              className="w-full sm:w-auto h-11 px-8 font-semibold cursor-pointer text-sm"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Memproses & Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Printer className="mr-2 h-4 w-4" />
+                  Save & Print Ticket
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </form>
 
@@ -1405,7 +1760,7 @@ export default function CreateVisit() {
         </DialogContent>
       </Dialog>
 
-      {/* Supervisor override of a global entry (decision SEC-7): one visit, reason required, audited */}
+      {/* Supervisor override of a global entry (decision SEC-7) */}
       <Dialog
         open={overrideEntry !== null}
         onOpenChange={(open) => !open && setOverrideEntry(null)}

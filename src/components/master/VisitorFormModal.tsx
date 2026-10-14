@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { AlertCircle, Loader2 } from "lucide-react"
 
 interface VisitorFormModalProps {
@@ -27,6 +28,7 @@ export default function VisitorFormModal({
   onSuccess,
 }: VisitorFormModalProps) {
   const [loading, setLoading] = useState(false)
+  const [fetchingDetail, setFetchingDetail] = useState(false)
   const isBlacklisted = Boolean(visitor?.is_blacklisted)
 
   const [form, setForm] = useState({
@@ -37,9 +39,9 @@ export default function VisitorFormModal({
     email: "",
     company: "",
     occupation: "",
-    visitor_type: "regular",
-    pob: "",
-    dob: "",
+    visitor_type: "visitor",
+    birth_place: "",
+    birth_date: "",
     gender: "",
     nationality: "Indonesia",
     address: "",
@@ -48,56 +50,123 @@ export default function VisitorFormModal({
   })
 
   useEffect(() => {
-    if (open) {
-      if (visitor) {
-        setForm({
-          name: visitor.name || "",
-          id_type: visitor.id_type || "ktp",
-          id_number: visitor.id_number || "",
-          phone: visitor.phone || "",
-          email: visitor.email || "",
-          company: visitor.company || "",
-          occupation: visitor.occupation || "",
-          visitor_type: visitor.visitor_type || "regular",
-          pob: visitor.pob || "",
-          dob: visitor.dob || "",
-          gender: visitor.gender || "",
-          nationality: visitor.nationality || "Indonesia",
-          address: visitor.address || "",
-          certificate_no: visitor.certificate_no || "",
-          seaman_book_no: visitor.seaman_book_no || "",
-        })
-      } else {
-        setForm({
-          name: "",
-          id_type: "ktp",
-          id_number: "",
-          phone: "",
-          email: "",
-          company: "",
-          occupation: "",
-          visitor_type: "regular",
-          pob: "",
-          dob: "",
-          gender: "",
-          nationality: "Indonesia",
-          address: "",
-          certificate_no: "",
-          seaman_book_no: "",
-        })
+    if (!open) {
+      return
+    }
+
+    if (visitor) {
+      // Set initial values from prop first
+      setForm({
+        name: visitor.name || "",
+        id_type: visitor.id_type || "ktp",
+        id_number: visitor.id_number || "",
+        phone: visitor.phone || "",
+        email: visitor.email || "",
+        company: visitor.company || "",
+        occupation: visitor.occupation || "",
+        visitor_type: visitor.visitor_type === "regular" ? "visitor" : visitor.visitor_type || "visitor",
+        birth_place: visitor.birth_place || visitor.pob || "",
+        birth_date: visitor.birth_date || visitor.dob || "",
+        gender: visitor.gender || "",
+        nationality: visitor.nationality || "Indonesia",
+        address: visitor.address || "",
+        certificate_no: visitor.certificate_no || "",
+        seaman_book_no: visitor.seaman_book_no || "",
+      })
+
+      // If we have visitor ID and api.get is available, fetch full profile to ensure all details are loaded
+      if (visitor.id && typeof api.get === "function") {
+        try {
+          const req = api.get(`/visitors/${visitor.id}`)
+          if (req && typeof req.then === "function") {
+            setFetchingDetail(true)
+            req
+              .then((res: any) => {
+                const data = res?.data?.visitor || res?.data?.data || res?.data
+                if (data) {
+                  setForm((prev) => ({
+                    ...prev,
+                    name: data.name ?? prev.name,
+                    id_type: data.id_type ?? prev.id_type,
+                    id_number: data.id_number ?? prev.id_number,
+                    phone: data.phone ?? prev.phone,
+                    email: data.email ?? prev.email,
+                    company: data.company ?? prev.company,
+                    occupation: data.occupation ?? prev.occupation,
+                    visitor_type: data.visitor_type === "regular" ? "visitor" : (data.visitor_type || prev.visitor_type),
+                    birth_place: data.birth_place || data.pob || prev.birth_place,
+                    birth_date: data.birth_date || data.dob || prev.birth_date,
+                    gender: data.gender ?? prev.gender,
+                    nationality: data.nationality ?? prev.nationality,
+                    address: data.address ?? prev.address,
+                    certificate_no: data.certificate_no ?? prev.certificate_no,
+                    seaman_book_no: data.seaman_book_no ?? prev.seaman_book_no,
+                  }))
+                }
+              })
+              .catch((err: any) => {
+                console.error("Gagal mengambil detail profil untuk edit", err)
+              })
+              .finally(() => {
+                setFetchingDetail(false)
+              })
+          }
+        } catch (e) {
+          // Ignore if api.get not mocked in tests
+        }
       }
+    } else {
+      setForm({
+        name: "",
+        id_type: "ktp",
+        id_number: "",
+        phone: "",
+        email: "",
+        company: "",
+        occupation: "",
+        visitor_type: "visitor",
+        birth_place: "",
+        birth_date: "",
+        gender: "",
+        nationality: "Indonesia",
+        address: "",
+        certificate_no: "",
+        seaman_book_no: "",
+      })
     }
   }, [open, visitor])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+
+    const payload: Record<string, any> = {
+      name: form.name.trim(),
+      id_type: form.id_type,
+      id_number: form.id_number.trim(),
+      company: form.company.trim() || null,
+      occupation: form.occupation.trim() || null,
+      phone: form.phone.trim() || null,
+      email: form.email.trim() || null,
+      address: form.address.trim() || null,
+      visitor_type: form.visitor_type === "regular" ? "visitor" : form.visitor_type,
+      gender: form.gender || null,
+      birth_place: form.birth_place.trim() || null,
+      birth_date: form.birth_date || null,
+      nationality: form.nationality.trim() || "Indonesia",
+    }
+
+    if (form.visitor_type === "crew") {
+      payload.certificate_no = form.certificate_no.trim() || null
+      payload.seaman_book_no = form.seaman_book_no.trim() || null
+    }
+
     try {
       if (visitor?.id) {
-        await api.put(`/visitors/${visitor.id}`, form)
+        await api.put(`/visitors/${visitor.id}`, payload)
         toast.success("Data pengunjung berhasil diperbarui")
       } else {
-        await api.post("/visitors", form)
+        await api.post("/visitors", payload)
         toast.success("Pengunjung baru berhasil didaftarkan")
       }
       onSuccess()
@@ -128,6 +197,13 @@ export default function VisitorFormModal({
             <span>
               Nomor identitas pengunjung blacklist dikunci demi integritas keamanan.
             </span>
+          </div>
+        )}
+
+        {fetchingDetail && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <span>Memuat rincian data lengkap pengunjung...</span>
           </div>
         )}
 
@@ -204,10 +280,11 @@ export default function VisitorFormModal({
                 onChange={(e) => setForm({ ...form, visitor_type: e.target.value })}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <option value="regular">Regular</option>
-                <option value="contractor">Contractor</option>
+                <option value="visitor">Pengunjung Umum (Regular)</option>
                 <option value="crew">Crew (Kru Kapal)</option>
-                <option value="vip">VIP</option>
+                <option value="temporary_worker">Tenaga Kerja Sementara / Kontraktor</option>
+                <option value="supplier">Supplier / Vendor</option>
+                <option value="others">Lainnya</option>
               </select>
             </div>
 
@@ -222,25 +299,16 @@ export default function VisitorFormModal({
             </div>
           </div>
 
-          {/* Section: Data Diri Tambahan */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {/* Section: Kontak & Biodata Tambahan */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="vfm_pob">Tempat Lahir</Label>
+              <Label htmlFor="vfm_email">Email</Label>
               <Input
-                id="vfm_pob"
-                value={form.pob}
-                onChange={(e) => setForm({ ...form, pob: e.target.value })}
-                placeholder="Kota kelahiran"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="vfm_dob">Tanggal Lahir</Label>
-              <Input
-                id="vfm_dob"
-                type="date"
-                value={form.dob}
-                onChange={(e) => setForm({ ...form, dob: e.target.value })}
+                id="vfm_email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="nama@email.com"
               />
             </div>
 
@@ -252,22 +320,31 @@ export default function VisitorFormModal({
                 onChange={(e) => setForm({ ...form, gender: e.target.value })}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <option value="">Pilih Gender</option>
+                <option value="">Pilih Jenis Kelamin</option>
                 <option value="M">Laki-laki (M)</option>
                 <option value="F">Perempuan (F)</option>
               </select>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="vfm_email">Email</Label>
+              <Label htmlFor="vfm_pob">Tempat Lahir</Label>
               <Input
-                id="vfm_email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="email@example.com"
+                id="vfm_pob"
+                value={form.birth_place}
+                onChange={(e) => setForm({ ...form, birth_place: e.target.value })}
+                placeholder="Kota Kelahiran"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="vfm_dob">Tanggal Lahir</Label>
+              <Input
+                id="vfm_dob"
+                type="date"
+                value={form.birth_date}
+                onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
               />
             </div>
 
@@ -284,53 +361,50 @@ export default function VisitorFormModal({
 
           <div className="space-y-2">
             <Label htmlFor="vfm_address">Alamat Domisili</Label>
-            <Input
+            <Textarea
               id="vfm_address"
               value={form.address}
               onChange={(e) => setForm({ ...form, address: e.target.value })}
-              placeholder="Alamat tempat tinggal saat ini"
+              placeholder="Alamat tempat tinggal lengkap..."
+              rows={2}
             />
           </div>
 
-          {/* Section: Dokumen Kru Kapal (Tampil jika visitor_type === 'crew') */}
+          {/* Section: Dokumen Crew Khusus */}
           {form.visitor_type === "crew" && (
-            <div className="rounded-lg border border-blue-500/20 bg-blue-50/20 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
-              <h4 className="mb-3 font-semibold text-blue-900 text-sm dark:text-blue-300">
-                Informasi Dokumen Pelaut & Kru Kapal
+            <div className="rounded-lg border border-sky-200 bg-sky-50/40 p-4 space-y-4 dark:border-sky-900/50 dark:bg-sky-950/20">
+              <h4 className="font-semibold text-sky-950 text-sm dark:text-sky-300">
+                Dokumen Kelautan Kru Kapal
               </h4>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="vfm_certificate_no">Nomor Sertifikat Maritim</Label>
+                  <Label htmlFor="vfm_cert">Nomor Sertifikat</Label>
                   <Input
-                    id="vfm_certificate_no"
+                    id="vfm_cert"
                     value={form.certificate_no}
-                    onChange={(e) =>
-                      setForm({ ...form, certificate_no: e.target.value })
-                    }
-                    placeholder="Contoh: CERT-MAR-00123"
+                    onChange={(e) => setForm({ ...form, certificate_no: e.target.value })}
+                    placeholder="Contoh: CERT-MAR-1234"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="vfm_seaman_book_no">Buku Pelaut (Seaman Book)</Label>
+                  <Label htmlFor="vfm_seaman">Buku Pelaut (Seaman Book)</Label>
                   <Input
-                    id="vfm_seaman_book_no"
+                    id="vfm_seaman"
                     value={form.seaman_book_no}
-                    onChange={(e) =>
-                      setForm({ ...form, seaman_book_no: e.target.value })
-                    }
-                    placeholder="Contoh: SB-IDN-99881"
+                    onChange={(e) => setForm({ ...form, seaman_book_no: e.target.value })}
+                    placeholder="Nomor Buku Pelaut"
                   />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="mt-6 flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              disabled={loading}
             >
               Batal
             </Button>
@@ -341,7 +415,7 @@ export default function VisitorFormModal({
                   Menyimpan...
                 </>
               ) : visitor?.id ? (
-                "Simpan Perubahan"
+                "Perbarui Pengunjung"
               ) : (
                 "Daftar Pengunjung"
               )}

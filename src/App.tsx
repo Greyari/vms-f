@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { AuthProvider } from "./context/AuthContext"
 import { ThemeProvider } from "./context/ThemeContext"
+import { I18nProvider } from "./context/I18nContext"
 import { ProtectedRoute } from "./components/ProtectedRoute"
 import AppLayout from "./layouts/AppLayout"
 import { permissionFor, type GuardedPath } from "./lib/routePermissions"
@@ -45,8 +46,9 @@ function guarded(path: GuardedPath, element: ReactNode) {
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <Router>
+      <I18nProvider>
+        <AuthProvider>
+          <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
 
@@ -105,6 +107,7 @@ function App() {
         </Routes>
       </Router>
     </AuthProvider>
+    </I18nProvider>
     </ThemeProvider>
   )
 }

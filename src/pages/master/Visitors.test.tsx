@@ -128,4 +128,23 @@ describe('Visitors Master Page', () => {
       expect(screen.getByRole('heading', { name: /pendaftaran pengunjung baru/i })).toBeInTheDocument()
     })
   })
+
+  it('opens VisitorFormModal in edit mode when Edit button is clicked', async () => {
+    render(
+      <BrowserRouter>
+        <Visitors />
+      </BrowserRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('John Doe')).toBeInTheDocument()
+    })
+
+    const editButtons = screen.getAllByRole('button', { name: /edit/i })
+    fireEvent.click(editButtons[0])
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /edit data pengunjung/i })).toBeInTheDocument()
+    })
+  })
 })
