@@ -30,9 +30,12 @@ import {
   ArrowRight,
 } from "lucide-react"
 
+import type { MasterEntityConfig } from "@/config/masterEntities"
+
 export interface ImportColumnDef {
   key: string
   label: string
+  required?: boolean
   render?: (row: Record<string, unknown>) => React.ReactNode
 }
 
@@ -62,16 +65,17 @@ export interface FailedItem {
   reason: string
 }
 
-interface MasterImportDialogProps {
+export interface MasterImportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  title: string
+  title?: string
   description?: string
-  templateEndpoint: string
-  templateFileName: string
-  previewEndpoint: string
-  importEndpoint: string
-  columns: ImportColumnDef[]
+  templateEndpoint?: string
+  templateFileName?: string
+  previewEndpoint?: string
+  importEndpoint?: string
+  columns?: ImportColumnDef[]
+  entityConfig?: MasterEntityConfig
   onSuccess: () => void
 }
 
@@ -87,8 +91,17 @@ export default function MasterImportDialog({
   previewEndpoint,
   importEndpoint,
   columns,
+  entityConfig,
   onSuccess,
 }: MasterImportDialogProps) {
+  const effectiveTitle = title || (entityConfig ? `Import ${entityConfig.titleId}` : "Import Data")
+  const effectiveDescription = description || entityConfig?.descriptionId
+  const effectiveTemplateEndpoint = templateEndpoint || entityConfig?.templateEndpoint || ""
+  const effectiveTemplateFileName = templateFileName || entityConfig?.templateFileName || "template.xlsx"
+  const effectivePreviewEndpoint = previewEndpoint || entityConfig?.previewEndpoint || ""
+  const effectiveImportEndpoint = importEndpoint || entityConfig?.importEndpoint || ""
+  const effectiveColumns = columns || entityConfig?.importColumns || []
+
   const [step, setStep] = useState<Step>("select")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
@@ -144,13 +157,13 @@ export default function MasterImportDialog({
   const handleDownloadTemplate = async () => {
     setDownloadingTemplate(true)
     try {
-      const response = await api.get(templateEndpoint, {
+      const response = await api.get(effectiveTemplateEndpoint, {
         responseType: "blob",
       })
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement("a")
       link.href = url
-      link.setAttribute("download", templateFileName)
+      link.setAttribute("download", effectiveTemplateFileName)
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -181,7 +194,7 @@ export default function MasterImportDialog({
     formData.append("file", selectedFile)
 
     try {
-      const res = await api.post(previewEndpoint, formData, {
+      const res = await api.post(effectivePreviewEndpoint, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
       setPreviewData(res.data)
@@ -208,7 +221,7 @@ export default function MasterImportDialog({
     formData.append("duplicate_action", duplicateAction)
 
     try {
-      const res = await api.post(importEndpoint, formData, {
+      const res = await api.post(effectiveImportEndpoint, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
       setSummaryData(res.data)
@@ -238,10 +251,10 @@ export default function MasterImportDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            {title}
+            {effectiveTitle}
           </DialogTitle>
           <DialogDescription>
-            {description || "Unggah data secara massal menggunakan file Excel (.xlsx / .xls / .csv)."}
+            {effectiveDescription || "Unggah data secara massal menggunakan file Excel (.xlsx / .xls / .csv)."}
           </DialogDescription>
         </DialogHeader>
 
@@ -484,7 +497,7 @@ export default function MasterImportDialog({
                     <TableRow>
                       <TableHead className="w-12 text-center">Baris</TableHead>
                       <TableHead className="w-24">Status</TableHead>
-                      {columns.map((col) => (
+                      {effectiveColumns.map((col) => (
                         <TableHead key={col.key}>{col.label}</TableHead>
                       ))}
                     </TableRow>
@@ -492,7 +505,7 @@ export default function MasterImportDialog({
                   <TableBody>
                     {displayedPreviewRows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={columns.length + 2} className="h-20 text-center text-zinc-500">
+                        <TableCell colSpan={effectiveColumns.length + 2} className="h-20 text-center text-zinc-500">
                           Tidak ada data yang ditampilkan.
                         </TableCell>
                       </TableRow>
@@ -528,7 +541,7 @@ export default function MasterImportDialog({
                               </Badge>
                             )}
                           </TableCell>
-                          {columns.map((col) => (
+                          {effectiveColumns.map((col) => (
                             <TableCell key={col.key} className="max-w-[200px] truncate">
                               {col.render ? col.render(row) : String(row[col.key] ?? "-")}
                             </TableCell>

@@ -43,8 +43,11 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCw,
+  Download,
 } from "lucide-react"
 import MasterImportDialog from "@/components/master/MasterImportDialog"
+import MasterExportModal from "@/components/master/MasterExportModal"
+import { MASTER_ENTITIES } from "@/config/masterEntities"
 
 export interface LocationItem {
   id: string
@@ -88,6 +91,7 @@ export default function Locations() {
   const [deleteTarget, setDeleteTarget] = useState<LocationItem | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
 
   const fetchLocations = useCallback(async () => {
     setLoading(true)
@@ -242,6 +246,15 @@ export default function Locations() {
           >
             <Upload className="h-4 w-4 mr-1.5" />
             Import Excel
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => setExportOpen(true)}
+            className="cursor-pointer"
+          >
+            <Download className="h-4 w-4 mr-1.5" />
+            Export Excel
           </Button>
 
           <Button onClick={openCreateModal} className="cursor-pointer">
@@ -665,6 +678,17 @@ export default function Locations() {
           { key: "port", label: "Pelabuhan Asal" },
         ]}
         onSuccess={fetchLocations}
+      />
+
+      {/* Master Export Modal with Columns, Presets, Scope & Live Count */}
+      <MasterExportModal
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        entityConfig={MASTER_ENTITIES.locations}
+        currentFilters={{
+          search,
+          type: typeFilter,
+        }}
       />
     </div>
   )

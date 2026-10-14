@@ -25,6 +25,9 @@ describe("BlacklistedVisitors Master Page", () => {
     vi.clearAllMocks()
     window.URL.createObjectURL = vi.fn().mockReturnValue("blob:mock-url")
     vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url.includes("/export-count") || url.includes("/export/count")) {
+        return Promise.resolve({ data: { count: 1 } })
+      }
       if (url.includes("/export")) {
         return Promise.resolve({ data: new Blob(["excel data"]) })
       }
@@ -164,6 +167,11 @@ describe("BlacklistedVisitors Master Page", () => {
 
     const exportBtn = screen.getByRole("button", { name: /export excel/i })
     fireEvent.click(exportBtn)
+
+    const downloadBtn = await screen.findByRole("button", {
+      name: /unduh file ekspor|download export/i,
+    })
+    fireEvent.click(downloadBtn)
 
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith(

@@ -16,7 +16,6 @@ import {
   Plus,
   Eye,
   Edit,
-  FileDown,
 } from "lucide-react"
 
 import {
@@ -52,6 +51,9 @@ import {
 
 import VisitorDetailModal from "@/components/master/VisitorDetailModal"
 import VisitorFormModal from "@/components/master/VisitorFormModal"
+import MasterImportDialog from "@/components/master/MasterImportDialog"
+import MasterExportModal from "@/components/master/MasterExportModal"
+import { MASTER_ENTITIES } from "@/config/masterEntities"
 
 export interface Visitor {
   id: number | string
@@ -81,7 +83,6 @@ export default function Visitors() {
   const navigate = useNavigate()
   const [visitors, setVisitors] = useState<Visitor[]>([])
   const [loading, setLoading] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
 
   // Filters & Pagination
   const [search, setSearch] = useState("")
@@ -113,11 +114,9 @@ export default function Visitors() {
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
   const [selectedDeleteId, setSelectedDeleteId] = useState<number | string | null>(null)
 
-  // Import Excel State
+  // Import / Export State
   const [importModalOpen, setImportModalOpen] = useState(false)
-  const [importFile, setImportFile] = useState<File | null>(null)
-  const [importing, setImporting] = useState(false)
-  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false)
+  const [exportModalOpen, setExportModalOpen] = useState(false)
 
   const fetchVisitors = useCallback(async () => {
     setLoading(true)
@@ -236,75 +235,6 @@ export default function Visitors() {
     }
   }
 
-  const handleExportExcel = async () => {
-    setIsExporting(true)
-    try {
-      const params: Record<string, any> = {}
-      if (search) params.search = search
-      if (visitorTypeFilter) params.visitor_type = visitorTypeFilter
-      if (blacklistFilter !== "") params.is_blacklisted = blacklistFilter
-
-      const res = await api.get("/visitors/export", {
-        params,
-        responseType: "blob",
-      })
-      const url = window.URL.createObjectURL(new Blob([res.data]))
-      const link = document.createElement("a")
-      link.href = url
-      link.setAttribute("download", `visitors_export_${new Date().toISOString().slice(0, 10)}.xlsx`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      toast.success("File pengunjung berhasil diekspor")
-    } catch (error) {
-      console.error(error)
-      toast.error("Gagal mengekspor data pengunjung")
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  const handleDownloadTemplate = async () => {
-    setIsDownloadingTemplate(true)
-    try {
-      const res = await api.get("/visitors/template", { responseType: "blob" })
-      const url = window.URL.createObjectURL(new Blob([res.data]))
-      const link = document.createElement("a")
-      link.href = url
-      link.setAttribute("download", "visitor_template.xlsx")
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-    } catch (error) {
-      console.error(error)
-      toast.error("Gagal mengunduh template")
-    } finally {
-      setIsDownloadingTemplate(false)
-    }
-  }
-
-  const handleImport = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!importFile) return
-    setImporting(true)
-    const formData = new FormData()
-    formData.append("file", importFile)
-    try {
-      const res = await api.post("/visitors/import", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
-      toast.success(res.data?.message || "Import data pengunjung berhasil")
-      setImportModalOpen(false)
-      setImportFile(null)
-      fetchVisitors()
-    } catch (error: any) {
-      console.error(error)
-      toast.error(error.response?.data?.message || "Gagal mengimpor file")
-    } finally {
-      setImporting(false)
-    }
-  }
-
   const getVisitorTypeBadge = (type?: string) => {
     switch (type) {
       case "contractor":
@@ -332,20 +262,14 @@ export default function Visitors() {
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
-            onClick={handleExportExcel}
-            disabled={isExporting}
+            onClick={() => setExportModalOpen(true)}
           >
-            {isExporting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
+            <Download className="mr-2 h-4 w-4" />
             Export Excel
           </Button>
           <Button
             variant="outline"
             onClick={() => setImportModalOpen(true)}
-            disabled={importing}
           >
             <Upload className="mr-2 h-4 w-4" />
             Import Excel
@@ -679,66 +603,25 @@ export default function Visitors() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Modal Import Excel */}
-      <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Import Data Pengunjung</DialogTitle>
-            <DialogDescription>
-              Unggah file spreadsheet Excel untuk memperbarui atau memasukkan pengunjung sekaligus.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="text-sm">
-                <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                  Unduh Template Excel
-                </p>
-                <p className="text-zinc-500">
-                  Gunakan template format resmi untuk kolom visitor.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadTemplate}
-                disabled={isDownloadingTemplate}
-              >
-                {isDownloadingTemplate ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <FileDown className="mr-2 h-4 w-4" />
-                )}
-                {isDownloadingTemplate ? "Mengunduh..." : "Download"}
-              </Button>
-            </div>
-            <form onSubmit={handleImport} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="import_file">Pilih File Excel</Label>
-                <Input
-                  id="import_file"
-                  type="file"
-                  accept=".xlsx, .xls, .csv"
-                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                  required
-                />
-              </div>
-              <div className="mt-4 flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setImportModalOpen(false)}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" disabled={!importFile || importing}>
-                  {importing ? "Mengimpor..." : "Upload & Import"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Master Import Dialog with Preview & Duplicate Confirmation */}
+      <MasterImportDialog
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        entityConfig={MASTER_ENTITIES.visitors}
+        onSuccess={fetchVisitors}
+      />
+
+      {/* Master Export Modal with Columns, Presets, Scope & Live Count */}
+      <MasterExportModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        entityConfig={MASTER_ENTITIES.visitors}
+        currentFilters={{
+          search,
+          visitor_type: visitorTypeFilter,
+          is_blacklisted: blacklistFilter,
+        }}
+      />
     </div>
   )
 }

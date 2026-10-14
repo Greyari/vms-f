@@ -45,6 +45,8 @@ import {
   ChevronRight,
 } from "lucide-react"
 import MasterImportDialog from "@/components/master/MasterImportDialog"
+import MasterExportModal from "@/components/master/MasterExportModal"
+import { MASTER_ENTITIES } from "@/config/masterEntities"
 
 export interface CardItem {
   id: number | string
@@ -78,8 +80,8 @@ export default function Cards() {
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState<CardItem | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [exporting, setExporting] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
 
   const fetchCards = useCallback(async () => {
     setLoading(true)
@@ -182,28 +184,7 @@ export default function Cards() {
     }
   }
 
-  const handleExport = async () => {
-    setExporting(true)
-    try {
-      const res = await api.get("/cards/export", {
-        params: { card_type: "visitor" },
-        responseType: "blob",
-      })
-      const url = window.URL.createObjectURL(new Blob([res.data]))
-      const link = document.createElement("a")
-      link.href = url
-      link.setAttribute("download", `cards-visitor-${new Date().toISOString().slice(0, 10)}.xlsx`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      toast.success("Ekspor data kartu visitor berhasil diunduh.")
-    } catch (error) {
-      console.error("Ekspor kartu gagal", error)
-      toast.error("Gagal mengekspor data kartu.")
-    } finally {
-      setExporting(false)
-    }
-  }
+
 
   const getStatusBadge = (status: CardItem["status"]) => {
     switch (status) {
@@ -254,15 +235,10 @@ export default function Cards() {
 
           <Button
             variant="outline"
-            onClick={handleExport}
-            disabled={exporting}
+            onClick={() => setExportOpen(true)}
             className="cursor-pointer"
           >
-            {exporting ? (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-            ) : (
-              <FileDown className="h-4 w-4 mr-1.5" />
-            )}
+            <FileDown className="h-4 w-4 mr-1.5" />
             Export Excel
           </Button>
 
@@ -575,6 +551,19 @@ export default function Cards() {
           { key: "note", label: "Catatan" },
         ]}
         onSuccess={fetchCards}
+      />
+
+      {/* Master Export Modal with Columns, Presets, Scope & Live Count */}
+      <MasterExportModal
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        entityConfig={MASTER_ENTITIES.cards}
+        currentFilters={{
+          search,
+          status: statusFilter && statusFilter !== "all" ? statusFilter : undefined,
+          card_no_from: cardNoFrom,
+          card_no_to: cardNoTo,
+        }}
       />
     </div>
   )

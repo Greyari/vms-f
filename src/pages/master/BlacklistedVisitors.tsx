@@ -26,6 +26,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GlobalBlacklistPanel from "./GlobalBlacklistPanel"
 import MasterImportDialog from "@/components/master/MasterImportDialog"
+import MasterExportModal from "@/components/master/MasterExportModal"
+import { MASTER_ENTITIES } from "@/config/masterEntities"
 import { REASON_CATEGORIES, type ReasonCategory } from "@/types/hybrid"
 import {
   AlertDialog,
@@ -116,7 +118,7 @@ export default function BlacklistedVisitors() {
 
   // Import / Export State
   const [importModalOpen, setImportModalOpen] = useState(false)
-  const [exportLoading, setExportLoading] = useState(false)
+  const [exportModalOpen, setExportModalOpen] = useState(false)
 
   // "Naikkan ke global" (hybrid decisions PE-5, FE-4b): a fixed category travels, the note stays here.
   const [promoteTarget, setPromoteTarget] = useState<BlacklistedVisitor | null>(
@@ -296,30 +298,7 @@ export default function BlacklistedVisitors() {
     }
   }
 
-  const handleExport = async () => {
-    setExportLoading(true)
-    try {
-      const res = await api.get("/visitors/blacklisted/export", {
-        responseType: "blob",
-      })
-      const url = window.URL.createObjectURL(new Blob([res.data]))
-      const link = document.createElement("a")
-      link.href = url
-      link.setAttribute(
-        "download",
-        `blacklisted_visitors_${new Date().toISOString().slice(0, 10)}.xlsx`
-      )
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      toast.success("File blacklist berhasil diekspor")
-    } catch (error) {
-      console.error(error)
-      toast.error("Gagal mengekspor data blacklist.")
-    } finally {
-      setExportLoading(false)
-    }
-  }
+
 
   return (
     <div className="p-6">
@@ -346,14 +325,9 @@ export default function BlacklistedVisitors() {
           </Button>
           <Button
             variant="outline"
-            onClick={handleExport}
-            disabled={exportLoading}
+            onClick={() => setExportModalOpen(true)}
           >
-            {exportLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <FileDown className="mr-2 h-4 w-4" />
-            )}
+            <FileDown className="mr-2 h-4 w-4" />
             Export Excel
           </Button>
           <Button variant="destructive" onClick={openCreateModal}>
@@ -816,6 +790,16 @@ export default function BlacklistedVisitors() {
           { key: "company_name", label: "COMPANY NAME" },
         ]}
         onSuccess={fetchBlacklisted}
+      />
+
+      {/* Master Export Modal with Columns, Presets, Scope & Live Count */}
+      <MasterExportModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        entityConfig={MASTER_ENTITIES.blacklist}
+        currentFilters={{
+          search,
+        }}
       />
     </div>
   )

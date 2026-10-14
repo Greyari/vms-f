@@ -40,6 +40,8 @@ import {
   Download,
 } from "lucide-react"
 import MasterImportDialog from "@/components/master/MasterImportDialog"
+import MasterExportModal from "@/components/master/MasterExportModal"
+import { MASTER_ENTITIES } from "@/config/masterEntities"
 
 interface Staff {
   id: string
@@ -62,7 +64,7 @@ export default function Staffs() {
   const [modalOpen, setModalOpen] = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [trashedModalOpen, setTrashedModalOpen] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
+  const [exportModalOpen, setExportModalOpen] = useState(false)
 
   // Filters & Pagination
   const [search, setSearch] = useState("")
@@ -228,32 +230,7 @@ export default function Staffs() {
     }
   }
 
-  const handleExportExcel = async () => {
-    setIsExporting(true)
-    try {
-      const params: Record<string, any> = {}
-      if (search) params.search = search
-      if (companyFilter) params.company = companyFilter
-      if (statusFilter !== "") params.is_active = statusFilter
 
-      const res = await api.get("/staffs/export", {
-        params,
-        responseType: "blob",
-      })
-      const url = window.URL.createObjectURL(new Blob([res.data]))
-      const link = document.createElement("a")
-      link.href = url
-      link.setAttribute("download", `staffs_export_${new Date().toISOString().slice(0, 10)}.xlsx`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-    } catch (error) {
-      console.error(error)
-      showError("Gagal mengekspor data staf.")
-    } finally {
-      setIsExporting(false)
-    }
-  }
 
   return (
     <div className="p-6">
@@ -268,14 +245,9 @@ export default function Staffs() {
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
-            onClick={handleExportExcel}
-            disabled={isExporting}
+            onClick={() => setExportModalOpen(true)}
           >
-            {isExporting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
+            <Download className="mr-2 h-4 w-4" />
             Export Excel
           </Button>
           <Button
@@ -598,6 +570,18 @@ export default function Staffs() {
           { key: "gender", label: "Gender" },
         ]}
         onSuccess={fetchStaffs}
+      />
+
+      {/* Master Export Modal with Columns, Presets, Scope & Live Count */}
+      <MasterExportModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        entityConfig={MASTER_ENTITIES.staffs}
+        currentFilters={{
+          search,
+          company: companyFilter,
+          status: statusFilter,
+        }}
       />
 
       {/* Alert Dialog Konfirmasi Hapus */}
