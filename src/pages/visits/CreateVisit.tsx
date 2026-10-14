@@ -39,6 +39,10 @@ import {
   UserPlus,
   ScanLine,
   Globe,
+  Building2,
+  CreditCard,
+  User,
+  Printer,
 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
@@ -69,10 +73,28 @@ interface PurposeItem {
   [key: string]: unknown
 }
 
+// Module-level cache to make revisiting Add Visit instant across the session
+let cachedMasterData: {
+  locations: LocationItem[]
+  staffList: StaffItem[]
+  purposeSuggestions: string[]
+  cachedAt: number
+} | null = null
+
+const POPULAR_PURPOSES = [
+  "Meeting",
+  "Survey",
+  "Delivery",
+  "Maintenance",
+  "Inspection",
+  "Audit",
+]
+
 export default function CreateVisit() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [checkingKtp, setCheckingKtp] = useState(false)
+  const [loadingMaster, setLoadingMaster] = useState(true)
 
   const idInputRef = useRef<HTMLInputElement>(null)
 
@@ -149,21 +171,98 @@ export default function CreateVisit() {
   })
 
   useEffect(() => {
-    const fetchMasterData = async () => {
-      try {
-        const [locRes, staffRes, cardRes, vehicleRes, purposeRes] =
-          await Promise.all([
-            api.get("/locations").catch(() => ({ data: [] })),
-            api.get("/staffs").catch(() => ({ data: [] })),
-            api.get("/cards").catch(() => ({ data: [] })),
-            api.get("/vehicle-cards").catch(() => ({ data: [] })),
-            api.get("/lookups/purposes").catch(() => ({ data: [] })),
-          ])
+    let isMounted = true
 
-        // Parse locations
-        const locData = Array.isArray(locRes.data)
-          ? locRes.data
-          : locRes.data?.data || []
+    const fetchMasterData = async () => {
+      // 1. Instant populate from client cache if fresh (< 5 mins)
+      if (
+        cachedMasterData &&
+        Date.now() - cachedMasterData.cachedAt < 5 * 60 * 1000
+      ) {
+        setLocations(cachedMasterData.locations)
+        setStaffList(cachedMasterData.staffList)
+        setPurposeSuggestions(cachedMasterData.purposeSuggestions)
+        setLoadingMaster(false)
+        if (cachedMasterData.locations.length > 0 && !form.location_id) {
+          setForm((prev) => ({
+            ...prev,
+            location_id: cachedMasterData!.locations[0].id.toString(),
+          }))
+        }
+        if (cachedMasterData.staffList.length > 0 && !form.staff_id) {
+          setForm((prev) => ({
+            ...prev,
+            staff_id: cachedMasterData!.staffList[0].id.toString(),
+          }))
+        }
+      }
+
+      try {
+        let locData: LocationItem[] = []
+        let staffData: StaffItem[] = []
+        let rawCards: CardItem[] = []
+        let rawVehicles: CardItem[] = []
+        let pList: string[] = []
+
+        // Try single consolidated endpoint first
+        let bundledSuccess = false
+        try {
+          const bundleRes = await api.get("/lookups/visit-form-data")
+          if (bundleRes?.data && Array.isArray(bundleRes.data.locations)) {
+            bundledSuccess = true
+            locData = bundleRes.data.locations || []
+            staffData = bundleRes.data.staffs || []
+            rawCards = bundleRes.data.cards || []
+            rawVehicles = bundleRes.data.vehicle_cards || []
+            pList = Array.isArray(bundleRes.data.purposes)
+              ? bundleRes.data.purposes
+              : []
+          }
+        } catch {
+          bundledSuccess = false
+        }
+
+        // Fallback to separate endpoints if bundled endpoint is not available
+        if (!bundledSuccess) {
+          const [locRes, staffRes, cardRes, vehicleRes, purposeRes] =
+            await Promise.all([
+              api.get("/locations").catch(() => ({ data: [] })),
+              api.get("/staffs").catch(() => ({ data: [] })),
+              api.get("/cards").catch(() => ({ data: [] })),
+              api.get("/vehicle-cards").catch(() => ({ data: [] })),
+              api.get("/lookups/purposes").catch(() => ({ data: [] })),
+            ])
+
+          locData = Array.isArray(locRes.data)
+            ? locRes.data
+            : locRes.data?.data || []
+          staffData = Array.isArray(staffRes.data)
+            ? staffRes.data
+            : staffRes.data?.data || []
+          rawCards = Array.isArray(cardRes.data)
+            ? cardRes.data
+            : cardRes.data?.data || []
+          rawVehicles = Array.isArray(vehicleRes.data)
+            ? vehicleRes.data
+            : vehicleRes.data?.data || []
+          const rawPurposes = Array.isArray(purposeRes.data)
+            ? purposeRes.data
+            : purposeRes.data?.data || []
+          pList = rawPurposes.map((p: PurposeItem | string) =>
+            typeof p === "string" ? p : p.purpose || ""
+          )
+        }
+
+        if (!isMounted) return
+
+        // Update module-level cache
+        cachedMasterData = {
+          locations: locData,
+          staffList: staffData,
+          purposeSuggestions: pList.filter(Boolean),
+          cachedAt: Date.now(),
+        }
+
         setLocations(locData)
         if (locData.length > 0 && !form.location_id) {
           setForm((prev) => ({
@@ -172,10 +271,6 @@ export default function CreateVisit() {
           }))
         }
 
-        // Parse staff
-        const staffData = Array.isArray(staffRes.data)
-          ? staffRes.data
-          : staffRes.data?.data || []
         setStaffList(staffData)
         if (staffData.length > 0 && !form.staff_id) {
           setForm((prev) => ({
@@ -184,10 +279,6 @@ export default function CreateVisit() {
           }))
         }
 
-        // Parse cards
-        const rawCards = Array.isArray(cardRes.data)
-          ? cardRes.data
-          : cardRes.data?.data || []
         const availableCards = rawCards.filter(
           (c: CardItem) => c.status === "available"
         )
@@ -199,25 +290,16 @@ export default function CreateVisit() {
           }))
         }
 
-        // Parse vehicle cards
-        const rawVehicles = Array.isArray(vehicleRes.data)
-          ? vehicleRes.data
-          : vehicleRes.data?.data || []
         const availableVehicles = rawVehicles.filter(
           (c: CardItem) => c.status === "available"
         )
         setVehicleList(availableVehicles)
 
-        // Parse purposes
-        const rawPurposes = Array.isArray(purposeRes.data)
-          ? purposeRes.data
-          : purposeRes.data?.data || []
-        const pList = rawPurposes.map((p: PurposeItem | string) =>
-          typeof p === "string" ? p : p.purpose || ""
-        )
         setPurposeSuggestions(pList.filter(Boolean))
       } catch (error) {
         console.error("Failed to load master data", error)
+      } finally {
+        if (isMounted) setLoadingMaster(false)
       }
     }
     fetchMasterData()
@@ -228,6 +310,7 @@ export default function CreateVisit() {
 
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => {
+      isMounted = false
       clearInterval(timer)
       if (searchTimeout.current) clearTimeout(searchTimeout.current)
       abortRef.current?.abort()
@@ -669,69 +752,159 @@ export default function CreateVisit() {
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
         {/* Step 1: Identity & ID Check */}
-        <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-4">
-          <div className="space-y-2">
-            <Label htmlFor="id_type">ID Type</Label>
-            <select
-              id="id_type"
-              name="id_type"
-              value={form.id_type}
-              onChange={handleChange}
-              className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
-            >
-              <option value="ktp">KTP</option>
-              <option value="sim">SIM</option>
-              <option value="passport">Passport</option>
-            </select>
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+              1
+            </span>
+            <User className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+              Identitas Pengunjung (Visitor Identity)
+            </h2>
           </div>
 
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="id_number">ID Number</Label>
-            <Popover open={openKtp} onOpenChange={setOpenKtp}>
-              <PopoverAnchor asChild>
-                <Input
-                  ref={idInputRef}
-                  id="id_number"
-                  name="id_number"
-                  value={form.id_number}
-                  onChange={(e) => {
-                    handleChange(e)
-                    searchVisitor(e.target.value, "ktp")
-                  }}
-                  onFocus={() => {
-                    if (form.id_number.length >= 2) setOpenKtp(true)
-                  }}
-                  required
-                  autoComplete="off"
-                  placeholder="Type ID number..."
-                />
-              </PopoverAnchor>
-              <PopoverContent
-                className="w-[350px] p-0"
-                align="start"
-                onOpenAutoFocus={(e) => e.preventDefault()}
+          <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-4">
+            <div className="space-y-2">
+              <Label htmlFor="id_type">ID Type</Label>
+              <select
+                id="id_type"
+                name="id_type"
+                value={form.id_type}
+                onChange={handleChange}
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
               >
-                <Command shouldFilter={false}>
-                  <CommandList>
-                    <CommandGroup>
-                      {searching ? (
-                        <div className="flex items-center justify-center p-4 text-sm text-zinc-500">
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                          Searching...
-                        </div>
-                      ) : suggestions.length > 0 ? (
-                        suggestions.map((s) => (
+                <option value="ktp">KTP</option>
+                <option value="sim">SIM</option>
+                <option value="passport">Passport</option>
+              </select>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="id_number">ID Number</Label>
+              <Popover open={openKtp} onOpenChange={setOpenKtp}>
+                <PopoverAnchor asChild>
+                  <Input
+                    ref={idInputRef}
+                    id="id_number"
+                    name="id_number"
+                    value={form.id_number}
+                    onChange={(e) => {
+                      handleChange(e)
+                      searchVisitor(e.target.value, "ktp")
+                    }}
+                    onFocus={() => {
+                      if (form.id_number.length >= 2) setOpenKtp(true)
+                    }}
+                    required
+                    autoComplete="off"
+                    placeholder="Type ID number..."
+                  />
+                </PopoverAnchor>
+                <PopoverContent
+                  className="w-[350px] p-0"
+                  align="start"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                  <Command shouldFilter={false}>
+                    <CommandList>
+                      <CommandGroup>
+                        {searching ? (
+                          <div className="flex items-center justify-center p-4 text-sm text-zinc-500">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                            Searching...
+                          </div>
+                        ) : suggestions.length > 0 ? (
+                          suggestions.map((s) => (
+                            <CommandItem
+                              key={s.id}
+                              value={s.id_number}
+                              onSelect={() => selectVisitor(s)}
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-semibold">
+                                  {s.id_number}
+                                </span>
+                                <span className="text-xs text-zinc-500">
+                                  {s.name} - {s.company || "No Company"}
+                                </span>
+                              </div>
+                              {s.is_blacklisted && (
+                                <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 dark:bg-red-950/50 dark:text-red-400">
+                                  BLACKLISTED
+                                </span>
+                              )}
+                            </CommandItem>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-sm text-zinc-500">
+                            New visitor. Click Check to verify.
+                          </div>
+                        )}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleCheckKtp}
+                disabled={checkingKtp || !form.id_number}
+                className="h-10 w-full cursor-pointer"
+              >
+                {checkingKtp ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="mr-2 h-4 w-4" />
+                )}
+                Check / Search
+              </Button>
+            </div>
+          </div>
+
+          {/* Visitor Profile Details */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="name">Visitor Name</Label>
+              <Popover open={openName} onOpenChange={setOpenName}>
+                <PopoverAnchor asChild>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={form.name}
+                    onChange={(e) => {
+                      handleChange(e)
+                      searchVisitor(e.target.value, "name")
+                    }}
+                    onFocus={() => {
+                      if (form.name.length >= 2) setOpenName(true)
+                    }}
+                    required
+                    autoComplete="off"
+                    placeholder="Visitor full name..."
+                  />
+                </PopoverAnchor>
+                <PopoverContent
+                  className="w-[350px] p-0"
+                  align="start"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                  <Command shouldFilter={false}>
+                    <CommandList>
+                      <CommandGroup>
+                        {suggestions.map((s) => (
                           <CommandItem
                             key={s.id}
                             value={s.id_number}
                             onSelect={() => selectVisitor(s)}
                           >
                             <div className="flex flex-col">
-                              <span className="font-semibold">
-                                {s.id_number}
-                              </span>
+                              <span className="font-semibold">{s.name}</span>
                               <span className="text-xs text-zinc-500">
-                                {s.name} - {s.company || "No Company"}
+                                {s.id_number} - {s.company || "No Company"}
                               </span>
                             </div>
                             {s.is_blacklisted && (
@@ -740,197 +913,272 @@ export default function CreateVisit() {
                               </span>
                             )}
                           </CommandItem>
-                        ))
-                      ) : (
-                        <div className="p-4 text-center text-sm text-zinc-500">
-                          New visitor. Click Check to verify.
-                        </div>
-                      )}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
 
-          <div>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleCheckKtp}
-              disabled={checkingKtp || !form.id_number}
-              className="h-10 w-full cursor-pointer"
-            >
-              {checkingKtp ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="mr-2 h-4 w-4" />
-              )}
-              Check / Search
-            </Button>
+            <div className="space-y-2">
+              <Label htmlFor="company">Company / Agency (Optional)</Label>
+              <Input
+                id="company"
+                name="company"
+                value={form.company}
+                onChange={handleChange}
+                placeholder="e.g. PT Mitra Maritim"
+              />
+            </div>
+
+            {preReg && (
+              <div className="space-y-2">
+                <Label htmlFor="gender">Jenis Kelamin</Label>
+                <select
+                  id="gender"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  required
+                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                  <option value="">-- Pilih --</option>
+                  <option value="M">Laki-laki</option>
+                  <option value="F">Perempuan</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Step 2: Visitor Profile Details */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="name">Visitor Name</Label>
-            <Popover open={openName} onOpenChange={setOpenName}>
-              <PopoverAnchor asChild>
-                <Input
-                  id="name"
-                  name="name"
-                  value={form.name}
-                  onChange={(e) => {
-                    handleChange(e)
-                    searchVisitor(e.target.value, "name")
-                  }}
-                  onFocus={() => {
-                    if (form.name.length >= 2) setOpenName(true)
-                  }}
-                  required
-                  autoComplete="off"
-                  placeholder="Visitor full name..."
-                />
-              </PopoverAnchor>
-              <PopoverContent
-                className="w-[350px] p-0"
-                align="start"
-                onOpenAutoFocus={(e) => e.preventDefault()}
-              >
-                <Command shouldFilter={false}>
-                  <CommandList>
-                    <CommandGroup>
-                      {suggestions.map((s) => (
-                        <CommandItem
-                          key={s.id}
-                          value={s.id_number}
-                          onSelect={() => selectVisitor(s)}
-                        >
-                          <div className="flex flex-col">
-                            <span className="font-semibold">{s.name}</span>
-                            <span className="text-xs text-zinc-500">
-                              {s.id_number} - {s.company || "No Company"}
-                            </span>
-                          </div>
-                          {s.is_blacklisted && (
-                            <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 dark:bg-red-950/50 dark:text-red-400">
-                              BLACKLISTED
-                            </span>
-                          )}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+        {/* Step 2: Location / Vessel & Purpose & Host */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+              2
+            </span>
+            <Building2 className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+              Tujuan Kunjungan & Host (Destination & Host)
+            </h2>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="company">Company / Agency (Optional)</Label>
-            <Input
-              id="company"
-              name="company"
-              value={form.company}
-              onChange={handleChange}
-              placeholder="e.g. PT Mitra Maritim"
-            />
-          </div>
-
-          {preReg && (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="gender">Jenis Kelamin</Label>
+              <Label htmlFor="location_id">Location / Vessel (Mandatory)</Label>
               <select
-                id="gender"
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
+                id="location_id"
+                name="location_id"
+                value={form.location_id}
+                onChange={handleChange}
                 required
-                className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+                disabled={loadingMaster}
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
               >
-                <option value="">-- Pilih --</option>
-                <option value="M">Laki-laki</option>
-                <option value="F">Perempuan</option>
+                {loadingMaster ? (
+                  <option value="">Memuat daftar lokasi...</option>
+                ) : (
+                  <option value="">-- Select Location / Vessel --</option>
+                )}
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </option>
+                ))}
               </select>
             </div>
-          )}
-        </div>
 
-        {/* Step 3: Location / Vessel & Purpose */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="location_id">Location / Vessel (Mandatory)</Label>
-            <select
-              id="location_id"
-              name="location_id"
-              value={form.location_id}
-              onChange={handleChange}
-              required
-              className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
-            >
-              <option value="">-- Select Location / Vessel --</option>
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="purpose">Purpose of Visit</Label>
-            <Input
-              id="purpose"
-              name="purpose"
-              value={form.purpose}
-              onChange={handleChange}
-              list="purpose-suggestions"
-              required
-              placeholder="e.g. Survey, Meeting, Maintenance..."
-            />
-            <datalist id="purpose-suggestions">
-              {purposeSuggestions.map((p, idx) => (
-                <option key={idx} value={p} />
-              ))}
-            </datalist>
-          </div>
-        </div>
-
-        {/* Step 4: Host Selection (Staff or Custom Host) */}
-        <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-semibold">Host Destination</Label>
-            <label className="flex cursor-pointer items-center gap-2 text-xs select-none">
-              <input
-                type="checkbox"
-                checked={form.is_custom_host}
-                onChange={(e) =>
-                  setForm({ ...form, is_custom_host: e.target.checked })
-                }
-                className="rounded border-zinc-300"
-              />
-              <span>Specify Custom Host Name</span>
-            </label>
-          </div>
-
-          {!form.is_custom_host ? (
             <div className="space-y-2">
-              <Label htmlFor="staff_id">Staff Host</Label>
-              <Popover open={openStaff} onOpenChange={setOpenStaff}>
+              <Label htmlFor="purpose">Purpose of Visit</Label>
+              <Input
+                id="purpose"
+                name="purpose"
+                value={form.purpose}
+                onChange={handleChange}
+                list="purpose-suggestions"
+                required
+                placeholder="e.g. Survey, Meeting, Maintenance..."
+              />
+              <datalist id="purpose-suggestions">
+                {purposeSuggestions.map((p, idx) => (
+                  <option key={idx} value={p} />
+                ))}
+              </datalist>
+
+              {/* Quick Purpose Chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] font-medium text-zinc-500">
+                  Quick Suggestions:
+                </span>
+                {POPULAR_PURPOSES.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() =>
+                      setForm((prev) => ({ ...prev, purpose: tag }))
+                    }
+                    className={cn(
+                      "rounded border px-2 py-0.5 text-xs transition-colors cursor-pointer",
+                      form.purpose === tag
+                        ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                        : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    )}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Host Destination Section */}
+          <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">Host Destination</Label>
+              <label className="flex cursor-pointer items-center gap-2 text-xs select-none">
+                <input
+                  type="checkbox"
+                  checked={form.is_custom_host}
+                  onChange={(e) =>
+                    setForm({ ...form, is_custom_host: e.target.checked })
+                  }
+                  className="rounded border-zinc-300"
+                />
+                <span>Specify Custom Host Name</span>
+              </label>
+            </div>
+
+            {!form.is_custom_host ? (
+              <div className="space-y-2">
+                <Label htmlFor="staff_id">Staff Host</Label>
+                <Popover open={openStaff} onOpenChange={setOpenStaff}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      disabled={loadingMaster}
+                      className={cn(
+                        "w-full justify-between bg-white font-normal dark:bg-zinc-950",
+                        !form.staff_id && "text-muted-foreground"
+                      )}
+                    >
+                      {loadingMaster
+                        ? "Memuat daftar staf..."
+                        : form.staff_id
+                          ? staffList.find(
+                              (item) => item.id.toString() === form.staff_id
+                            )?.name
+                          : "Select Host Staff..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[350px]">
+                    <Command
+                      filter={(value, search) =>
+                        value.toLowerCase().includes(search.toLowerCase())
+                          ? 1
+                          : 0
+                      }
+                    >
+                      <CommandInput placeholder="Search staff by name or dept..." />
+                      <CommandList>
+                        <CommandEmpty>No staff found.</CommandEmpty>
+                        <CommandGroup>
+                          {staffList.map((item) => (
+                            <CommandItem
+                              key={item.id}
+                              value={`${item.name} ${item.department || ""} ${item.id}`}
+                              onSelect={() => {
+                                handleSelectChange(
+                                  "staff_id",
+                                  item.id.toString()
+                                )
+                                setOpenStaff(false)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  form.staff_id === item.id.toString()
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span>{item.name}</span>
+                                <span className="text-xs text-zinc-500">
+                                  {item.department}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="host_name">Custom Host Name</Label>
+                <Input
+                  id="host_name"
+                  name="host_name"
+                  value={form.host_name}
+                  onChange={handleChange}
+                  placeholder="Enter host person or department..."
+                  required={form.is_custom_host}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Step 3: Card Assignment & Vehicle */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+              3
+            </span>
+            <CreditCard className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+              Kartu Akses & Kendaraan (Pass & Vehicle)
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="card_ids">Assign Visitor Cards</Label>
+                <span className="text-xs text-zinc-500">
+                  {loadingMaster
+                    ? "Memuat..."
+                    : `${cardList.length} kartu tersedia`}
+                </span>
+              </div>
+              <Popover open={openCard} onOpenChange={setOpenCard}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     role="combobox"
+                    disabled={loadingMaster}
                     className={cn(
-                      "w-full justify-between bg-white font-normal dark:bg-zinc-950",
-                      !form.staff_id && "text-muted-foreground"
+                      "w-full justify-between font-normal",
+                      form.card_ids.length === 0 && "text-muted-foreground"
                     )}
                   >
-                    {form.staff_id
-                      ? staffList.find(
-                          (item) => item.id.toString() === form.staff_id
-                        )?.name
-                      : "Select Host Staff..."}
+                    {loadingMaster
+                      ? "Memuat daftar kartu..."
+                      : form.card_ids.length > 0
+                        ? form.card_ids
+                            .map(
+                              (id) =>
+                                cardList.find((c) => c.id.toString() === id)
+                                  ?.card_no
+                            )
+                            .filter(Boolean)
+                            .join(", ")
+                        : "Select Available Cards..."}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -940,33 +1188,145 @@ export default function CreateVisit() {
                       value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
                     }
                   >
-                    <CommandInput placeholder="Search staff by name or dept..." />
+                    <CommandInput placeholder="Search cards..." />
                     <CommandList>
-                      <CommandEmpty>No staff found.</CommandEmpty>
+                      <CommandEmpty>No available card found.</CommandEmpty>
                       <CommandGroup>
-                        {staffList.map((item) => (
+                        {cardList.map((item) => {
+                          const isSelected = form.card_ids.includes(
+                            item.id.toString()
+                          )
+                          return (
+                            <CommandItem
+                              key={item.id}
+                              value={`${item.card_no} ${item.id}`}
+                              onSelect={() => {
+                                const newSelection = isSelected
+                                  ? form.card_ids.filter(
+                                      (id) => id !== item.id.toString()
+                                    )
+                                  : [...form.card_ids, item.id.toString()]
+                                handleSelectChange("card_ids", newSelection)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  isSelected ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {item.card_no}
+                            </CommandItem>
+                          )
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              {/* Selected Cards Chips */}
+              {form.card_ids.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-xs font-medium text-zinc-500">
+                    Terpilih:
+                  </span>
+                  {form.card_ids.map((id) => {
+                    const card = cardList.find((c) => c.id.toString() === id)
+                    return (
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1 rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
+                      >
+                        {card ? card.card_no : `Card #${id}`}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleSelectChange(
+                              "card_ids",
+                              form.card_ids.filter((cId) => cId !== id)
+                            )
+                          }
+                          className="ml-0.5 text-zinc-400 hover:text-red-600 cursor-pointer"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col space-y-2">
+              <Label htmlFor="vehicle_card_id">Vehicle Card (Optional)</Label>
+              <Popover open={openVehicle} onOpenChange={setOpenVehicle}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    disabled={loadingMaster}
+                    className={cn(
+                      "w-full justify-between font-normal",
+                      !form.vehicle_card_id && "text-muted-foreground"
+                    )}
+                  >
+                    {loadingMaster
+                      ? "Memuat..."
+                      : form.vehicle_card_id
+                        ? vehicleList.find(
+                            (item) =>
+                              item.id.toString() === form.vehicle_card_id
+                          )?.card_no
+                        : "None / Select Vehicle Card..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[350px]">
+                  <Command
+                    filter={(value, search) =>
+                      value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
+                    }
+                  >
+                    <CommandInput placeholder="Search vehicle card..." />
+                    <CommandList>
+                      <CommandEmpty>No vehicle card found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          onSelect={() => {
+                            handleSelectChange("vehicle_card_id", "")
+                            setOpenVehicle(false)
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              !form.vehicle_card_id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <span className="text-zinc-500 italic">None</span>
+                        </CommandItem>
+                        {vehicleList.map((item) => (
                           <CommandItem
                             key={item.id}
-                            value={`${item.name} ${item.department || ""} ${item.id}`}
+                            value={`${item.card_no} ${item.id}`}
                             onSelect={() => {
-                              handleSelectChange("staff_id", item.id.toString())
-                              setOpenStaff(false)
+                              handleSelectChange(
+                                "vehicle_card_id",
+                                item.id.toString()
+                              )
+                              setOpenVehicle(false)
                             }}
                           >
                             <Check
                               className={cn(
                                 "mr-2 h-4 w-4",
-                                form.staff_id === item.id.toString()
+                                form.vehicle_card_id === item.id.toString()
                                   ? "opacity-100"
                                   : "opacity-0"
                               )}
                             />
-                            <div className="flex flex-col">
-                              <span>{item.name}</span>
-                              <span className="text-xs text-zinc-500">
-                                {item.department}
-                              </span>
-                            </div>
+                            {item.card_no}
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -975,186 +1335,32 @@ export default function CreateVisit() {
                 </PopoverContent>
               </Popover>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="host_name">Custom Host Name</Label>
-              <Input
-                id="host_name"
-                name="host_name"
-                value={form.host_name}
-                onChange={handleChange}
-                placeholder="Enter host person or department..."
-                required={form.is_custom_host}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Step 5: Card Assignment */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="flex flex-col space-y-2">
-            <Label htmlFor="card_ids">Assign Visitor Cards</Label>
-            <Popover open={openCard} onOpenChange={setOpenCard}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  className={cn(
-                    "w-full justify-between font-normal",
-                    form.card_ids.length === 0 && "text-muted-foreground"
-                  )}
-                >
-                  {form.card_ids.length > 0
-                    ? form.card_ids
-                        .map(
-                          (id) =>
-                            cardList.find((c) => c.id.toString() === id)
-                              ?.card_no
-                        )
-                        .filter(Boolean)
-                        .join(", ")
-                    : "Select Available Cards..."}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[350px]">
-                <Command
-                  filter={(value, search) =>
-                    value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
-                  }
-                >
-                  <CommandInput placeholder="Search cards..." />
-                  <CommandList>
-                    <CommandEmpty>No available card found.</CommandEmpty>
-                    <CommandGroup>
-                      {cardList.map((item) => {
-                        const isSelected = form.card_ids.includes(
-                          item.id.toString()
-                        )
-                        return (
-                          <CommandItem
-                            key={item.id}
-                            value={`${item.card_no} ${item.id}`}
-                            onSelect={() => {
-                              const newSelection = isSelected
-                                ? form.card_ids.filter(
-                                    (id) => id !== item.id.toString()
-                                  )
-                                : [...form.card_ids, item.id.toString()]
-                              handleSelectChange("card_ids", newSelection)
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                isSelected ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {item.card_no}
-                          </CommandItem>
-                        )
-                      })}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
           </div>
 
-          <div className="flex flex-col space-y-2">
-            <Label htmlFor="vehicle_card_id">Vehicle Card (Optional)</Label>
-            <Popover open={openVehicle} onOpenChange={setOpenVehicle}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  className={cn(
-                    "w-full justify-between font-normal",
-                    !form.vehicle_card_id && "text-muted-foreground"
-                  )}
-                >
-                  {form.vehicle_card_id
-                    ? vehicleList.find(
-                        (item) => item.id.toString() === form.vehicle_card_id
-                      )?.card_no
-                    : "None / Select Vehicle Card..."}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[350px]">
-                <Command
-                  filter={(value, search) =>
-                    value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
-                  }
-                >
-                  <CommandInput placeholder="Search vehicle card..." />
-                  <CommandList>
-                    <CommandEmpty>No vehicle card found.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        onSelect={() => {
-                          handleSelectChange("vehicle_card_id", "")
-                          setOpenVehicle(false)
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            !form.vehicle_card_id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <span className="text-zinc-500 italic">None</span>
-                      </CommandItem>
-                      {vehicleList.map((item) => (
-                        <CommandItem
-                          key={item.id}
-                          value={`${item.card_no} ${item.id}`}
-                          onSelect={() => {
-                            handleSelectChange(
-                              "vehicle_card_id",
-                              item.id.toString()
-                            )
-                            setOpenVehicle(false)
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              form.vehicle_card_id === item.id.toString()
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          {item.card_no}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+          <div className="space-y-2">
+            <Label htmlFor="vehicle_no">Vehicle Plate Number (Optional)</Label>
+            <Input
+              id="vehicle_no"
+              name="vehicle_no"
+              className="w-full"
+              value={form.vehicle_no}
+              onChange={handleChange}
+              placeholder="e.g. BP 1234 XY"
+            />
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="vehicle_no">Vehicle Plate Number (Optional)</Label>
-          <Input
-            id="vehicle_no"
-            name="vehicle_no"
-            className="w-full"
-            value={form.vehicle_no}
-            onChange={handleChange}
-            placeholder="e.g. BP 1234 XY"
-          />
         </div>
 
         <div className="pt-2">
           <Button
             type="submit"
             disabled={loading || visitorStatus === "blacklisted"}
-            className="w-full cursor-pointer md:w-auto"
+            className="w-full cursor-pointer md:w-auto h-11 px-6 font-semibold"
           >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Printer className="mr-2 h-4 w-4" />
+            )}
             {loading ? "Processing..." : "Save & Print Ticket"}
           </Button>
         </div>

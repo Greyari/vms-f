@@ -20,7 +20,7 @@ function Field({
   last?: boolean
 }) {
   return (
-    <div className={`flex pb-0.5 ${last ? "" : "border-b border-gray-300"}`}>
+    <div className={`flex pb-0.5 ${last ? "" : ""}`}>
       <span className="inline-block w-36 shrink-0 font-bold text-gray-700">
         {label}
       </span>
@@ -106,7 +106,7 @@ export default function PrintVisit() {
   }
 
   const printedBy =
-    visit.printed_by || user?.name || user?.username || "Security Duty"
+    user?.name || user?.username || visit.printed_by || visit.creator?.name || "Security Duty"
   const ticketNo =
     visit.ticket_number || visit.legacy_registration_no || `#${visit.id}`
   const cardsText =
@@ -119,19 +119,19 @@ export default function PrintVisit() {
   const companyName = config.company_name.trim()
 
   return (
-    <div className="min-h-screen bg-white font-sans text-black print:h-[14cm] print:min-h-0 print:w-[24cm] print:overflow-hidden print:p-0">
+    <div className="min-h-screen bg-white font-sans text-black print:h-[15cm] print:min-h-0 print:w-[24cm] print:overflow-hidden print:p-0">
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            /* Kertas continuous paper 24 cm x 14 cm (sobekan setengah), mode potret */
+            /* Kertas continuous paper 20 cm x 15 cm (sobekan setengah), mode potret */
             @page {
-              size: portrait;
+              size: landscape;
               margin: 0;
             }
             @media print {
               html, body {
                 width: 24cm;
-                height: 14cm;
+                height: 15cm;
                 margin: 0;
                 padding: 0;
                 background: white !important;
@@ -142,8 +142,8 @@ export default function PrintVisit() {
               .print-container {
                 width: 24cm !important;
                 max-width: 24cm !important;
-                height: 14cm !important;
-                max-height: 14cm !important;
+                height: 15cm !important;
+                max-height: 15cm !important;
                 margin: 0 !important;
                 /* Safe area: atas/bawah 0.35cm, kiri/kanan 1.2cm (jalur tractor/lubang kertas) */
                 padding: 0.35cm 0.50cm !important;
@@ -158,16 +158,9 @@ export default function PrintVisit() {
       />
 
       {/* Area pass (satu-satunya yang tercetak) */}
-      <div className="print-container mx-auto box-border flex w-[24cm] max-w-full h-[14cm] flex-col border border-dashed border-zinc-300 p-4 print:border-0">
+      <div className="print-container mx-auto box-border flex w-[24cm] max-w-full h-[15cm] flex-col border border-dashed border-zinc-300 p-4 print:border-0">
         {/* Header */}
-        <div className="mb-2 border-b-2 border-black pb-1 text-center">
-          {config.logo_url && (
-            <img
-              src={config.logo_url}
-              alt=""
-              className="mx-auto mb-0.5 h-9 w-auto object-contain"
-            />
-          )}
+        <div className="mb-2 pb-1 text-center">
           <h1 className="text-xl leading-tight font-black tracking-widest uppercase">
             {(companyName || FALLBACK_COMPANY_NAME).toUpperCase()}
           </h1>
@@ -185,65 +178,64 @@ export default function PrintVisit() {
         </div>
 
         {/* Data */}
-        <div className="grid grid-cols-2 gap-x-5 text-[13px] leading-snug font-semibold">
-          <div className="space-y-0.5 border-r border-gray-400 pr-4">
-            <Field label="VISITOR NAME" bold>
+        <div className="grid grid-cols-2 gap-x-5 text-[13px]">
+          <div className="space-y-0.5">
+            <Field label="VISITOR NAME">
               {visit.visitor?.name || visit.visitor_name || "-"}
             </Field>
             <Field
               label={visit.visitor?.id_type?.toUpperCase() || "IDENTITAS"}
-              mono
             >
               {visit.visitor?.id_number || "-"}
             </Field>
             <Field label="COMPANY">
               {visit.visitor_company || visit.visitor?.company || "-"}
             </Field>
-            <Field label="DESTINATION" bold>
+            <Field label="DESTINATION">
               {visit.location_name || visit.location?.name || "-"}
             </Field>
             <Field label="HOST PERSON">
               {visit.host_name || visit.staff?.name || "-"}
             </Field>
-            <Field label="ID CARDS" mono bold last>
+            <Field label="ID CARDS">
               {cardsText}
             </Field>
           </div>
 
-          <div className="space-y-0.5 pl-1">
-            <Field label="DATE" mono>
+          <div className="space-y-0.5">
+            <Field label="DATE">
               {visit.date ||
                 (visit.check_in_at ? visit.check_in_at.slice(0, 10) : "-")}
             </Field>
-            <Field label="TIME IN" mono bold>
+            <Field label="TIME IN">
               {visit.time_in ||
                 (visit.check_in_at ? visit.check_in_at.slice(11, 16) : "-")}
             </Field>
-            <Field label="VEHICLE NO" mono>
+            <Field label="VEHICLE NO">
               {visit.vehicle_plate || visit.vehicle_no || "-"}
             </Field>
-            <Field label="VEHICLE CARD" mono>
+            <Field label="VEHICLE CARD">
               {visit.vehicle_card?.card_no ||
                 visit.vehicleCard?.card_no ||
                 "-"}
             </Field>
-            <Field label="TIME OUT" mono last>
+            <Field label="TIME OUT">
               {visit.time_out || "-"}
             </Field>
           </div>
         </div>
 
         {/* Purpose */}
-        <div className="mt-0.5 border-t border-gray-400 pt-0.5 text-[13px] leading-snug font-semibold">
+        <div className="mt-0.5 pt-0.5 text-[13px] leading-snug">
           <Field label="PURPOSE" last>
             {visit.purpose || "-"}
           </Field>
         </div>
 
         {/* Rules */}
-        <div className="my-1.5 grid grid-cols-2 gap-3 border-t-2 border-b-2 border-black py-1 text-[10px] leading-tight">
-          <div className="border-r border-black pr-2">
-            <p className="mb-0.5 font-bold uppercase underline">
+        <div className="my-1.5 grid grid-cols-2 gap-3 py-1 text-[13px] leading-tight">
+          <div className="border-black pr-2">
+            <p className="mb-0.5 uppercase">
               Rules & Regulations:
             </p>
             <ul className="list-inside list-disc space-y-0.5 text-zinc-800">
@@ -259,7 +251,7 @@ export default function PrintVisit() {
             </ul>
           </div>
           <div className="pl-2">
-            <p className="mb-0.5 font-bold uppercase underline">
+            <p className="mb-0.5 uppercase">
               Ketentuan Yard:
             </p>
             <ul className="list-inside list-disc space-y-0.5 text-zinc-800">
@@ -279,23 +271,27 @@ export default function PrintVisit() {
         </div>
 
         {/* Signatures */}
-        <div className="mt-auto grid grid-cols-3 gap-6 text-center text-xs font-bold uppercase">
+        <div className="mt-auto grid grid-cols-3 gap-6 text-center text-xs uppercase">
           <div>
             <div className="h-8" />
-            <div className="border-t border-black pt-0.5">Security Duty</div>
-            <p className="font-mono text-[10px] font-normal text-zinc-600 normal-case">
-              Printed By: {printedBy}
-            </p>
+            <div className="border-t border-black pt-0.5 font-bold">
+              {printedBy}
+            </div>
+            <div className="text-[10px] text-zinc-600">Petugas / Security (Pencatat)</div>
           </div>
           <div>
             <div className="h-8" />
-            <div className="border-t border-black pt-0.5">Host / Staff</div>
+            <div className="border-t border-black pt-0.5 font-semibold">
+              {visit.host_name || visit.staff?.name || "-"}
+            </div>
+            <div className="text-[10px] text-zinc-600">Host / Staff Dikunjungi</div>
           </div>
           <div>
             <div className="h-8" />
             <div className="border-t border-black pt-0.5">
               Visitor Signature
             </div>
+            <div className="text-[10px] text-zinc-600">Tanda Tangan Tamu</div>
           </div>
         </div>
       </div>
