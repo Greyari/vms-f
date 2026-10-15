@@ -30,14 +30,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +43,7 @@ import {
 
 import VisitorDetailModal from "@/components/master/VisitorDetailModal"
 import VisitorFormModal from "@/components/master/VisitorFormModal"
+import BlacklistModal from "@/components/master/BlacklistModal"
 import MasterImportDialog from "@/components/master/MasterImportDialog"
 import MasterExportModal from "@/components/master/MasterExportModal"
 import { MASTER_ENTITIES } from "@/config/masterEntities"
@@ -100,11 +93,9 @@ export default function Visitors() {
   const [formModalOpen, setFormModalOpen] = useState(false)
   const [selectedVisitorForEdit, setSelectedVisitorForEdit] = useState<Visitor | null>(null)
 
-  // Blacklist Reason Modal State
+  // Blacklist Modal State
   const [blacklistModalOpen, setBlacklistModalOpen] = useState(false)
   const [targetVisitorForBlacklist, setTargetVisitorForBlacklist] = useState<Visitor | null>(null)
-  const [blacklistReason, setBlacklistReason] = useState("")
-  const [submittingBlacklist, setSubmittingBlacklist] = useState(false)
 
   // Unblacklist Confirm State
   const [unblacklistAlertOpen, setUnblacklistAlertOpen] = useState(false)
@@ -171,28 +162,7 @@ export default function Visitors() {
 
   const openBlacklistDialog = (visitor: Visitor) => {
     setTargetVisitorForBlacklist(visitor)
-    setBlacklistReason("")
     setBlacklistModalOpen(true)
-  }
-
-  const handleBlacklistSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!targetVisitorForBlacklist) return
-    setSubmittingBlacklist(true)
-    try {
-      await api.post(`/visitors/${targetVisitorForBlacklist.id}/blacklist`, {
-        reason: blacklistReason,
-      })
-      toast.success("Pengunjung berhasil dimasukkan ke daftar blacklist")
-      setBlacklistModalOpen(false)
-      setTargetVisitorForBlacklist(null)
-      fetchVisitors()
-    } catch (error: any) {
-      console.error(error)
-      toast.error(error.response?.data?.message || "Gagal memasukkan ke daftar blacklist")
-    } finally {
-      setSubmittingBlacklist(false)
-    }
   }
 
   const confirmUnblacklist = (id: number | string) => {
@@ -518,48 +488,35 @@ export default function Visitors() {
         }}
       />
 
-      {/* Dialog Alasan Blacklist */}
-      <Dialog open={blacklistModalOpen} onOpenChange={setBlacklistModalOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Masukan ke Daftar Blacklist</DialogTitle>
-            <DialogDescription>
-              Pengunjung yang masuk daftar blacklist tidak akan dapat diberikan izin masuk ke area ASL.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleBlacklistSubmit} className="space-y-4">
-            <div>
-              <p className="text-sm font-medium">Pengunjung:</p>
-              <p className="text-sm text-muted-foreground">
-                {targetVisitorForBlacklist?.name} ({targetVisitorForBlacklist?.id_number})
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="blacklist_reason">Alasan Blacklist *</Label>
-              <Textarea
-                id="blacklist_reason"
-                value={blacklistReason}
-                onChange={(e) => setBlacklistReason(e.target.value)}
-                placeholder="Tuliskan alasan pelanggaran atau instruksi penolakan..."
-                required
-                rows={3}
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setBlacklistModalOpen(false)}
-              >
-                Batal
-              </Button>
-              <Button type="submit" variant="destructive" disabled={submittingBlacklist}>
-                {submittingBlacklist ? "Menyimpan..." : "Blacklist Pengunjung"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Blacklist Modal Reusable */}
+      <BlacklistModal
+        open={blacklistModalOpen}
+        onClose={() => {
+          setBlacklistModalOpen(false)
+          setTargetVisitorForBlacklist(null)
+        }}
+        onSuccess={() => {
+          setBlacklistModalOpen(false)
+          setTargetVisitorForBlacklist(null)
+          fetchVisitors()
+        }}
+        onViewVisitorProfile={(visitorId) => {
+          setSelectedVisitorId(visitorId)
+          setDetailModalOpen(true)
+        }}
+        preselectedVisitor={
+          targetVisitorForBlacklist
+            ? {
+                id: targetVisitorForBlacklist.id,
+                name: targetVisitorForBlacklist.name,
+                id_type: targetVisitorForBlacklist.id_type,
+                id_number: targetVisitorForBlacklist.id_number,
+                company: targetVisitorForBlacklist.company,
+                visits_count: targetVisitorForBlacklist.visits_count,
+              }
+            : null
+        }
+      />
 
       {/* Alert Dialog Unblacklist */}
       <AlertDialog open={unblacklistAlertOpen} onOpenChange={setUnblacklistAlertOpen}>

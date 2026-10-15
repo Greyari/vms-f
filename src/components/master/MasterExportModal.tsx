@@ -14,14 +14,6 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Download,
   FileSpreadsheet,
@@ -84,16 +76,16 @@ export default function MasterExportModal({
       .map((c) => c.key)
   })
 
+  // Date field derived automatically from entity config
+  const dateField =
+    entityConfig.defaultDateField ||
+    entityConfig.dateFields?.[0]?.field ||
+    "created_at"
+
   // Date Filter State
-  const [dateField, setDateField] = useState<string>(
-    entityConfig.dateFields[0]?.field || "created_at"
-  )
   const [startDate, setStartDate] = useState<string>("")
   const [endDate, setEndDate] = useState<string>("")
   const [activePreset, setActivePreset] = useState<DatePreset | null>("allTime")
-
-  // Scope: "current" (use table filters) or "all" (ignore table search/status/type filters)
-  const [scope, setScope] = useState<"current" | "all">("current")
 
   // Format: "xlsx" or "csv"
   const [format, setFormat] = useState<"xlsx" | "csv">("xlsx")
@@ -201,8 +193,8 @@ export default function MasterExportModal({
   const buildParams = useCallback(() => {
     const params: Record<string, any> = {}
 
-    // Apply table filters if scope is "current"
-    if (scope === "current" && currentFilters) {
+    // Automatically apply active table filters (search, status, type, etc.)
+    if (currentFilters) {
       Object.entries(currentFilters).forEach(([k, v]) => {
         // Exclude pagination params
         if (
@@ -231,7 +223,7 @@ export default function MasterExportModal({
     }
 
     return params
-  }, [scope, currentFilters, startDate, endDate, dateField])
+  }, [currentFilters, startDate, endDate, dateField])
 
   // Fetch count when filters change and modal is open
   useEffect(() => {
@@ -357,86 +349,27 @@ export default function MasterExportModal({
           </div>
         </DialogHeader>
 
-        <div className="space-y-5 py-2 text-sm">
-          {/* Section 1: Filter Scope */}
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-3.5 dark:border-zinc-800 dark:bg-zinc-900/40">
-            <div className="mb-2.5 flex items-center gap-1.5 font-medium text-zinc-900 dark:text-zinc-100">
-              <Filter className="h-4 w-4 text-zinc-500" />
-              <span>{isEn ? "Data Scope" : "Cakupan Data"}</span>
-            </div>
-            <RadioGroup
-              value={scope}
-              onValueChange={(v) => setScope(v as "current" | "all")}
-              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"
-            >
-              <Label
-                htmlFor="scope-current"
-                className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors ${
-                  scope === "current"
-                    ? "border-emerald-600 bg-emerald-50/40 dark:border-emerald-500 dark:bg-emerald-950/20"
-                    : "border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900"
-                }`}
-              >
-                <RadioGroupItem value="current" id="scope-current" className="mt-0.5" />
-                <div className="space-y-0.5">
-                  <div className="font-semibold text-zinc-800 dark:text-zinc-200">
-                    {isEn ? "Current Table Filters" : "Filter Tabel Saat Ini"}
-                  </div>
-                  <div className="text-xs text-zinc-500">
-                    {isEn
-                      ? "Export records matching current search and filters"
-                      : "Mengekspor data sesuai filter pencarian & tabel aktif"}
-                  </div>
-                </div>
-              </Label>
-
-              <Label
-                htmlFor="scope-all"
-                className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors ${
-                  scope === "all"
-                    ? "border-emerald-600 bg-emerald-50/40 dark:border-emerald-500 dark:bg-emerald-950/20"
-                    : "border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900"
-                }`}
-              >
-                <RadioGroupItem value="all" id="scope-all" className="mt-0.5" />
-                <div className="space-y-0.5">
-                  <div className="font-semibold text-zinc-800 dark:text-zinc-200">
-                    {isEn ? "All Master Records" : "Semua Data Master"}
-                  </div>
-                  <div className="text-xs text-zinc-500">
-                    {isEn
-                      ? "Ignore table search; apply only date range filter"
-                      : "Abaikan pencarian tabel; terapkan filter tanggal saja"}
-                  </div>
-                </div>
-              </Label>
-            </RadioGroup>
+        <div className="space-y-4 py-2 text-sm">
+          {/* Active Table Filters Notice */}
+          <div className="flex items-center gap-2 rounded-lg border border-blue-200/60 bg-blue-50/70 p-3 text-xs text-blue-900 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-200">
+            <Filter className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+            <span>
+              {isEn
+                ? "Export will apply currently active table filters."
+                : "Export akan menerapkan filter yang sedang aktif di tabel."}
+            </span>
           </div>
 
-          {/* Section 2: Date Range Filter */}
+          {/* Date Range Filter (Simplified: no date field dropdown) */}
           <div className="rounded-lg border border-zinc-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-950">
             <div className="mb-2.5 flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-medium text-zinc-900 dark:text-zinc-100">
                 <Calendar className="h-4 w-4 text-zinc-500" />
                 <span>{isEn ? "Date Range Filter" : "Filter Rentang Tanggal"}</span>
               </div>
-              {entityConfig.dateFields.length > 1 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-500">{isEn ? "Field:" : "Berdasarkan:"}</span>
-                  <Select value={dateField} onValueChange={setDateField}>
-                    <SelectTrigger className="h-7 w-[160px] text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {entityConfig.dateFields.map((df) => (
-                        <SelectItem key={df.field} value={df.field} className="text-xs">
-                          {isEn ? df.labelEn : df.labelId}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <span className="text-[11px] text-zinc-400">
+                {isEn ? "Optional" : "Opsional"}
+              </span>
             </div>
 
             {/* Presets */}
@@ -466,10 +399,11 @@ export default function MasterExportModal({
             {/* Manual Date Inputs */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <Label className="text-xs text-zinc-500">
+                <Label htmlFor="export-start-date" className="text-xs text-zinc-500">
                   {isEn ? "Start Date" : "Tanggal Mulai"}
                 </Label>
                 <Input
+                  id="export-start-date"
                   type="date"
                   value={startDate}
                   onChange={(e) => {
@@ -480,10 +414,11 @@ export default function MasterExportModal({
                 />
               </div>
               <div>
-                <Label className="text-xs text-zinc-500">
+                <Label htmlFor="export-end-date" className="text-xs text-zinc-500">
                   {isEn ? "End Date" : "Tanggal Akhir"}
                 </Label>
                 <Input
+                  id="export-end-date"
                   type="date"
                   value={endDate}
                   onChange={(e) => {
@@ -496,7 +431,7 @@ export default function MasterExportModal({
             </div>
           </div>
 
-          {/* Section 3: Column Selection */}
+          {/* Section: Column Selection */}
           <div className="rounded-lg border border-zinc-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-950">
             <div className="mb-2.5 flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-medium text-zinc-900 dark:text-zinc-100">
@@ -560,7 +495,7 @@ export default function MasterExportModal({
             )}
           </div>
 
-          {/* Section 4: Export Format & Live Count Preview */}
+          {/* Section: Export Format & Live Count Preview */}
           <div className="flex flex-col items-start justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50/70 p-3.5 sm:flex-row sm:items-center dark:border-zinc-800 dark:bg-zinc-900/40">
             <div>
               <div className="text-xs font-medium text-zinc-500">

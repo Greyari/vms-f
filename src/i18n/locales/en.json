@@ -173,6 +173,7 @@
     "active_status": "Active Blacklist",
     "revoked_status": "Revoked",
     "visits_count": "{{count}} visits",
+    "preselected_badge": "Selected Visitor",
     "sourced_from_master": "Data linked from master Visitors",
     "view_visitor_data": "View visitor profile",
     "change_visitor": "Change Visitor",

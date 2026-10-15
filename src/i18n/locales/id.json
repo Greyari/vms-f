@@ -173,6 +173,7 @@
     "active_status": "Blacklist Aktif",
     "revoked_status": "Dicabut",
     "visits_count": "{{count}} kunjungan",
+    "preselected_badge": "Data Terpilih",
     "sourced_from_master": "Data terhubung dari master Visitors",
     "view_visitor_data": "Lihat data visitor",
     "change_visitor": "Ganti Visitor",

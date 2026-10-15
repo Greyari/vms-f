@@ -147,4 +147,25 @@ describe('Visitors Master Page', () => {
       expect(screen.getByRole('heading', { name: /edit data pengunjung/i })).toBeInTheDocument()
     })
   })
+
+  it('opens BlacklistModal with preselected visitor when Blacklist button is clicked', async () => {
+    render(
+      <BrowserRouter>
+        <Visitors />
+      </BrowserRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('John Doe')).toBeInTheDocument()
+    })
+
+    const blacklistRowButtons = screen.getAllByRole('button', { name: /^blacklist$/i })
+    fireEvent.click(blacklistRowButtons[0])
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /tambah blacklist|add blacklist/i })).toBeInTheDocument()
+      expect(screen.getAllByText('Data linked from master Visitors').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getByDisplayValue('John Doe')).toBeInTheDocument()
+    })
+  })
 })

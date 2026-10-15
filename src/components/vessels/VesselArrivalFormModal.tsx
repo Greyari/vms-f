@@ -13,7 +13,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Ship, Users } from "lucide-react"
+import { Loader2, Ship, Users, X } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import type { VesselArrivalItem } from "@/pages/vessels/VesselArrivals"
 import CrewSelectionDialog from "./CrewSelectionDialog"
 
@@ -65,6 +66,15 @@ export default function VesselArrivalFormModal({
 
   // Crew Selection
   const [selectedCrewIds, setSelectedCrewIds] = useState<string[]>([])
+  const [selectedCrewList, setSelectedCrewList] = useState<
+    Array<{
+      id: string
+      name: string
+      occupation?: string | null
+      id_number?: string | null
+      company?: string | null
+    }>
+  >([])
   const [crewDialogOpen, setCrewDialogOpen] = useState(false)
 
   // UI state
@@ -120,12 +130,30 @@ export default function VesselArrivalFormModal({
 
       if (arrivalToEdit.crew && Array.isArray(arrivalToEdit.crew)) {
         setSelectedCrewIds(arrivalToEdit.crew.map((c) => c.id))
+        setSelectedCrewList(
+          arrivalToEdit.crew.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            occupation: c.occupation,
+            id_number: c.id_number,
+            company: c.company,
+          }))
+        )
       } else if (arrivalToEdit.id) {
         api.get(`/vessel-arrivals/${arrivalToEdit.id}`)
           .then((res) => {
             const crewList = res.data?.crew
             if (Array.isArray(crewList)) {
               setSelectedCrewIds(crewList.map((c: { id: string }) => c.id))
+              setSelectedCrewList(
+                crewList.map((c: any) => ({
+                  id: c.id,
+                  name: c.name,
+                  occupation: c.occupation,
+                  id_number: c.id_number,
+                  company: c.company,
+                }))
+              )
             }
           })
           .catch(() => {
@@ -133,6 +161,7 @@ export default function VesselArrivalFormModal({
           })
       } else {
         setSelectedCrewIds([])
+        setSelectedCrewList([])
       }
     } else {
       // Default to today
@@ -152,8 +181,15 @@ export default function VesselArrivalFormModal({
       setForeignAgentPhone("")
       setForeignAgentLocation("")
       setSelectedCrewIds([])
+      setSelectedCrewList([])
     }
   }, [open, arrivalToEdit])
+
+  const handleRemoveCrew = (crewId: string, crewName?: string) => {
+    setSelectedCrewIds((prev) => prev.filter((id) => id !== crewId))
+    setSelectedCrewList((prev) => prev.filter((c) => c.id !== crewId))
+    toast.info(`Kru ${crewName ? `"${crewName}" ` : ""}dihapus dari manifest`)
+  }
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -184,23 +220,27 @@ export default function VesselArrivalFormModal({
 
     setSubmitting(true)
     try {
-      const payload: Record<string, unknown> = {
-        location_id: locationId,
-        sign_in_date: signInDate,
-        sign_out_date: signOutDate || null,
-        sign_in_port: signInPort.trim() || null,
-        sign_out_port: signOutPort.trim() || null,
-        captain: captain.trim() || null,
-        local_agent_company: localAgentCompany.trim() || null,
-        local_agent_name: localAgentName.trim() || null,
-        local_agent_phone: localAgentPhone.trim() || null,
-        local_agent_location: localAgentLocation.trim() || null,
-        foreign_agent_company: foreignAgentCompany.trim() || null,
-        foreign_agent_name: foreignAgentName.trim() || null,
-        foreign_agent_phone: foreignAgentPhone.trim() || null,
-        foreign_agent_location: foreignAgentLocation.trim() || null,
-        crew_ids: selectedCrewIds,
-      }
+        const validCrewIds = selectedCrewIds.filter(
+          (id): id is string => typeof id === "string" && id.trim().length > 0 && id !== "undefined" && id !== "null"
+        )
+
+        const payload: Record<string, unknown> = {
+          location_id: locationId,
+          sign_in_date: signInDate,
+          sign_out_date: signOutDate || null,
+          sign_in_port: signInPort.trim() || null,
+          sign_out_port: signOutPort.trim() || null,
+          captain: captain.trim() || null,
+          local_agent_company: localAgentCompany.trim() || null,
+          local_agent_name: localAgentName.trim() || null,
+          local_agent_phone: localAgentPhone.trim() || null,
+          local_agent_location: localAgentLocation.trim() || null,
+          foreign_agent_company: foreignAgentCompany.trim() || null,
+          foreign_agent_name: foreignAgentName.trim() || null,
+          foreign_agent_phone: foreignAgentPhone.trim() || null,
+          foreign_agent_location: foreignAgentLocation.trim() || null,
+          crew_ids: validCrewIds,
+        }
 
       if (isEdit && arrivalToEdit) {
         await api.put(`/vessel-arrivals/${arrivalToEdit.id}`, payload)
@@ -436,20 +476,82 @@ export default function VesselArrivalFormModal({
           </div>
 
           {/* Bagian 3: Ringkasan Manifest Kru */}
-          <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-900 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-blue-900 dark:text-blue-200">
-              <Users className="h-4 w-4" />
-              <span>Manifest Kru: <strong>{selectedCrewIds.length} Kru Terpilih</strong></span>
+          <div className="space-y-3 p-3 bg-blue-50/70 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-900">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-blue-900 dark:text-blue-200">
+                <Users className="h-4 w-4 text-blue-600" />
+                <span>
+                  Manifest Kru Kapal: <strong>{selectedCrewIds.length} Kru Terpilih</strong>
+                </span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!locationId || submitting}
+                onClick={() => setCrewDialogOpen(true)}
+                className="bg-white dark:bg-zinc-800 text-xs font-medium"
+              >
+                Kelola Kru Kapal
+              </Button>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={!locationId || submitting}
-              onClick={() => setCrewDialogOpen(true)}
-            >
-              Kelola Kru Kapal
-            </Button>
+
+            {selectedCrewIds.length > 0 ? (
+              <div className="space-y-1.5 pt-2 border-t border-blue-200/60 dark:border-blue-800/60">
+                <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+                  Daftar Kru yang Ditugaskan:
+                </span>
+                <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
+                  {selectedCrewList.length > 0 ? (
+                    selectedCrewList.map((crew) => (
+                      <Badge
+                        key={crew.id}
+                        variant="secondary"
+                        className="flex items-center gap-1.5 py-1 px-2.5 bg-white dark:bg-zinc-800 border text-xs text-zinc-800 dark:text-zinc-200 shadow-sm"
+                      >
+                        <span className="font-medium">{crew.name}</span>
+                        {crew.occupation && (
+                          <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                            ({crew.occupation})
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCrew(crew.id, crew.name)}
+                          className="ml-1 text-zinc-400 hover:text-red-600 transition-colors cursor-pointer"
+                          title="Hapus dari manifest"
+                          aria-label={`Hapus ${crew.name}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))
+                  ) : (
+                    selectedCrewIds.map((id) => (
+                      <Badge
+                        key={id}
+                        variant="secondary"
+                        className="flex items-center gap-1.5 py-1 px-2.5 bg-white dark:bg-zinc-800 border text-xs shadow-sm"
+                      >
+                        <span>Kru #{id.slice(0, 8)}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCrew(id)}
+                          className="ml-1 text-zinc-400 hover:text-red-600 transition-colors cursor-pointer"
+                          title="Hapus dari manifest"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-zinc-500 italic">
+                Belum ada kru yang dipilih. Klik "Kelola Kru Kapal" untuk memilih atau menambahkan kru pelaut.
+              </p>
+            )}
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
@@ -486,7 +588,20 @@ export default function VesselArrivalFormModal({
             locationId={locationId}
             arrivalId={arrivalToEdit?.id}
             selectedCrewIds={selectedCrewIds}
-            onSave={(ids) => setSelectedCrewIds(ids)}
+            onSave={(ids, crewObjects) => {
+              setSelectedCrewIds(ids)
+              if (crewObjects) {
+                setSelectedCrewList(
+                  crewObjects.map((c) => ({
+                    id: c.id,
+                    name: c.name,
+                    occupation: c.occupation,
+                    id_number: c.id_number,
+                    company: c.company,
+                  }))
+                )
+              }
+            }}
           />
         )}
       </DialogContent>

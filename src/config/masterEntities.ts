@@ -40,7 +40,8 @@ export interface MasterEntityConfig {
   exportCountEndpoint: string
   exportColumns: ExportColumnDef[]
   importColumns: ImportColumnDef[]
-  dateFields: DateFieldDef[]
+  defaultDateField: string
+  dateFields?: DateFieldDef[]
 }
 
 export const MASTER_ENTITIES: Record<MasterEntityKey, MasterEntityConfig> = {
@@ -56,6 +57,7 @@ export const MASTER_ENTITIES: Record<MasterEntityKey, MasterEntityConfig> = {
     importEndpoint: "/visitors/import",
     exportEndpoint: "/visitors/export",
     exportCountEndpoint: "/visitors/export-count",
+    defaultDateField: "created_at",
     dateFields: [
       { field: "created_at", labelId: "Tanggal Registrasi", labelEn: "Registration Date" },
       { field: "updated_at", labelId: "Tanggal Diperbarui", labelEn: "Updated Date" },
@@ -110,6 +112,7 @@ export const MASTER_ENTITIES: Record<MasterEntityKey, MasterEntityConfig> = {
     importEndpoint: "/visitors/blacklisted/import",
     exportEndpoint: "/visitors/blacklisted/export",
     exportCountEndpoint: "/visitors/blacklisted/export-count",
+    defaultDateField: "blacklisted_at",
     dateFields: [
       { field: "blacklisted_at", labelId: "Tanggal Blacklist (DATE)", labelEn: "Blacklist Date (DATE)" },
       { field: "created_at", labelId: "Dibuat Pada", labelEn: "Created At" },
@@ -148,6 +151,7 @@ export const MASTER_ENTITIES: Record<MasterEntityKey, MasterEntityConfig> = {
     importEndpoint: "/cards/import",
     exportEndpoint: "/cards/export",
     exportCountEndpoint: "/cards/export-count",
+    defaultDateField: "created_at",
     dateFields: [
       { field: "created_at", labelId: "Tanggal Dibuat", labelEn: "Created At" },
       { field: "updated_at", labelId: "Tanggal Diperbarui", labelEn: "Updated At" },
@@ -182,6 +186,7 @@ export const MASTER_ENTITIES: Record<MasterEntityKey, MasterEntityConfig> = {
     importEndpoint: "/vehicle-cards/import",
     exportEndpoint: "/vehicle-cards/export",
     exportCountEndpoint: "/vehicle-cards/export-count",
+    defaultDateField: "created_at",
     dateFields: [
       { field: "created_at", labelId: "Tanggal Dibuat", labelEn: "Created At" },
       { field: "updated_at", labelId: "Tanggal Diperbarui", labelEn: "Updated At" },
@@ -210,6 +215,7 @@ export const MASTER_ENTITIES: Record<MasterEntityKey, MasterEntityConfig> = {
     importEndpoint: "/staffs/import",
     exportEndpoint: "/staffs/export",
     exportCountEndpoint: "/staffs/export-count",
+    defaultDateField: "created_at",
     dateFields: [
       { field: "created_at", labelId: "Tanggal Dibuat", labelEn: "Created At" },
       { field: "updated_at", labelId: "Tanggal Diperbarui", labelEn: "Updated At" },
@@ -249,6 +255,7 @@ export const MASTER_ENTITIES: Record<MasterEntityKey, MasterEntityConfig> = {
     importEndpoint: "/locations/import",
     exportEndpoint: "/locations/export",
     exportCountEndpoint: "/locations/export-count",
+    defaultDateField: "created_at",
     dateFields: [
       { field: "created_at", labelId: "Tanggal Dibuat", labelEn: "Created At" },
       { field: "updated_at", labelId: "Tanggal Diperbarui", labelEn: "Updated At" },
