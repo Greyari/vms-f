@@ -45,6 +45,18 @@ interface VisitRecord {
   purpose?: string
 }
 
+interface BlacklistHistoryItem {
+  id: number | string
+  badge_code?: string
+  offences?: string
+  date?: string
+  blacklisted_at?: string
+  remark?: string
+  company?: string
+  is_active: boolean
+  unblacklisted_at?: string | null
+}
+
 interface VisitorProfile {
   id: number | string
   visitor_no?: string | number
@@ -71,6 +83,7 @@ interface VisitorProfile {
   vessel?: { id: number | string; name: string }
   vessel_name?: string
   visits?: VisitRecord[]
+  blacklists?: BlacklistHistoryItem[]
 }
 
 interface VisitorDetailModalProps {
@@ -140,6 +153,7 @@ export default function VisitorDetailModal({
         birth_place: raw.birth_place || raw.pob || "",
         birth_date: raw.birth_date || raw.dob || "",
         visits: visitsList,
+        blacklists: Array.isArray(raw.blacklists) ? raw.blacklists : [],
       })
     } catch (err: any) {
       console.error(err)
@@ -471,6 +485,58 @@ export default function VisitorDetailModal({
                     <div className="flex items-center gap-2 text-emerald-600">
                       <ShieldCheck className="h-5 w-5" />
                       <span className="font-medium">Status: Bersih / Aktif (Izin kunjungan normal)</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Riwayat Blacklist */}
+                <div className="rounded-lg border p-4">
+                  <h4 className="mb-3 font-semibold text-sm flex items-center gap-2">
+                    <ShieldAlert className="h-4 w-4 text-red-500" />
+                    Riwayat Blacklist (Blacklist History)
+                  </h4>
+                  {(!visitor.blacklists || visitor.blacklists.length === 0) ? (
+                    <p className="text-xs text-muted-foreground py-2">
+                      Belum ada catatan riwayat blacklist untuk pengunjung ini.
+                    </p>
+                  ) : (
+                    <div className="overflow-hidden rounded-md border">
+                      <Table>
+                        <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
+                          <TableRow>
+                            <TableHead className="text-xs">Tanggal</TableHead>
+                            <TableHead className="text-xs">Badge / H.I.D</TableHead>
+                            <TableHead className="text-xs">Pelanggaran (Offences)</TableHead>
+                            <TableHead className="text-xs">Keterangan (Remark)</TableHead>
+                            <TableHead className="text-xs">Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {visitor.blacklists.map((bl, i) => (
+                            <TableRow key={bl.id || i}>
+                              <TableCell className="text-xs font-mono whitespace-nowrap">
+                                {bl.date || (bl.blacklisted_at ? bl.blacklisted_at.slice(0, 10) : "-")}
+                              </TableCell>
+                              <TableCell className="text-xs font-mono">{bl.badge_code || "-"}</TableCell>
+                              <TableCell className="text-xs text-red-600 dark:text-red-400 font-medium">
+                                {bl.offences || "-"}
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{bl.remark || "-"}</TableCell>
+                              <TableCell className="text-xs">
+                                {bl.is_active ? (
+                                  <Badge variant="destructive" className="text-[10px] py-0">
+                                    Aktif
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] py-0 text-emerald-600 border-emerald-500/30">
+                                    Dicabut
+                                  </Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
                   )}
                 </div>
