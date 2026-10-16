@@ -47,11 +47,8 @@ interface Staff {
   id: string
   staff_id: string
   name: string
-  department?: string
-  occupation?: string
   company?: string
   gender?: string
-  birth_date?: string
   address?: string
   is_active: boolean
   deleted_at?: string
@@ -80,11 +77,8 @@ export default function Staffs() {
     id: null as string | null,
     staff_id: "",
     name: "",
-    department: "",
-    occupation: "",
     company: "",
     gender: "",
-    birth_date: "",
     address: "",
     is_active: true,
   })
@@ -153,11 +147,8 @@ export default function Staffs() {
         id: staff.id,
         staff_id: staff.staff_id || "",
         name: staff.name || "",
-        department: staff.department || "",
-        occupation: staff.occupation || "",
         company: staff.company || "",
         gender: staff.gender || "",
-        birth_date: staff.birth_date || "",
         address: staff.address || "",
         is_active: staff.is_active ?? true,
       })
@@ -166,11 +157,8 @@ export default function Staffs() {
         id: null,
         staff_id: "",
         name: "",
-        department: "",
-        occupation: "",
         company: "",
         gender: "",
-        birth_date: "",
         address: "",
         is_active: true,
       })
@@ -274,7 +262,7 @@ export default function Staffs() {
           <div className="relative">
             <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />
             <Input
-              placeholder="Cari nama, NIK, atau departemen..."
+              placeholder="Cari nama, NIK, atau perusahaan..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value)
@@ -322,7 +310,6 @@ export default function Staffs() {
               <TableRow>
                 <TableHead>Staff ID / NIK</TableHead>
                 <TableHead>Nama Lengkap</TableHead>
-                <TableHead>Departemen</TableHead>
                 <TableHead>Perusahaan</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
@@ -331,14 +318,14 @@ export default function Staffs() {
             <TableBody>
               {loading && staffs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
                   </TableCell>
                 </TableRow>
               ) : staffs.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={5}
                     className="h-24 text-center text-zinc-500"
                   >
                     Data staf tidak ditemukan.
@@ -354,7 +341,6 @@ export default function Staffs() {
                       {staff.staff_id}
                     </TableCell>
                     <TableCell className="font-medium">{staff.name}</TableCell>
-                    <TableCell>{staff.department || "-"}</TableCell>
                     <TableCell>{staff.company || "-"}</TableCell>
                     <TableCell>
                       {staff.is_active ? (
@@ -453,30 +439,6 @@ export default function Staffs() {
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="form_department">Departemen</Label>
-                <Input
-                  id="form_department"
-                  value={form.department}
-                  onChange={(e) =>
-                    setForm({ ...form, department: e.target.value })
-                  }
-                  placeholder="Contoh: Commercial"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="form_occupation">Jabatan / Posisi</Label>
-                <Input
-                  id="form_occupation"
-                  value={form.occupation}
-                  onChange={(e) =>
-                    setForm({ ...form, occupation: e.target.value })
-                  }
-                  placeholder="Contoh: Manager"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
                 <Label htmlFor="form_company">Perusahaan</Label>
                 <Input
                   id="form_company"
@@ -500,17 +462,6 @@ export default function Staffs() {
                   <option value="F" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Perempuan (F)</option>
                 </select>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="form_birth_date">Tanggal Lahir</Label>
-              <Input
-                id="form_birth_date"
-                type="date"
-                value={form.birth_date}
-                onChange={(e) =>
-                  setForm({ ...form, birth_date: e.target.value })
-                }
-              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="form_address">Alamat</Label>
@@ -564,10 +515,9 @@ export default function Staffs() {
         columns={[
           { key: "staff_id", label: "Staff ID / NIK" },
           { key: "name", label: "Nama Lengkap" },
-          { key: "department", label: "Departemen" },
           { key: "company", label: "Perusahaan" },
-          { key: "occupation", label: "Jabatan" },
           { key: "gender", label: "Gender" },
+          { key: "address", label: "Alamat" },
         ]}
         onSuccess={fetchStaffs}
       />

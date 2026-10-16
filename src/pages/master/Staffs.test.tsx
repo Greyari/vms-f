@@ -42,16 +42,16 @@ describe('Staffs Master Page', () => {
     })
   })
 
-  it('renders staff list with Staff ID, Name, Department, and status', async () => {
+  it('renders staff list with Staff ID, Name, Company, and status', async () => {
     render(<Staffs />)
 
     await waitFor(() => {
       expect(screen.getByText('EMP-001')).toBeInTheDocument()
       expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
-      expect(screen.getByText('Commercial')).toBeInTheDocument()
+      expect(screen.getByText('PT Cemara Intan')).toBeInTheDocument()
       expect(screen.getByText('EMP-002')).toBeInTheDocument()
       expect(screen.getByText('Siti Aminah')).toBeInTheDocument()
-      expect(screen.getByText('HSE')).toBeInTheDocument()
+      expect(screen.getByText('PT ASL Shipyard')).toBeInTheDocument()
     })
   })
 
@@ -74,13 +74,13 @@ describe('Staffs Master Page', () => {
     })
   })
 
-  it('submits new staff with staff_id, name, and department to POST /staffs', async () => {
+  it('submits new staff with staff_id, name, and company to POST /staffs', async () => {
     vi.mocked(api.post).mockResolvedValue({
       data: {
         id: 'staff-3',
         staff_id: 'EMP-003',
         name: 'Ahmad Dahlan',
-        department: 'Operations',
+        company: 'PT Cemara Intan',
         is_active: true,
       },
     })
@@ -106,8 +106,8 @@ describe('Staffs Master Page', () => {
       target: { value: 'Ahmad Dahlan' },
     })
 
-    fireEvent.change(screen.getByLabelText(/departemen/i), {
-      target: { value: 'Operations' },
+    fireEvent.change(screen.getByLabelText(/perusahaan/i), {
+      target: { value: 'PT Cemara Intan' },
     })
 
     const saveButton = screen.getByRole('button', { name: /simpan/i })
@@ -117,7 +117,7 @@ describe('Staffs Master Page', () => {
       expect(api.post).toHaveBeenCalledWith('/staffs', expect.objectContaining({
         staff_id: 'EMP-003',
         name: 'Ahmad Dahlan',
-        department: 'Operations',
+        company: 'PT Cemara Intan',
       }))
     })
   })
