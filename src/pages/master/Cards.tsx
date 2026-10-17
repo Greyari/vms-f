@@ -51,10 +51,23 @@ import { MASTER_ENTITIES } from "@/config/masterEntities"
 export interface CardItem {
   id: number | string
   card_no: string
-  card_type: "visitor" | "vehicle"
-  status: "available" | "in_use" | "lost"
+  id_card_no?: string | null
+  name?: string | null
+  date_issued?: string | null
+  card_type?: "visitor" | "vehicle"
+  status: "available" | "in_use" | "lost" | "damaged"
   created_at?: string
   updated_at?: string
+}
+
+function formatDateIssued(dateStr?: string | null) {
+  if (!dateStr) return "-"
+  const clean = dateStr.slice(0, 10)
+  const parts = clean.split("-")
+  if (parts.length === 3) {
+    return `${parts[2]}.${parts[1]}.${parts[0]}`
+  }
+  return dateStr
 }
 
 export default function Cards() {
@@ -75,7 +88,11 @@ export default function Cards() {
   const [modalOpen, setModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [editingCard, setEditingCard] = useState<CardItem | null>(null)
-  const [cardNo, setCardNo] = useState("")
+  const [formCardNo, setFormCardNo] = useState("")
+  const [formIdCardNo, setFormIdCardNo] = useState("")
+  const [formName, setFormName] = useState("")
+  const [formDateIssued, setFormDateIssued] = useState("")
+  const [formStatus, setFormStatus] = useState<"available" | "lost" | "damaged">("available")
 
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState<CardItem | null>(null)
@@ -121,33 +138,50 @@ export default function Cards() {
 
   const openCreateModal = () => {
     setEditingCard(null)
-    setCardNo("")
+    setFormCardNo("")
+    setFormIdCardNo("")
+    setFormName("VISITOR GREEN")
+    setFormDateIssued(new Date().toISOString().slice(0, 10))
+    setFormStatus("available")
     setModalOpen(true)
   }
 
   const openEditModal = (card: CardItem) => {
     setEditingCard(card)
-    setCardNo(card.card_no)
+    setFormCardNo(card.card_no || "")
+    setFormIdCardNo(card.id_card_no || "")
+    setFormName(card.name || "")
+    setFormDateIssued(card.date_issued ? String(card.date_issued).slice(0, 10) : "")
+    setFormStatus(card.status === "in_use" ? "available" : (card.status || "available"))
     setModalOpen(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!cardNo.trim()) {
+    if (!formCardNo.trim()) {
       toast.error("Nomor kartu wajib diisi.")
       return
     }
 
     setSubmitting(true)
     try {
+      const payload: Record<string, unknown> = {
+        card_no: formCardNo.trim(),
+        id_card_no: formIdCardNo.trim() || null,
+        name: formName.trim() || null,
+        date_issued: formDateIssued || null,
+        card_type: "visitor",
+      }
+
       if (editingCard) {
-        await api.put(`/cards/${editingCard.id}`, { card_no: cardNo.trim() })
-        toast.success("Nomor kartu visitor berhasil diperbarui.")
+        if (editingCard.status !== "in_use") {
+          payload.status = formStatus
+        }
+        await api.put(`/cards/${editingCard.id}`, payload)
+        toast.success("Kartu visitor berhasil diperbarui.")
       } else {
-        await api.post("/cards", {
-          card_no: cardNo.trim(),
-          card_type: "visitor",
-        })
+        payload.status = formStatus
+        await api.post("/cards", payload)
         toast.success("Kartu visitor baru berhasil ditambahkan.")
       }
       setModalOpen(false)
@@ -196,14 +230,20 @@ export default function Cards() {
         )
       case "in_use":
         return (
-          <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-300 dark:border-amber-800">
+          <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-300 dark:border-blue-800">
             In Use
           </Badge>
         )
       case "lost":
         return (
-          <Badge variant="destructive" className="font-medium text-xs">
+          <Badge variant="destructive" className="bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-300 dark:border-red-800">
             Lost
+          </Badge>
+        )
+      case "damaged":
+        return (
+          <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-300 dark:border-amber-800">
+            Damaged
           </Badge>
         )
       default:
@@ -264,7 +304,7 @@ export default function Cards() {
                 <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-400" />
                 <Input
                   id="cards-search-input"
-                  placeholder="Cari nomor kartu..."
+                  placeholder="Cari nomor kartu, ID card, atau nama..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-8"
@@ -289,6 +329,7 @@ export default function Cards() {
                 <option value="available">Available</option>
                 <option value="in_use">In Use</option>
                 <option value="lost">Lost</option>
+                <option value="damaged">Damaged</option>
               </select>
             </div>
 
@@ -345,24 +386,26 @@ export default function Cards() {
           <Table>
             <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
               <TableRow>
-                <TableHead className="w-12 text-center">No</TableHead>
-                <TableHead>Nomor Kartu</TableHead>
-                <TableHead>Tipe Kartu</TableHead>
-                <TableHead>Status Operasional</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead className="w-12 text-center">NO</TableHead>
+                <TableHead>CARD NO</TableHead>
+                <TableHead>ID CARD NO</TableHead>
+                <TableHead>NAME</TableHead>
+                <TableHead>DATE ISSUED (TK)</TableHead>
+                <TableHead>STATUS</TableHead>
+                <TableHead className="text-right">AKSI</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-28 text-center">
+                  <TableCell colSpan={7} className="h-28 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
                     <span className="mt-2 block text-xs text-zinc-500">Memuat data kartu...</span>
                   </TableCell>
                 </TableRow>
               ) : cards.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-zinc-500">
+                  <TableCell colSpan={7} className="h-24 text-center text-zinc-500">
                     Tidak ada kartu visitor ditemukan.
                   </TableCell>
                 </TableRow>
@@ -382,10 +425,14 @@ export default function Cards() {
                         <CreditCard className="h-4 w-4 text-blue-500 flex-shrink-0" />
                         <span>{card.card_no}</span>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-medium text-xs uppercase">
-                          Visitor
-                        </Badge>
+                      <TableCell className="font-mono text-sm text-zinc-700 dark:text-zinc-300">
+                        {card.id_card_no || "-"}
+                      </TableCell>
+                      <TableCell className="font-medium text-zinc-800 dark:text-zinc-200">
+                        {card.name || "-"}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm text-zinc-600 dark:text-zinc-400">
+                        {formatDateIssued(card.date_issued)}
                       </TableCell>
                       <TableCell>{getStatusBadge(card.status)}</TableCell>
                       <TableCell className="space-x-1.5 text-right whitespace-nowrap">
@@ -393,7 +440,7 @@ export default function Cards() {
                           variant="outline"
                           size="sm"
                           onClick={() => openEditModal(card)}
-                          title="Edit Nomor Kartu"
+                          title="Edit Kartu"
                           aria-label="Edit"
                           className="cursor-pointer"
                         >
@@ -466,25 +513,105 @@ export default function Cards() {
               </DialogTitle>
               <DialogDescription>
                 {editingCard
-                  ? "Ubah nomor fisik kartu visitor."
-                  : "Masukkan nomor kartu visitor baru. Status awal akan otomatis diset Available oleh sistem."}
+                  ? "Perbarui informasi dan status fisik kartu visitor."
+                  : "Masukkan rincian kartu fisik visitor baru."}
               </DialogDescription>
             </DialogHeader>
 
-            <div>
-              <label
-                htmlFor="cards-cardno-input"
-                className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
-              >
-                Nomor Kartu <span className="text-red-500">*</span>
-              </label>
-              <Input
-                id="cards-cardno-input"
-                value={cardNo}
-                onChange={(e) => setCardNo(e.target.value)}
-                placeholder="Misal: VIS-001"
-                required
-              />
+            <div className="space-y-3">
+              <div>
+                <label
+                  htmlFor="cards-cardno-input"
+                  className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                >
+                  CARD NO (Nomor Kartu) <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="cards-cardno-input"
+                  value={formCardNo}
+                  onChange={(e) => setFormCardNo(e.target.value)}
+                  placeholder="Misal: ASL-2301"
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="cards-idcardno-input"
+                  className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                >
+                  ID CARD NO
+                </label>
+                <Input
+                  id="cards-idcardno-input"
+                  value={formIdCardNo}
+                  onChange={(e) => setFormIdCardNo(e.target.value)}
+                  placeholder="Misal: 0005890502"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="cards-name-input"
+                  className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                >
+                  NAME (Nama Kartu)
+                </label>
+                <Input
+                  id="cards-name-input"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="Misal: VISITOR GREEN"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="cards-dateissued-input"
+                  className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                >
+                  DATE ISSUED (TK)
+                </label>
+                <Input
+                  id="cards-dateissued-input"
+                  type="date"
+                  value={formDateIssued}
+                  onChange={(e) => setFormDateIssued(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="cards-status-input"
+                  className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                >
+                  STATUS
+                </label>
+                {editingCard && editingCard.status === "in_use" ? (
+                  <div className="space-y-1">
+                    <Input
+                      id="cards-status-input"
+                      value="In Use (Sedang Digunakan)"
+                      disabled
+                      className="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 cursor-not-allowed"
+                    />
+                    <p className="text-[11px] text-zinc-500">
+                      Status In Use dikelola otomatis oleh check-in / check-out kunjungan.
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    id="cards-status-input"
+                    value={formStatus}
+                    onChange={(e) => setFormStatus(e.target.value as "available" | "lost" | "damaged")}
+                    className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                  >
+                    <option value="available">Available (Tersedia)</option>
+                    <option value="lost">Lost (Hilang)</option>
+                    <option value="damaged">Damaged (Rusak)</option>
+                  </select>
+                )}
+              </div>
             </div>
 
             <DialogFooter className="pt-2">
@@ -546,9 +673,11 @@ export default function Cards() {
         previewEndpoint="/cards/import-preview"
         importEndpoint="/cards/import"
         columns={[
-          { key: "card_no", label: "Nomor Kartu" },
-          { key: "card_type", label: "Tipe Kartu" },
-          { key: "note", label: "Catatan" },
+          { key: "card_no", label: "CARD NO" },
+          { key: "id_card_no", label: "ID CARD NO" },
+          { key: "name", label: "NAME" },
+          { key: "date_issued", label: "DATE ISSUED (TK)" },
+          { key: "status", label: "STATUS" },
         ]}
         onSuccess={fetchCards}
       />
