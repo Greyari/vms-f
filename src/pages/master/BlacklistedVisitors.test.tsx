@@ -180,4 +180,138 @@ describe("BlacklistedVisitors Master Page", () => {
       )
     })
   })
+
+  it("imports blacklist file and automatically refreshes table with newly imported rows", async () => {
+    let imported = false
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url === "/visitors/blacklisted") {
+        return Promise.resolve({
+          data: {
+            data: imported
+              ? [
+                  ...mockBlacklistData,
+                  {
+                    id: "bl-200",
+                    visitor_id: "v-200",
+                    id_number: "2171018888880002",
+                    name: "Imported Offender",
+                    badge_code: "HID-200",
+                    offences: "Pelanggaran Import",
+                    blacklisted_at: "2026-10-16",
+                    remark: "Catatan Import",
+                    company: "PT Import Jaya",
+                    is_blacklisted: true,
+                  },
+                ]
+              : mockBlacklistData,
+            current_page: 1,
+            last_page: 1,
+            total: imported ? 2 : 1,
+          },
+        })
+      }
+      return Promise.resolve({ data: {} })
+    })
+
+    vi.mocked(api.post).mockImplementation((url: string) => {
+      if (url === "/visitors/blacklisted/import-preview") {
+        return Promise.resolve({
+          data: {
+            total_rows: 1,
+            preview: [
+              {
+                _row: 2,
+                _status: "new",
+                name_of_offender: "Imported Offender",
+                "badge_/_h.i.d_code": "HID-200",
+                ktp_no: "2171018888880002",
+                offences: "Pelanggaran Import",
+                date: "2026-10-16",
+                remark: "Catatan Import",
+                company_name: "PT Import Jaya",
+              },
+            ],
+            duplicates: [],
+            duplicate_count: 0,
+            new_count: 1,
+            error_count: 0,
+            errors: [],
+          },
+        })
+      }
+      if (url === "/visitors/blacklisted/import") {
+        imported = true
+        return Promise.resolve({
+          data: {
+            message: "Import selesai.",
+            total: 1,
+            success: 1,
+            created: 1,
+            updated: 0,
+            replaced: 0,
+            skipped_duplicates: 0,
+            failed: 0,
+            failed_details: [],
+          },
+        })
+      }
+      return Promise.resolve({ data: {} })
+    })
+
+    const { container } = render(
+      <BrowserRouter>
+        <BlacklistedVisitors />
+      </BrowserRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("Doni Kusuma")).toBeInTheDocument()
+    })
+
+    // Open Import Dialog
+    fireEvent.click(screen.getByRole("button", { name: /import excel/i }))
+
+    const fileInput = document.querySelector("#import-excel-file") as HTMLInputElement
+    const testFile = new File(["dummy"], "blacklist.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
+    fireEvent.change(fileInput, { target: { files: [testFile] } })
+
+    // Continue to Preview
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /lanjut ke pratinjau|continue to preview/i,
+      })
+    )
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        "/visitors/blacklisted/import-preview",
+        expect.any(FormData),
+        expect.anything()
+      )
+    })
+
+    // Execute Import
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: /lanjutkan & eksekusi simpan|continue & execute import/i,
+      })
+    )
+
+    // Verify import endpoint called and table automatically refreshed with the new row
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        "/visitors/blacklisted/import",
+        expect.any(FormData),
+        expect.anything()
+      )
+      expect(screen.getByText("Imported Offender")).toBeInTheDocument()
+      expect(screen.getByText("2171018888880002")).toBeInTheDocument()
+      expect(screen.getByText("HID-200")).toBeInTheDocument()
+      expect(screen.getByText("PT Import Jaya")).toBeInTheDocument()
+    })
+    expect(container).toBeTruthy()
+  })
 })
+

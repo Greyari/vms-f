@@ -53,10 +53,13 @@ export interface LocationItem {
   id: string
   name: string
   type: "location" | "repair_vessel" | "tug_boat" | "barge"
+  vessel_type?: string | null
   code?: string | null
   call_sign?: string | null
   flag?: string | null
   port?: string | null
+  captain?: string | null
+  pic?: string | null
   is_active: boolean
 }
 
@@ -80,10 +83,13 @@ export default function Locations() {
   const [form, setForm] = useState({
     name: "",
     type: "location" as LocationItem["type"],
+    vessel_type: "",
     code: "",
     call_sign: "",
     flag: "",
     port: "",
+    captain: "",
+    pic: "",
     is_active: true,
   })
 
@@ -126,10 +132,13 @@ export default function Locations() {
     setForm({
       name: "",
       type: "location",
+      vessel_type: "",
       code: "",
       call_sign: "",
       flag: "",
       port: "",
+      captain: "",
+      pic: "",
       is_active: true,
     })
     setModalOpen(true)
@@ -140,10 +149,13 @@ export default function Locations() {
     setForm({
       name: item.name,
       type: item.type,
+      vessel_type: item.vessel_type || "",
       code: item.code || "",
       call_sign: item.call_sign || "",
       flag: item.flag || "",
       port: item.port || "",
+      captain: item.captain || "",
+      pic: item.pic || "",
       is_active: Boolean(item.is_active),
     })
     setModalOpen(true)
@@ -158,7 +170,7 @@ export default function Locations() {
 
     const isVessel = form.type !== "location"
     if (isVessel && !form.code.trim()) {
-      toast.error("Nomor Kode / IMO wajib diisi untuk kapal.")
+      toast.error('Nomor Kode / IMO wajib diisi untuk kapal (isi "-" jika belum ada IMO).')
       return
     }
 
@@ -167,14 +179,27 @@ export default function Locations() {
       const payload: Record<string, unknown> = {
         name: form.name.trim(),
         type: form.type,
+        vessel_type: form.vessel_type.trim() || null,
         is_active: form.is_active,
         call_sign: form.call_sign.trim() || null,
         flag: form.flag.trim() || null,
         port: form.port.trim() || null,
+        captain: form.captain.trim() || null,
+        pic: form.pic.trim() || null,
       }
 
-      if (isVessel || form.code.trim()) {
-        payload.code = form.code.trim()
+      const rawCode = form.code.trim()
+      if (isVessel) {
+        payload.code =
+          rawCode === "-"
+            ? form.name
+                .trim()
+                .toUpperCase()
+                .replace(/[^A-Z0-9]+/g, "_")
+                .replace(/^_|_$/g, "")
+            : rawCode
+      } else if (rawCode && rawCode !== "-") {
+        payload.code = rawCode
       }
 
       if (editingItem) {
@@ -234,7 +259,7 @@ export default function Locations() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Master Lokasi & Kapal</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Kelola lokasi darat galangan, dermaga, serta kapal sandar & perbaikan.
+            Kelola lokasi darat galangan, dermaga, serta kapal sandar & perbaikan (IMO, Call Sign, Bendera, Captain, & PIC/Note).
           </p>
         </div>
 
@@ -328,10 +353,10 @@ export default function Locations() {
             </Button>
           </div>
 
-          <div className="relative w-full md:w-72">
+          <div className="relative w-full md:w-80">
             <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-400" />
             <Input
-              placeholder="Cari nama lokasi atau kode IMO..."
+              placeholder="Cari nama kapal, IMO, captain, atau PIC..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value)
@@ -343,16 +368,18 @@ export default function Locations() {
         </div>
 
         {/* Table */}
-        <div className="overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-800">
+        <div className="overflow-x-auto rounded-md border border-zinc-200 dark:border-zinc-800">
           <Table>
             <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
               <TableRow>
                 <TableHead className="w-12 text-center">No</TableHead>
-                <TableHead>Nama Lokasi / Kapal</TableHead>
-                <TableHead>Tipe</TableHead>
                 <TableHead>Kode / IMO</TableHead>
+                <TableHead>Description / Nama Lokasi & Kapal</TableHead>
+                <TableHead>Tipe / Spesifikasi</TableHead>
                 <TableHead>Call Sign</TableHead>
                 <TableHead>Bendera</TableHead>
+                <TableHead>Captain</TableHead>
+                <TableHead>Note / PIC</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
@@ -360,14 +387,14 @@ export default function Locations() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-28 text-center">
+                  <TableCell colSpan={10} className="h-28 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
                     <span className="mt-2 block text-xs text-zinc-500">Memuat data lokasi...</span>
                   </TableCell>
                 </TableRow>
               ) : locations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center text-zinc-500">
+                  <TableCell colSpan={10} className="h-24 text-center text-zinc-500">
                     Tidak ada lokasi atau kapal ditemukan.
                   </TableCell>
                 </TableRow>
@@ -383,27 +410,42 @@ export default function Locations() {
                       <TableCell className="text-center font-mono text-xs text-zinc-500">
                         {(currentPage - 1) * perPage + index + 1}
                       </TableCell>
-                      <TableCell className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                        {isPlace ? (
-                          <Building2 className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                        ) : (
-                          <Ship className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                        )}
-                        <span>{item.name}</span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-medium text-xs">
-                          {getTypeLabel(item.type)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-zinc-700 dark:text-zinc-300">
+                      <TableCell className="font-mono text-xs font-medium text-zinc-700 dark:text-zinc-300">
                         {item.code || "-"}
                       </TableCell>
-                      <TableCell className="text-zinc-600 dark:text-zinc-400">
+                      <TableCell className="font-semibold text-zinc-900 dark:text-zinc-100">
+                        <div className="flex items-center gap-2">
+                          {isPlace ? (
+                            <Building2 className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                          ) : (
+                            <Ship className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                          )}
+                          <span>{item.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5 items-start">
+                          <Badge variant="outline" className="font-medium text-xs">
+                            {getTypeLabel(item.type)}
+                          </Badge>
+                          {item.vessel_type && (
+                            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                              {item.vessel_type}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
                         {item.call_sign || "-"}
                       </TableCell>
-                      <TableCell className="text-zinc-600 dark:text-zinc-400">
+                      <TableCell className="text-zinc-600 dark:text-zinc-400 text-xs">
                         {item.flag || "-"}
+                      </TableCell>
+                      <TableCell className="text-zinc-700 dark:text-zinc-300 text-xs font-medium">
+                        {item.captain || "-"}
+                      </TableCell>
+                      <TableCell className="text-zinc-600 dark:text-zinc-400 text-xs">
+                        {item.pic || "-"}
                       </TableCell>
                       <TableCell>
                         {item.is_active ? (
@@ -477,14 +519,14 @@ export default function Locations() {
 
       {/* Modal Dialog Create/Edit */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleSubmit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>
                 {editingItem ? "Edit Lokasi atau Kapal" : "Tambah Lokasi atau Kapal"}
               </DialogTitle>
               <DialogDescription>
-                Masukkan detail lokasi darat atau spesifikasi kapal galangan.
+                Masukkan detail lokasi darat atau spesifikasi kapal galangan (IMO, Call Sign, Bendera, Captain, & Note/PIC).
               </DialogDescription>
             </DialogHeader>
 
@@ -505,29 +547,46 @@ export default function Locations() {
                 />
               </div>
 
-              <div>
-                <label
-                  htmlFor="location-type-input"
-                  className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
-                >
-                  Tipe Lokasi <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="location-type-input"
-                  value={form.type}
-                  onChange={(e) =>
-                    setForm((p) => ({
-                      ...p,
-                      type: e.target.value as LocationItem["type"],
-                    }))
-                  }
-                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                >
-                  <option value="location">Lokasi Darat / Bangunan</option>
-                  <option value="repair_vessel">Repair Vessel</option>
-                  <option value="tug_boat">Tug Boat</option>
-                  <option value="barge">Barge</option>
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label
+                    htmlFor="location-type-input"
+                    className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                  >
+                    Tipe Lokasi <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="location-type-input"
+                    value={form.type}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        type: e.target.value as LocationItem["type"],
+                      }))
+                    }
+                    className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                  >
+                    <option value="location">Lokasi Darat / Bangunan</option>
+                    <option value="repair_vessel">Repair Vessel</option>
+                    <option value="tug_boat">Tug Boat</option>
+                    <option value="barge">Barge</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="location-vessel-type-input"
+                    className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                  >
+                    Spesifikasi Tipe (Type)
+                  </label>
+                  <Input
+                    id="location-vessel-type-input"
+                    value={form.vessel_type}
+                    onChange={(e) => setForm((p) => ({ ...p, vessel_type: e.target.value }))}
+                    placeholder="Misal: OIL PRODUCTS TANKER, BARGE, OFFICE"
+                  />
+                </div>
               </div>
 
               <div>
@@ -544,7 +603,7 @@ export default function Locations() {
                   placeholder={
                     form.type === "location"
                       ? "Dihasilkan otomatis oleh sistem jika kosong"
-                      : "Nomor IMO (Wajib untuk kapal)"
+                      : 'Nomor IMO (Wajib untuk kapal, isi "-" jika tanpa IMO)'
                   }
                 />
               </div>
@@ -561,7 +620,7 @@ export default function Locations() {
                     id="location-callsign-input"
                     value={form.call_sign}
                     onChange={(e) => setForm((p) => ({ ...p, call_sign: e.target.value }))}
-                    placeholder="Misal: YBDT"
+                    placeholder="Misal: YBDT, 9V9752"
                   />
                 </div>
                 <div>
@@ -575,7 +634,38 @@ export default function Locations() {
                     id="location-flag-input"
                     value={form.flag}
                     onChange={(e) => setForm((p) => ({ ...p, flag: e.target.value }))}
-                    placeholder="Misal: Indonesia"
+                    placeholder="Misal: INDONESIA, SINGAPORE"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label
+                    htmlFor="location-captain-input"
+                    className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                  >
+                    Captain / Nakhoda
+                  </label>
+                  <Input
+                    id="location-captain-input"
+                    value={form.captain}
+                    onChange={(e) => setForm((p) => ({ ...p, captain: e.target.value }))}
+                    placeholder="Misal: CAPT. SUTRISNO"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="location-pic-input"
+                    className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                  >
+                    Note / PIC
+                  </label>
+                  <Input
+                    id="location-pic-input"
+                    value={form.pic}
+                    onChange={(e) => setForm((p) => ({ ...p, pic: e.target.value }))}
+                    placeholder="Misal: ALVI, SYAHRIAL"
                   />
                 </div>
               </div>
@@ -665,18 +755,12 @@ export default function Locations() {
         open={importOpen}
         onOpenChange={setImportOpen}
         title="Import Lokasi & Kapal"
-        description="Unggah berkas Excel (.xlsx / .xls / .csv) berisi daftar lokasi darat, dermaga, atau kapal sandar."
+        description="Unggah berkas Excel (.xlsx / .xls / .csv) berisi daftar lokasi darat, dermaga, atau kapal sandar (IMONo, Description, CallSign, NationalityFlag, Type, Captain, Note)."
         templateEndpoint="/locations/template"
         templateFileName="template_locations_vessels.xlsx"
         previewEndpoint="/locations/import-preview"
         importEndpoint="/locations/import"
-        columns={[
-          { key: "name", label: "Nama Lokasi / Kapal" },
-          { key: "type", label: "Tipe" },
-          { key: "code", label: "Kode / IMO" },
-          { key: "pic", label: "PIC / Penanggung Jawab" },
-          { key: "port", label: "Pelabuhan Asal" },
-        ]}
+        columns={MASTER_ENTITIES.locations.importColumns}
         onSuccess={fetchLocations}
       />
 

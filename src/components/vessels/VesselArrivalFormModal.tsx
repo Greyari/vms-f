@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Ship, Users, X } from "lucide-react"
+import { Loader2, Plus, Ship, Users, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { VesselArrivalItem } from "@/pages/vessels/VesselArrivals"
 import CrewSelectionDialog from "./CrewSelectionDialog"
@@ -23,6 +23,12 @@ interface LocationOption {
   name: string
   code?: string | null
   type: string
+  vessel_type?: string | null
+  call_sign?: string | null
+  flag?: string | null
+  port?: string | null
+  captain?: string | null
+  pic?: string | null
   is_active: boolean
 }
 
@@ -44,6 +50,20 @@ export default function VesselArrivalFormModal({
   // Vessel locations
   const [vessels, setVessels] = useState<LocationOption[]>([])
   const [loadingVessels, setLoadingVessels] = useState(false)
+
+  // Inline Create Vessel State
+  const [newVesselOpen, setNewVesselOpen] = useState(false)
+  const [creatingVessel, setCreatingVessel] = useState(false)
+  const [newVesselForm, setNewVesselForm] = useState({
+    name: "",
+    type: "repair_vessel",
+    vessel_type: "",
+    code: "",
+    call_sign: "",
+    flag: "",
+    captain: "",
+    pic: "",
+  })
 
   // Form Fields
   const [locationId, setLocationId] = useState("")
@@ -88,7 +108,7 @@ export default function VesselArrivalFormModal({
     async function loadVessels() {
       setLoadingVessels(true)
       try {
-        const res = await api.get("/locations", { params: { per_page: 100 } })
+        const res = await api.get("/locations", { params: { per_page: 2000 } })
         const raw = Array.isArray(res.data) ? res.data : (res.data?.data ?? [])
         // Filter out non-vessel locations
         const filteredVessels = raw.filter(
@@ -109,6 +129,7 @@ export default function VesselArrivalFormModal({
   useEffect(() => {
     if (!open) {
       setErrors({})
+      setNewVesselOpen(false)
       return
     }
 
@@ -184,6 +205,72 @@ export default function VesselArrivalFormModal({
       setSelectedCrewList([])
     }
   }, [open, arrivalToEdit])
+
+  const selectedVessel = vessels.find((v) => v.id === locationId) || null
+
+  const handleSelectVessel = (newId: string) => {
+    setLocationId(newId)
+    const found = vessels.find((v) => v.id === newId)
+    if (found?.captain && !captain.trim()) {
+      setCaptain(found.captain)
+    }
+  }
+
+  const handleCreateVessel = async () => {
+    if (!newVesselForm.name.trim()) {
+      toast.error("Nama kapal wajib diisi.")
+      return
+    }
+    const rawCode = newVesselForm.code.trim()
+    const resolvedCode =
+      !rawCode || rawCode === "-"
+        ? newVesselForm.name
+            .trim()
+            .toUpperCase()
+            .replace(/[^A-Z0-9]+/g, "_")
+            .replace(/^_|_$/g, "")
+        : rawCode
+
+    setCreatingVessel(true)
+    try {
+      const payload = {
+        name: newVesselForm.name.trim(),
+        type: newVesselForm.type,
+        vessel_type: newVesselForm.vessel_type.trim() || null,
+        code: resolvedCode,
+        call_sign: newVesselForm.call_sign.trim() || null,
+        flag: newVesselForm.flag.trim() || null,
+        captain: newVesselForm.captain.trim() || null,
+        pic: newVesselForm.pic.trim() || null,
+        is_active: true,
+      }
+      const res = await api.post("/locations", payload)
+      const created: LocationOption = res.data?.data || res.data
+      if (created && created.id) {
+        setVessels((prev) => [created, ...prev.filter((v) => v.id !== created.id)])
+        setLocationId(created.id)
+        if (created.captain || newVesselForm.captain.trim()) {
+          setCaptain(created.captain || newVesselForm.captain.trim())
+        }
+        setNewVesselOpen(false)
+        setNewVesselForm({
+          name: "",
+          type: "repair_vessel",
+          vessel_type: "",
+          code: "",
+          call_sign: "",
+          flag: "",
+          captain: "",
+          pic: "",
+        })
+        toast.success(`Kapal "${created.name}" berhasil ditambahkan dan dipilih.`)
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Gagal menambahkan data kapal baru.")
+    } finally {
+      setCreatingVessel(false)
+    }
+  }
 
   const handleRemoveCrew = (crewId: string, crewName?: string) => {
     setSelectedCrewIds((prev) => prev.filter((id) => id !== crewId))
@@ -281,9 +368,164 @@ export default function VesselArrivalFormModal({
         <form onSubmit={handleSubmit} className="space-y-6 pt-2">
           {/* Bagian 1: Data Kapal & Jadwal Sandar */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 border-b pb-1">
-              Informasi Kapal & Jadwal Sandar
-            </h3>
+            <div className="flex items-center justify-between border-b pb-1">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
+                Informasi Kapal & Jadwal Sandar
+              </h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setNewVesselOpen((prev) => !prev)}
+                className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                {newVesselOpen ? "Tutup Form Kapal" : "Tambah Kapal Baru"}
+              </Button>
+            </div>
+
+            {newVesselOpen && (
+              <div
+                role="region"
+                aria-label="Form Tambah Kapal Baru"
+                className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50/60 dark:border-emerald-800 dark:bg-emerald-950/30 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                    Tambah Master Kapal Baru
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <Label htmlFor="quick-vessel-name" className="text-xs">
+                      Description / Nama Kapal <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="quick-vessel-name"
+                      value={newVesselForm.name}
+                      onChange={(e) => setNewVesselForm((p) => ({ ...p, name: e.target.value }))}
+                      placeholder="Contoh: GAS WIDURI"
+                      className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="quick-vessel-code" className="text-xs">
+                      IMO No / Kode
+                    </Label>
+                    <Input
+                      id="quick-vessel-code"
+                      value={newVesselForm.code}
+                      onChange={(e) => setNewVesselForm((p) => ({ ...p, code: e.target.value }))}
+                      placeholder='Nomor IMO atau "-"'
+                      className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="quick-vessel-category" className="text-xs">
+                      Kategori Kapal
+                    </Label>
+                    <select
+                      id="quick-vessel-category"
+                      value={newVesselForm.type}
+                      onChange={(e) => setNewVesselForm((p) => ({ ...p, type: e.target.value }))}
+                      className="mt-1 w-full h-8 px-2 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs"
+                    >
+                      <option value="repair_vessel">Repair Vessel</option>
+                      <option value="tug_boat">Tug Boat</option>
+                      <option value="barge">Barge</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="quick-vessel-type" className="text-xs">
+                      Type (Spesifikasi)
+                    </Label>
+                    <Input
+                      id="quick-vessel-type"
+                      value={newVesselForm.vessel_type}
+                      onChange={(e) => setNewVesselForm((p) => ({ ...p, vessel_type: e.target.value }))}
+                      placeholder="Contoh: LPG TANKER"
+                      className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="quick-vessel-callsign" className="text-xs">
+                      Call Sign
+                    </Label>
+                    <Input
+                      id="quick-vessel-callsign"
+                      value={newVesselForm.call_sign}
+                      onChange={(e) => setNewVesselForm((p) => ({ ...p, call_sign: e.target.value }))}
+                      placeholder="Contoh: POJR"
+                      className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="quick-vessel-flag" className="text-xs">
+                      Nationality Flag
+                    </Label>
+                    <Input
+                      id="quick-vessel-flag"
+                      value={newVesselForm.flag}
+                      onChange={(e) => setNewVesselForm((p) => ({ ...p, flag: e.target.value }))}
+                      placeholder="Contoh: INDONESIA"
+                      className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="quick-vessel-captain" className="text-xs">
+                      Captain
+                    </Label>
+                    <Input
+                      id="quick-vessel-captain"
+                      value={newVesselForm.captain}
+                      onChange={(e) => setNewVesselForm((p) => ({ ...p, captain: e.target.value }))}
+                      placeholder="Contoh: CAPT. SUTRISNO"
+                      className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="quick-vessel-pic" className="text-xs">
+                      Note / PIC
+                    </Label>
+                    <Input
+                      id="quick-vessel-pic"
+                      value={newVesselForm.pic}
+                      onChange={(e) => setNewVesselForm((p) => ({ ...p, pic: e.target.value }))}
+                      placeholder="Contoh: ALVI"
+                      className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewVesselOpen(false)}
+                    disabled={creatingVessel}
+                    className="h-7 text-xs"
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleCreateVessel}
+                    disabled={creatingVessel}
+                    className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    {creatingVessel ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      "Simpan & Pilih Kapal"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -294,7 +536,7 @@ export default function VesselArrivalFormModal({
                   id="vessel-select"
                   aria-label="Pilih Kapal"
                   value={locationId}
-                  onChange={(e) => setLocationId(e.target.value)}
+                  onChange={(e) => handleSelectVessel(e.target.value)}
                   disabled={loadingVessels || submitting}
                   className="mt-1 w-full h-10 px-3 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
@@ -322,6 +564,41 @@ export default function VesselArrivalFormModal({
                   className="mt-1"
                 />
               </div>
+
+              {selectedVessel && (
+                <div className="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-900/60 dark:bg-blue-950/20 p-3 text-xs grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <div>
+                    <span className="text-zinc-500 block">IMO / Kode</span>
+                    <span className="font-mono font-semibold text-zinc-900 dark:text-zinc-100">
+                      {selectedVessel.code || "-"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">Spesifikasi Tipe</span>
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      {selectedVessel.vessel_type || selectedVessel.type}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">Call Sign / Bendera</span>
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      {selectedVessel.call_sign || "-"} / {selectedVessel.flag || "-"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">Captain Master</span>
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      {selectedVessel.captain || "-"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">Note / PIC</span>
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      {selectedVessel.pic || "-"}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="sign-in-date">

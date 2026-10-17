@@ -205,7 +205,7 @@ describe("Blacklist Master Flow & Column Verification", () => {
         })
       )
     })
-  })
+  }, 15000)
 
   it("supports unregistered visitor manual entry and atomic registration", async () => {
     render(

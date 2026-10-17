@@ -214,4 +214,59 @@ describe('VesselArrivalFormModal', () => {
       expect(mockOnSuccess).toHaveBeenCalled()
     })
   })
+
+  it('creates a new vessel inline via Tambah Kapal Baru and selects it automatically', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: {
+        id: 'uuid-new-vessel',
+        name: 'GAS WIDURI',
+        code: '9764790',
+        type: 'repair_vessel',
+        vessel_type: 'LPG TANKER',
+        call_sign: 'POJR',
+        flag: 'INDONESIA',
+        captain: 'CAPT. SUTRISNO',
+        pic: 'ALVI',
+        is_active: true,
+      },
+    })
+
+    render(
+      <VesselArrivalFormModal
+        open={true}
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /tambah kapal baru/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /tambah kapal baru/i }))
+
+    fireEvent.change(screen.getByLabelText(/description \/ nama kapal/i), {
+      target: { value: 'GAS WIDURI' },
+    })
+    fireEvent.change(screen.getByLabelText(/imo no \/ kode/i), {
+      target: { value: '9764790' },
+    })
+    fireEvent.change(screen.getByLabelText(/^captain$/i), {
+      target: { value: 'CAPT. SUTRISNO' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /simpan & pilih kapal/i }))
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        '/locations',
+        expect.objectContaining({
+          name: 'GAS WIDURI',
+          code: '9764790',
+          captain: 'CAPT. SUTRISNO',
+        })
+      )
+      expect(screen.getByDisplayValue('CAPT. SUTRISNO')).toBeInTheDocument()
+    })
+  })
 })

@@ -59,6 +59,7 @@ export interface VesselArrivalItem {
   foreign_agent_phone?: string | null
   foreign_agent_location?: string | null
   crew_count?: number
+  checked_in_crew_count?: number
   crew?: Array<{
     id: string
     name?: string
@@ -71,6 +72,9 @@ export interface VesselArrivalItem {
     name: string
     code?: string | null
     type: string
+    vessel_type?: string | null
+    captain?: string | null
+    pic?: string | null
   } | null
 }
 
@@ -363,10 +367,17 @@ export default function VesselArrivals() {
                         {arrival.captain || "-"}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant="outline" className="flex items-center gap-1 mx-auto w-fit text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800">
-                          <Users className="h-3 w-3" />
-                          {arrival.crew_count ?? 0} Kru
-                        </Badge>
+                        <div className="flex flex-col items-center gap-1">
+                          <Badge variant="outline" className="flex items-center gap-1 mx-auto w-fit text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+                            <Users className="h-3 w-3" />
+                            {arrival.crew_count ?? 0} Kru
+                          </Badge>
+                          {typeof arrival.checked_in_crew_count === "number" && (arrival.crew_count ?? 0) > 0 && (
+                            <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                              {arrival.checked_in_crew_count} Check-In
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs text-zinc-600 dark:text-zinc-400">
                         <div>{arrival.local_agent_company || "-"}</div>
@@ -502,6 +513,7 @@ export default function VesselArrivals() {
         open={detailModalOpen}
         onClose={() => setDetailModalOpen(false)}
         arrivalId={selectedArrivalIdForDetail}
+        onUpdated={fetchArrivals}
       />
 
       {/* Sign-Out Quick Modal */}

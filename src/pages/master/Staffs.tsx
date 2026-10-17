@@ -308,48 +308,58 @@ export default function Staffs() {
           <Table>
             <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
               <TableRow>
-                <TableHead>Staff ID / NIK</TableHead>
-                <TableHead>Nama Lengkap</TableHead>
-                <TableHead>Perusahaan</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead className="w-12 text-center">NO</TableHead>
+                <TableHead>NAME</TableHead>
+                <TableHead>STAFF NO</TableHead>
+                <TableHead>GENDER</TableHead>
+                <TableHead>ADDRESS</TableHead>
+                <TableHead>COMPANY</TableHead>
+                <TableHead>TYPE</TableHead>
+                <TableHead className="text-right">AKSI</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && staffs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={8} className="h-24 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
                   </TableCell>
                 </TableRow>
               ) : staffs.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={8}
                     className="h-24 text-center text-zinc-500"
                   >
                     Data staf tidak ditemukan.
                   </TableCell>
                 </TableRow>
               ) : (
-                staffs.map((staff) => (
+                staffs.map((staff, idx) => (
                   <TableRow
                     key={staff.id}
                     className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                   >
+                    <TableCell className="text-center font-mono text-xs text-zinc-500">
+                      {(currentPage - 1) * perPage + idx + 1}
+                    </TableCell>
+                    <TableCell className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      {staff.name}
+                    </TableCell>
                     <TableCell className="font-mono font-medium">
                       {staff.staff_id}
                     </TableCell>
-                    <TableCell className="font-medium">{staff.name}</TableCell>
+                    <TableCell>{staff.gender || "-"}</TableCell>
+                    <TableCell>{staff.address || "-"}</TableCell>
                     <TableCell>{staff.company || "-"}</TableCell>
                     <TableCell>
                       {staff.is_active ? (
                         <Badge variant="outline" className="border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
-                          Aktif
+                          Active
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="border-zinc-500/30 bg-zinc-50 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
-                          Nonaktif
+                          Inactive
                         </Badge>
                       )}
                     </TableCell>
@@ -450,7 +460,7 @@ export default function Staffs() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="form_gender">Jenis Kelamin</Label>
+                <Label htmlFor="form_gender">Jenis Kelamin / Gender</Label>
                 <select
                   id="form_gender"
                   value={form.gender}
@@ -458,18 +468,18 @@ export default function Staffs() {
                   className="flex h-9 w-full rounded-md border border-input bg-white text-zinc-900 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-800"
                 >
                   <option value="" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Pilih Jenis Kelamin</option>
-                  <option value="M" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Laki-laki (M)</option>
-                  <option value="F" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Perempuan (F)</option>
+                  <option value="Male" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Male (Laki-laki)</option>
+                  <option value="Female" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Female (Perempuan)</option>
                 </select>
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="form_address">Alamat</Label>
+              <Label htmlFor="form_address">Address / Role</Label>
               <Input
                 id="form_address"
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
-                placeholder="Alamat domisili"
+                placeholder="Contoh: ADMIN, DIRECTOR, MANAGER"
               />
             </div>
             <div className="flex items-center space-x-2 pt-2">

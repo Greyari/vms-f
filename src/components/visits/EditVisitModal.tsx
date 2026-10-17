@@ -27,8 +27,12 @@ interface LocationRef {
 
 interface StaffRef {
   id: number | string
+  staff_id?: string
   name: string
   department?: string
+  company?: string
+  address?: string
+  gender?: string
 }
 
 export interface EditVisitModalProps {
@@ -187,7 +191,11 @@ export default function EditVisitModal({
         payload.host_name = form.host_name.trim() || "Visitor Host"
         payload.staff_id = null
       } else {
-        payload.staff_id = form.staff_id ? Number(form.staff_id) : null
+        payload.staff_id = form.staff_id
+          ? /^\d+$/.test(form.staff_id)
+            ? Number(form.staff_id)
+            : form.staff_id
+          : null
         payload.host_name =
           staffList.find((s) => s.id.toString() === form.staff_id)?.name ||
           undefined
@@ -287,11 +295,14 @@ export default function EditVisitModal({
                     className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1.5 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
                   >
                     <option value="">-- Pilih Staf --</option>
-                    {staffList.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} {s.department ? `(${s.department})` : ""}
-                      </option>
-                    ))}
+                    {staffList.map((s) => {
+                      const details = [s.staff_id, s.company, s.address || s.department].filter(Boolean).join(" - ")
+                      return (
+                        <option key={s.id} value={s.id}>
+                          {s.name} {details ? `(${details})` : ""}
+                        </option>
+                      )
+                    })}
                   </select>
                 </div>
               ) : (

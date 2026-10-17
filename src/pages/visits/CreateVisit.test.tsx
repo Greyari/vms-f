@@ -442,4 +442,62 @@ describe("CreateVisit Page", () => {
       })
     })
   })
+
+  it("displays Vessel Info Card (Captain, Note/PIC, Call Sign, Flag) when a vessel is selected and sets Captain as Host", async () => {
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url.includes("/locations")) {
+        return Promise.resolve({
+          data: [
+            { id: "loc-land-1", name: "Main Office", type: "location", is_active: true },
+            {
+              id: "vessel-widuri",
+              name: "GAS WIDURI",
+              code: "9764790",
+              type: "repair_vessel",
+              vessel_type: "LPG TANKER",
+              call_sign: "POJR",
+              flag: "INDONESIA",
+              captain: "CAPT. SUTRISNO",
+              pic: "ALVI",
+              is_active: true,
+            },
+          ],
+        })
+      }
+      return masterData(url)
+    })
+
+    render(
+      <MemoryRouter>
+        <CreateVisit />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/location/i)).toBeInTheDocument()
+    })
+
+    // Initially land location is selected -> no vessel info card
+    expect(screen.queryByRole("region", { name: /informasi kapal tujuan/i })).not.toBeInTheDocument()
+
+    // Select vessel GAS WIDURI
+    fireEvent.change(screen.getByLabelText(/location/i), {
+      target: { value: "vessel-widuri" },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole("region", { name: /informasi kapal tujuan/i })).toBeInTheDocument()
+      expect(screen.getByText("CAPT. SUTRISNO")).toBeInTheDocument()
+      expect(screen.getByText("ALVI")).toBeInTheDocument()
+      expect(screen.getByText("LPG TANKER")).toBeInTheDocument()
+      expect(screen.getByText("POJR")).toBeInTheDocument()
+    })
+
+    // Click "+ Jadikan Captain sebagai Host"
+    fireEvent.click(screen.getByRole("button", { name: /jadikan captain sebagai host/i }))
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("CAPT. SUTRISNO")).toBeInTheDocument()
+    })
+  })
 })

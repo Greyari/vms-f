@@ -62,7 +62,6 @@ describe('Cards Master Page', () => {
         params: expect.objectContaining({
           card_no_from: 'ASL-2301',
           card_no_to: 'ASL-2312-A',
-          card_type: 'visitor',
         }),
       }))
     })
@@ -107,7 +106,6 @@ describe('Cards Master Page', () => {
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/cards', expect.objectContaining({
         card_no: 'ASL-2303',
-        card_type: 'visitor',
       }))
     })
   })

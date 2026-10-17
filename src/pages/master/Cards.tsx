@@ -104,7 +104,6 @@ export default function Cards() {
     setLoading(true)
     try {
       const params: Record<string, string | number> = {
-        card_type: "visitor",
         page: currentPage,
         per_page: perPage,
       }
@@ -165,12 +164,22 @@ export default function Cards() {
 
     setSubmitting(true)
     try {
+      let cardType = "visitor"
+      if (formName.trim()) {
+        const lower = formName.toLowerCase()
+        if (lower.includes("green")) cardType = "visitor_green"
+        else if (lower.includes("white")) cardType = "visitor_white"
+        else if (lower.includes("crew")) cardType = "crew"
+        else if (lower.includes("temp")) cardType = "temporary_worker"
+        else if (lower.includes("special")) cardType = "special"
+      }
+
       const payload: Record<string, unknown> = {
         card_no: formCardNo.trim(),
         id_card_no: formIdCardNo.trim() || null,
         name: formName.trim() || null,
         date_issued: formDateIssued || null,
-        card_type: "visitor",
+        card_type: cardType,
       }
 
       if (editingCard) {
@@ -559,10 +568,18 @@ export default function Cards() {
                 </label>
                 <Input
                   id="cards-name-input"
+                  list="card-names-suggestions"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Misal: VISITOR GREEN"
+                  placeholder="Misal: VISITOR GREEN atau VISITOR WHITE"
                 />
+                <datalist id="card-names-suggestions">
+                  <option value="VISITOR GREEN" />
+                  <option value="VISITOR WHITE" />
+                  <option value="CREW" />
+                  <option value="TEMPORARY WORKER" />
+                  <option value="SPECIAL" />
+                </datalist>
               </div>
 
               <div>

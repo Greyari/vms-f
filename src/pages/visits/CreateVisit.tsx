@@ -47,6 +47,7 @@ import {
   ChevronUp,
   Edit2,
   AlertCircle,
+  Ship,
 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
@@ -56,13 +57,25 @@ import type { GlobalBlacklistHit, PreRegistration } from "@/types/hybrid"
 interface LocationItem {
   id: number | string
   name: string
+  code?: string | null
+  type?: "location" | "repair_vessel" | "tug_boat" | "barge" | string
+  vessel_type?: string | null
+  call_sign?: string | null
+  flag?: string | null
+  port?: string | null
+  captain?: string | null
+  pic?: string | null
   is_active?: boolean | number
 }
 
 interface StaffItem {
   id: number | string
+  staff_id?: string
   name: string
   department?: string
+  gender?: string
+  address?: string
+  company?: string
   is_active?: boolean | number
 }
 
@@ -227,8 +240,8 @@ export default function CreateVisit() {
       try {
         const [locRes, staffRes, cardsRes, vehRes, purposeRes] =
           await Promise.all([
-            api.get("/locations").catch(() => ({ data: [] })),
-            api.get("/staffs").catch(() => ({ data: [] })),
+            api.get("/locations", { params: { per_page: 2000 } }).catch(() => ({ data: [] })),
+            api.get("/staffs", { params: { per_page: 100 } }).catch(() => ({ data: [] })),
             api.get("/cards").catch(() => ({ data: [] })),
             api.get("/vehicle-cards").catch(() => ({ data: [] })),
             api.get("/lookups/purposes").catch(() => ({ data: [] })),
@@ -528,6 +541,13 @@ export default function CreateVisit() {
 
     setSavingVisitorToMaster(true)
     try {
+      const selectedLoc = locations.find(
+        (loc) => loc.id.toString() === form.location_id.toString()
+      )
+      const isVessel = Boolean(
+        selectedLoc && selectedLoc.type && selectedLoc.type !== "location"
+      )
+
       const payload: Record<string, any> = {
         name: form.name.trim(),
         id_type: form.id_type,
@@ -542,6 +562,8 @@ export default function CreateVisit() {
         gender: gender || null,
         nationality: form.nationality.trim() || "Indonesia",
         address: form.address.trim() || null,
+        vessel_id:
+          form.visitor_type === "crew" && isVessel ? form.location_id : null,
       }
 
       const res = await api.post("/visitors", payload)
@@ -588,6 +610,13 @@ export default function CreateVisit() {
 
     setLoading(true)
     try {
+      const selectedLoc = locations.find(
+        (loc) => loc.id.toString() === form.location_id.toString()
+      )
+      const isVessel = Boolean(
+        selectedLoc && selectedLoc.type && selectedLoc.type !== "location"
+      )
+
       const payload: Record<string, unknown> = {
         id_type: form.id_type,
         id_number: form.id_number.trim(),
@@ -607,6 +636,9 @@ export default function CreateVisit() {
       if (form.birth_place.trim()) payload.birth_place = form.birth_place.trim()
       if (form.birth_date) payload.birth_date = form.birth_date
       if (form.visitor_type) payload.visitor_type = form.visitor_type
+      if (form.visitor_type === "crew" && isVessel) {
+        payload.vessel_id = form.location_id
+      }
 
       if (form.is_custom_host || form.host_name) {
         payload.host_name = form.host_name.trim()
@@ -1283,10 +1315,123 @@ export default function CreateVisit() {
                   {locations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
                       {loc.name}
+                      {loc.code && loc.type && loc.type !== "location"
+                        ? ` (IMO: ${loc.code})`
+                        : ""}
                     </option>
                   ))}
                 </select>
               </div>
+
+              {/* Kartu Informasi Kapal (tampil jika yang dipilih adalah Kapal, bukan Lokasi Darat) */}
+              {(() => {
+                const selectedLocation =
+                  locations.find(
+                    (loc) => loc.id.toString() === form.location_id.toString()
+                  ) || null
+                const isSelectedVessel = Boolean(
+                  selectedLocation &&
+                    selectedLocation.type &&
+                    selectedLocation.type !== "location"
+                )
+                if (!selectedLocation || !isSelectedVessel) return null
+
+                return (
+                  <div
+                    role="region"
+                    aria-label="Informasi Kapal Tujuan"
+                    className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3.5 space-y-2.5 text-xs dark:border-emerald-900/60 dark:bg-emerald-950/25"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/70 pb-2 dark:border-emerald-800/60">
+                      <div className="flex items-center gap-1.5 font-semibold text-emerald-950 dark:text-emerald-200">
+                        <Ship className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>Informasi Kapal: {selectedLocation.name}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {selectedLocation.code && (
+                          <Badge
+                            variant="outline"
+                            className="bg-white font-mono text-[11px] dark:bg-zinc-900"
+                          >
+                            IMO: {selectedLocation.code}
+                          </Badge>
+                        )}
+                        <Badge className="bg-emerald-600 text-white text-[10px]">
+                          {selectedLocation.vessel_type || selectedLocation.type}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-zinc-700 dark:text-zinc-300">
+                      <div className="rounded bg-white/80 p-2 border border-emerald-100 dark:bg-zinc-900/70 dark:border-emerald-900/50">
+                        <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">
+                          Captain / Nakhoda
+                        </span>
+                        <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                          {selectedLocation.captain || "-"}
+                        </span>
+                        {selectedLocation.captain && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setForm((prev) => ({
+                                ...prev,
+                                is_custom_host: true,
+                                host_name: selectedLocation.captain || "",
+                              }))
+                            }
+                            className="mt-1 block text-[11px] font-semibold text-emerald-700 hover:underline dark:text-emerald-400 cursor-pointer"
+                          >
+                            + Jadikan Captain sebagai Host
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="rounded bg-white/80 p-2 border border-emerald-100 dark:bg-zinc-900/70 dark:border-emerald-900/50">
+                        <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">
+                          Note / PIC Kapal
+                        </span>
+                        <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                          {selectedLocation.pic || "-"}
+                        </span>
+                        {selectedLocation.pic && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setForm((prev) => ({
+                                ...prev,
+                                is_custom_host: true,
+                                host_name: selectedLocation.pic || "",
+                              }))
+                            }
+                            className="mt-1 block text-[11px] font-semibold text-emerald-700 hover:underline dark:text-emerald-400 cursor-pointer"
+                          >
+                            + Jadikan PIC sebagai Host
+                          </button>
+                        )}
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">
+                          Call Sign
+                        </span>
+                        <span className="font-mono font-medium">
+                          {selectedLocation.call_sign || "-"}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">
+                          Bendera (Nationality Flag)
+                        </span>
+                        <span className="font-medium">
+                          {selectedLocation.flag || "-"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Purpose of Visit */}
               <div className="space-y-1.5">
@@ -1370,14 +1515,19 @@ export default function CreateVisit() {
                           {loadingMaster
                             ? "Memuat daftar staf..."
                             : form.staff_id
-                              ? staffList.find(
-                                  (item) => item.id.toString() === form.staff_id
-                                )?.name
+                              ? (() => {
+                                  const selected = staffList.find(
+                                    (item) => item.id.toString() === form.staff_id
+                                  )
+                                  if (!selected) return "Pilih Staf PIC Host..."
+                                  const details = [selected.staff_id, selected.company, selected.address || selected.department].filter(Boolean).join(" - ")
+                                  return details ? `${selected.name} (${details})` : selected.name
+                                })()
                               : "Pilih Staf PIC Host..."}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[320px]">
+                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[460px]">
                         <Command
                           filter={(value, search) =>
                             value.toLowerCase().includes(search.toLowerCase())
@@ -1385,14 +1535,14 @@ export default function CreateVisit() {
                               : 0
                           }
                         >
-                          <CommandInput placeholder="Cari nama staf atau departemen..." />
+                          <CommandInput placeholder="Cari nama staf, staff no, company, address..." />
                           <CommandList>
                             <CommandEmpty>Staf tidak ditemukan.</CommandEmpty>
                             <CommandGroup>
                               {staffList.map((item) => (
                                 <CommandItem
                                   key={item.id}
-                                  value={`${item.name} ${item.department || ""} ${item.id}`}
+                                  value={`${item.name} ${item.staff_id || ""} ${item.company || ""} ${item.address || ""} ${item.department || ""} ${item.gender || ""} ${item.id}`}
                                   onSelect={() => {
                                     handleSelectChange(
                                       "staff_id",
@@ -1403,16 +1553,28 @@ export default function CreateVisit() {
                                 >
                                   <Check
                                     className={cn(
-                                      "mr-2 h-4 w-4",
+                                      "mr-2 h-4 w-4 shrink-0",
                                       form.staff_id === item.id.toString()
                                         ? "opacity-100"
                                         : "opacity-0"
                                     )}
                                   />
-                                  <div className="flex flex-col">
-                                    <span className="text-xs font-medium">{item.name}</span>
+                                  <div className="flex flex-col gap-0.5">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-xs font-semibold">{item.name}</span>
+                                      {item.staff_id && (
+                                        <span className="rounded bg-zinc-100 px-1 py-0.2 text-[10px] font-mono font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                          {item.staff_id}
+                                        </span>
+                                      )}
+                                      {item.gender && (
+                                        <span className="text-[10px] text-zinc-500">
+                                          • {item.gender}
+                                        </span>
+                                      )}
+                                    </div>
                                     <span className="text-[10px] text-zinc-500">
-                                      {item.department || "No Department"}
+                                      {[item.company, item.address || item.department].filter(Boolean).join(" • ") || "No Department"}
                                     </span>
                                   </div>
                                 </CommandItem>
@@ -1422,6 +1584,21 @@ export default function CreateVisit() {
                         </Command>
                       </PopoverContent>
                     </Popover>
+
+                    {form.staff_id && (() => {
+                      const selected = staffList.find((item) => item.id.toString() === form.staff_id)
+                      if (!selected) return null
+                      return (
+                        <div className="mt-1 rounded-md border border-zinc-200 bg-zinc-50/80 p-2 text-[11px] text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300">
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                            <div><span className="text-zinc-400">Staff No:</span> <span className="font-mono font-medium">{selected.staff_id || "-"}</span></div>
+                            <div><span className="text-zinc-400">Gender:</span> <span className="font-medium">{selected.gender || "-"}</span></div>
+                            <div><span className="text-zinc-400">Company:</span> <span className="font-medium">{selected.company || "-"}</span></div>
+                            <div><span className="text-zinc-400">Address / Role:</span> <span className="font-medium">{selected.address || selected.department || "-"}</span></div>
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 ) : (
                   <div className="space-y-1.5">

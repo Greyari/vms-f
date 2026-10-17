@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import VesselArrivalDetailModal from './VesselArrivalDetailModal'
 import api from '@/lib/axios'
@@ -44,6 +44,11 @@ const mockDetail = {
       certificate: 'ANT III',
       certificate_no: 'CERT-9988',
       seaman_book_no: 'SB-12345',
+      pivot: {
+        status: 'checked_in',
+        checked_in_at: '2026-09-20T08:00:00Z',
+        checked_out_at: null,
+      },
     },
     {
       id: 'crew-2',
@@ -57,6 +62,11 @@ const mockDetail = {
       certificate: null,
       certificate_no: null,
       seaman_book_no: 'SB-54321',
+      pivot: {
+        status: 'checked_out',
+        checked_in_at: '2026-09-20T08:00:00Z',
+        checked_out_at: '2026-09-21T17:00:00Z',
+      },
     },
   ],
 }
@@ -120,6 +130,39 @@ describe('VesselArrivalDetailModal', () => {
 
     await waitFor(() => {
       expect(screen.getAllByText(/Sedang Sandar/i).length).toBeGreaterThan(0)
+    })
+  })
+
+  it('triggers POST /vessel-arrivals/:id/crew/check-out when Check-Out Kru is clicked', async () => {
+    vi.mocked(api.post).mockResolvedValue({
+      data: {
+        ...mockDetail,
+        crew: mockDetail.crew.map((c) => ({
+          ...c,
+          pivot: { ...c.pivot, status: 'checked_out', checked_out_at: '2026-09-22T10:00:00Z' },
+        })),
+      },
+    })
+
+    render(
+      <VesselArrivalDetailModal
+        open={true}
+        onClose={mockOnClose}
+        arrivalId="uuid-arrival-1"
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
+    })
+
+    const checkOutBtn = screen.getByRole('button', { name: /^check-out kru$/i })
+    fireEvent.click(checkOutBtn)
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/vessel-arrivals/uuid-arrival-1/crew/check-out', {
+        crew_ids: ['crew-1'],
+      })
     })
   })
 })

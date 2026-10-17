@@ -29,6 +29,17 @@ export default function VisitorFormModal({
 }: VisitorFormModalProps) {
   const [loading, setLoading] = useState(false)
   const [fetchingDetail, setFetchingDetail] = useState(false)
+  const [vessels, setVessels] = useState<
+    Array<{
+      id: string
+      name: string
+      code?: string | null
+      type: string
+      vessel_type?: string | null
+      captain?: string | null
+      pic?: string | null
+    }>
+  >([])
   const isBlacklisted = Boolean(visitor?.is_blacklisted)
 
   const [form, setForm] = useState({
@@ -47,7 +58,30 @@ export default function VisitorFormModal({
     address: "",
     certificate_no: "",
     seaman_book_no: "",
+    vessel_id: "",
   })
+
+  useEffect(() => {
+    if (!open || form.visitor_type !== "crew") return
+    if (typeof api.get !== "function") return
+
+    try {
+      const req = api.get("/locations", { params: { per_page: 2000 } })
+      if (req && typeof req.then === "function") {
+        req
+          .then((res: any) => {
+            const raw = Array.isArray(res?.data) ? res.data : (res?.data?.data ?? [])
+            const onlyVessels = raw.filter((loc: any) => loc.type && loc.type !== "location")
+            setVessels(onlyVessels)
+          })
+          .catch(() => {
+            // Ignore vessel list fetch error
+          })
+      }
+    } catch {
+      // Ignore if api.get is not mocked in unit tests
+    }
+  }, [open, form.visitor_type])
 
   useEffect(() => {
     if (!open) {
@@ -72,6 +106,7 @@ export default function VisitorFormModal({
         address: visitor.address || "",
         certificate_no: visitor.certificate_no || "",
         seaman_book_no: visitor.seaman_book_no || "",
+        vessel_id: visitor.vessel_id || visitor.vessel?.id || "",
       })
 
       // If we have visitor ID and api.get is available, fetch full profile to ensure all details are loaded
@@ -101,6 +136,7 @@ export default function VisitorFormModal({
                     address: data.address ?? prev.address,
                     certificate_no: data.certificate_no ?? prev.certificate_no,
                     seaman_book_no: data.seaman_book_no ?? prev.seaman_book_no,
+                    vessel_id: data.vessel_id ?? data.vessel?.id ?? prev.vessel_id,
                   }))
                 }
               })
@@ -132,6 +168,7 @@ export default function VisitorFormModal({
         address: "",
         certificate_no: "",
         seaman_book_no: "",
+        vessel_id: "",
       })
     }
   }, [open, visitor])
@@ -159,6 +196,7 @@ export default function VisitorFormModal({
     if (form.visitor_type === "crew") {
       payload.certificate_no = form.certificate_no.trim() || null
       payload.seaman_book_no = form.seaman_book_no.trim() || null
+      payload.vessel_id = form.vessel_id || null
     }
 
     try {
@@ -178,6 +216,8 @@ export default function VisitorFormModal({
       setLoading(false)
     }
   }
+
+  const selectedVessel = vessels.find((v) => v.id === form.vessel_id) || null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -376,6 +416,38 @@ export default function VisitorFormModal({
               <h4 className="font-semibold text-sky-950 text-sm dark:text-sky-300">
                 Dokumen Kelautan Kru Kapal
               </h4>
+              <div className="space-y-2">
+                <Label htmlFor="vfm_vessel_id">Kapal Tugas (Vessel)</Label>
+                <select
+                  id="vfm_vessel_id"
+                  value={form.vessel_id}
+                  onChange={(e) => setForm({ ...form, vessel_id: e.target.value })}
+                  className="flex h-9 w-full rounded-md border border-input bg-white dark:bg-zinc-900 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">-- Pilih Kapal Tugas (Opsional) --</option>
+                  {vessels.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} {v.code ? `(IMO: ${v.code})` : ""}
+                    </option>
+                  ))}
+                </select>
+                {selectedVessel && (
+                  <div className="rounded border border-sky-200 bg-white dark:bg-zinc-900 dark:border-sky-800 p-2 text-xs text-zinc-700 dark:text-zinc-300 flex flex-wrap gap-3">
+                    <span>
+                      IMO: <strong>{selectedVessel.code || "-"}</strong>
+                    </span>
+                    <span>
+                      Tipe: <strong>{selectedVessel.vessel_type || selectedVessel.type}</strong>
+                    </span>
+                    <span>
+                      Captain: <strong>{selectedVessel.captain || "-"}</strong>
+                    </span>
+                    <span>
+                      Note/PIC: <strong>{selectedVessel.pic || "-"}</strong>
+                    </span>
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="vfm_cert">Nomor Sertifikat</Label>

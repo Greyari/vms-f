@@ -84,7 +84,7 @@ const ITEMS_PER_PAGE = 10
 
 export default function BlacklistedVisitors() {
   const navigate = useNavigate()
-  const { t, language } = useTranslation()
+  const { t } = useTranslation()
   const [visitors, setVisitors] = useState<BlacklistedVisitor[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -139,55 +139,64 @@ export default function BlacklistedVisitors() {
         reason_category: promoteCategory,
         local_note: promoteNote.trim(),
       })
-      toast.success(
-        "Masuk antrean; dikirim ke Cloud Hub pada siklus sync berikutnya."
-      )
+      toast.success(t("blacklist.toast_promote_success"))
       setPromoteTarget(null)
     } catch (err: any) {
       const errors = err.response?.data?.errors
       toast.error(
         errors?.visitor_id?.[0] ||
           err.response?.data?.message ||
-          "Gagal menaikkan ke blacklist global."
+          t("blacklist.toast_promote_failed")
       )
     } finally {
       setPromoting(false)
     }
   }
 
-  const fetchBlacklisted = useCallback(async () => {
-    setLoading(true)
-    try {
-      const params: Record<string, any> = {
-        page: currentPage,
-        per_page: ITEMS_PER_PAGE,
-      }
-      if (search) params.search = search
+  const fetchBlacklisted = useCallback(
+    async (pageOverride?: number) => {
+      setLoading(true)
+      try {
+        const targetPage = pageOverride ?? currentPage
+        const params: Record<string, any> = {
+          page: targetPage,
+          per_page: ITEMS_PER_PAGE,
+        }
+        if (search) params.search = search
 
-      const res = await api.get("/visitors/blacklisted", { params })
-      const data = res.data
-      if (data && Array.isArray(data.data)) {
-        setVisitors(data.data)
-        setCurrentPage(data.current_page || 1)
-        setTotalPages(data.last_page || 1)
-        setTotalItems(data.total || 0)
-      } else if (Array.isArray(data)) {
-        setVisitors(data)
-        setTotalPages(1)
-        setTotalItems(data.length)
-      } else {
-        setVisitors([])
+        const res = await api.get("/visitors/blacklisted", { params })
+        const data = res.data
+        if (data && Array.isArray(data.data)) {
+          setVisitors(data.data)
+          setCurrentPage(data.current_page || targetPage)
+          setTotalPages(data.last_page || 1)
+          setTotalItems(data.total || 0)
+        } else if (Array.isArray(data)) {
+          setVisitors(data)
+          setTotalPages(1)
+          setTotalItems(data.length)
+        } else {
+          setVisitors([])
+        }
+      } catch (error) {
+        console.error(error)
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error(error)
-    } finally {
-      setLoading(false)
-    }
-  }, [currentPage, search])
+    },
+    [currentPage, search]
+  )
 
   useEffect(() => {
     fetchBlacklisted()
   }, [fetchBlacklisted])
+
+  const handleMutationSuccess = useCallback(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1)
+    }
+    void fetchBlacklisted(1)
+  }, [currentPage, fetchBlacklisted])
 
   const openCreateModal = () => {
     setSelectedRecordForEdit(null)
@@ -218,19 +227,12 @@ export default function BlacklistedVisitors() {
     if (!selectedUnblacklistId) return
     try {
       await api.post(`/visitors/${selectedUnblacklistId}/unblacklist`)
-      toast.success(
-        language === "en"
-          ? "Visitor removed from blacklist successfully."
-          : "Pengunjung berhasil dikeluarkan dari daftar blacklist."
-      )
-      fetchBlacklisted()
+      toast.success(t("blacklist.toast_unblacklist_success"))
+      void fetchBlacklisted()
     } catch (error: any) {
       console.error(error)
       toast.error(
-        error.response?.data?.message ||
-          (language === "en"
-            ? "Failed to revoke blacklist status."
-            : "Gagal mencabut status blacklist.")
+        error.response?.data?.message || t("blacklist.toast_unblacklist_failed")
       )
     } finally {
       setUnblacklistAlertOpen(false)
@@ -675,7 +677,7 @@ export default function BlacklistedVisitors() {
           setFormModalOpen(false)
           setSelectedRecordForEdit(null)
         }}
-        onSuccess={fetchBlacklisted}
+        onSuccess={handleMutationSuccess}
         blacklistRecord={selectedRecordForEdit}
         onViewVisitorProfile={openVisitorProfileModal}
       />
@@ -708,8 +710,8 @@ export default function BlacklistedVisitors() {
       <MasterImportDialog
         open={importModalOpen}
         onOpenChange={setImportModalOpen}
-        title="Import Data Blacklist"
-        description="Unggah file spreadsheet Excel (.xlsx / .xls / .csv) daftar blacklist dengan kolom: NO, NAME OF OFFENDER, Badge / H.I.D code, KTP NO, OFFENCES, DATE, REMARK, COMPANY NAME."
+        title={t("blacklist.import_dialog_title")}
+        description={t("blacklist.import_dialog_desc")}
         templateEndpoint="/visitors/blacklisted/template"
         templateFileName="template_blacklist.xlsx"
         previewEndpoint="/visitors/blacklisted/import-preview"
@@ -723,7 +725,7 @@ export default function BlacklistedVisitors() {
           { key: "remark", label: "REMARK" },
           { key: "company_name", label: "COMPANY NAME" },
         ]}
-        onSuccess={fetchBlacklisted}
+        onSuccess={handleMutationSuccess}
       />
 
       {/* Master Export Modal with Columns, Presets, Scope & Live Count */}

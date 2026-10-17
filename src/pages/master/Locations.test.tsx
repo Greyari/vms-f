@@ -137,4 +137,37 @@ describe('Locations Master Page', () => {
       expect(api.delete).toHaveBeenCalledWith('/locations/uuid-loc-1')
     })
   })
+
+  it('displays and submits vessel_type, captain, and pic (Note) fields matching Excel structure', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: {
+        data: [
+          {
+            id: 'uuid-vessel-excel',
+            name: 'GAS WIDURI',
+            type: 'repair_vessel',
+            vessel_type: 'LPG TANKER',
+            code: '9764790',
+            call_sign: 'POJR',
+            flag: 'INDONESIA',
+            captain: 'CAPT. SUTRISNO',
+            pic: 'ALVI',
+            is_active: true,
+          },
+        ],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+      },
+    })
+
+    render(<Locations />)
+
+    await waitFor(() => {
+      expect(screen.getByText('GAS WIDURI')).toBeInTheDocument()
+      expect(screen.getByText('LPG TANKER')).toBeInTheDocument()
+      expect(screen.getByText('CAPT. SUTRISNO')).toBeInTheDocument()
+      expect(screen.getByText('ALVI')).toBeInTheDocument()
+    })
+  })
 })
