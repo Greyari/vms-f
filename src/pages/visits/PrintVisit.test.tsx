@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { MemoryRouter, Routes, Route } from "react-router-dom"
 import PrintVisit from "./PrintVisit"
@@ -139,7 +139,7 @@ describe("PrintVisit Page", () => {
     ).toBeInTheDocument()
   })
 
-  it("opens the print dialog only after the company name is known", async () => {
+  it("does not auto-open print dialog on mount and only enables Print Pass Now after company name is known", async () => {
     let answer: (value: unknown) => void = () => {}
     vi.mocked(api.get).mockImplementation((url: string) =>
       url === "/app-config"
@@ -150,12 +150,19 @@ describe("PrintVisit Page", () => {
     )
     renderFromState()
 
-    await new Promise((resolve) => setTimeout(resolve, 700))
+    const printBtn = screen.getByRole("button", { name: /print pass now/i })
+    expect(printBtn).toBeDisabled()
     expect(printSpy).not.toHaveBeenCalled()
 
+    await waitFor(() => expect(api.get).toHaveBeenCalled())
     answer({ data: yardConfig })
-    await waitFor(() => expect(printSpy).toHaveBeenCalledTimes(1), {
-      timeout: 2000,
-    })
+
+    await waitFor(() => expect(printBtn).not.toBeDisabled())
+    expect(printSpy).not.toHaveBeenCalled()
+
+    fireEvent.click(printBtn)
+    expect(printSpy).toHaveBeenCalledTimes(1)
   })
 })
+
+

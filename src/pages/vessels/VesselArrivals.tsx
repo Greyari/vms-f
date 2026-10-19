@@ -78,7 +78,7 @@ export interface VesselArrivalItem {
   } | null
 }
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 100
 
 export default function VesselArrivals() {
   const [arrivals, setArrivals] = useState<VesselArrivalItem[]>([])

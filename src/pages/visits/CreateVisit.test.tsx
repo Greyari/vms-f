@@ -592,4 +592,88 @@ describe("CreateVisit Page", () => {
       )
     })
   })
+
+  it("fetches all available cards with per_page=1000 and allows submitting a visit without selecting a visitor card", async () => {
+    const manyCards = Array.from({ length: 155 }, (_, i) => ({
+      id: `card-${i + 1}`,
+      card_no: `VIS-${String(i + 1).padStart(3, "0")}`,
+      status: "available",
+    }))
+
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url.includes("/locations")) {
+        return Promise.resolve({
+          data: [{ id: 1, name: "Dermaga 1", type: "location", is_active: true }],
+        })
+      }
+      if (url.includes("/staffs")) {
+        return Promise.resolve({
+          data: [
+            {
+              id: 10,
+              staff_id: "KPK0211",
+              name: "Slamet Riyadi",
+              company: "KPK",
+              address: "PERUM PURI MAS BLOK B3 NO 19 BATU AJI BATAM KEPULAUAN RIAU",
+            },
+          ],
+        })
+      }
+      if (url.includes("/cards")) {
+        return Promise.resolve({ data: manyCards })
+      }
+      if (url.includes("/vehicle-cards")) {
+        return Promise.resolve({
+          data: [{ id: 30, card_no: "VEH-001", status: "available" }],
+        })
+      }
+      return Promise.resolve({ data: [] })
+    })
+
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: {
+        message: "Visit created",
+        visit: { id: "visit-no-card", ticket_number: "26/10/00105" },
+      },
+    })
+
+    render(
+      <MemoryRouter>
+        <CreateVisit />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith("/cards", {
+        params: { per_page: 1000 },
+      })
+      expect(screen.getByText("155 kartu tersedia")).toBeInTheDocument()
+    })
+
+    // Fill visitor identity & purpose without selecting any visitor card
+    fireEvent.change(screen.getByLabelText(/id number/i), {
+      target: { value: "3201000011112222" },
+    })
+    fireEvent.change(screen.getByLabelText(/visitor name/i), {
+      target: { value: "Tamu Kartu Mobil Saja" },
+    })
+    fireEvent.change(screen.getByLabelText(/purpose of visit/i), {
+      target: { value: "Antar Barang" },
+    })
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /save & print ticket/i })
+    )
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        "/visits",
+        expect.objectContaining({
+          name: "Tamu Kartu Mobil Saja",
+          card_ids: [],
+        })
+      )
+    })
+  })
 })
+

@@ -69,7 +69,7 @@ export default function VehicleCards() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
-  const perPage = 15
+  const perPage = 100
 
   // Form State
   const [modalOpen, setModalOpen] = useState(false)

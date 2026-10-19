@@ -70,7 +70,7 @@ export interface Visitor {
   visits_count?: number
 }
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 100
 
 export default function Visitors() {
   const navigate = useNavigate()

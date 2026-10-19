@@ -90,7 +90,7 @@ export default function VesselReport() {
   const [page, setPage] = useState(1)
   const [lastPage, setLastPage] = useState(1)
   const [total, setTotal] = useState(0)
-  const perPage = 25
+  const perPage = 100
 
   const fetchVesselReport = useCallback(
     async (currentMode: string, filters: Record<string, any>, targetPage: number) => {

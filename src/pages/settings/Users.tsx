@@ -72,7 +72,7 @@ export default function Users() {
   // Search & Pagination
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
-  const perPage = 10
+  const perPage = 100
 
   // Modal form states
   const [modalOpen, setModalOpen] = useState(false)

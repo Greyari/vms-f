@@ -67,7 +67,7 @@ export default function VisitorFormModal({
     if (typeof api.get !== "function") return
 
     try {
-      const req = api.get("/locations", { params: { per_page: 2000 } })
+      const req = api.get("/locations", { params: { per_page: 1000 } })
       if (req && typeof req.then === "function") {
         req
           .then((res: any) => {

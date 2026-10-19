@@ -119,7 +119,7 @@ export default function VisitorReport() {
   const [page, setPage] = useState(1)
   const [lastPage, setLastPage] = useState(1)
   const [total, setTotal] = useState(0)
-  const perPage = 25
+  const perPage = 100
 
   const fetchVisits = useCallback(async (filters: Record<string, any>, targetPage: number) => {
     setLoading(true)

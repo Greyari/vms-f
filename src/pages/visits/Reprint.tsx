@@ -102,7 +102,7 @@ export default function Reprint() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState<number>(1)
-  const itemsPerPage = 10
+  const itemsPerPage = 100
 
   const fetchVisits = useCallback(async () => {
     setLoading(true)

@@ -74,7 +74,7 @@ export default function Locations() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
-  const perPage = 15
+  const perPage = 100
 
   // Create / Edit Modal State
   const [modalOpen, setModalOpen] = useState(false)

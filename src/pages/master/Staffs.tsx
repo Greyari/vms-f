@@ -70,7 +70,7 @@ export default function Staffs() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
-  const perPage = 10
+  const perPage = 100
 
   // Form State
   const [form, setForm] = useState({

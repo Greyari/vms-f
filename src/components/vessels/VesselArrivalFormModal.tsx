@@ -109,7 +109,7 @@ export default function VesselArrivalFormModal({
     async function loadVessels() {
       setLoadingVessels(true)
       try {
-        const res = await api.get("/locations", { params: { per_page: 2000 } })
+        const res = await api.get("/locations", { params: { per_page: 1000 } })
         const raw = Array.isArray(res.data) ? res.data : (res.data?.data ?? [])
         // Filter out non-vessel locations
         const filteredVessels = raw.filter(

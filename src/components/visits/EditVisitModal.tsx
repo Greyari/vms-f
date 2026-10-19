@@ -119,10 +119,10 @@ export default function EditVisitModal({
       setLoading(true)
       try {
         const [locRes, staffRes, cardRes, vehicleRes] = await Promise.all([
-          api.get("/locations", { params: { per_page: 2000 } }).catch(() => ({ data: [] })),
-          api.get("/staffs").catch(() => ({ data: [] })),
-          api.get("/cards").catch(() => ({ data: [] })),
-          api.get("/vehicle-cards").catch(() => ({ data: [] })),
+          api.get("/locations", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
+          api.get("/staffs", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
+          api.get("/cards", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
+          api.get("/vehicle-cards", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
         ])
 
         const locData = Array.isArray(locRes.data)
@@ -194,7 +194,7 @@ export default function EditVisitModal({
         visitor_company: form.visitor_company.trim(),
         purpose: form.purpose.trim(),
         vehicle_plate: form.vehicle_plate.trim() || undefined,
-        card_ids: form.card_ids.length > 0 ? form.card_ids : undefined,
+        card_ids: form.card_ids,
         vehicle_card_id: form.vehicle_card_id
           ? /^\d+$/.test(form.vehicle_card_id)
             ? Number(form.vehicle_card_id)
@@ -363,7 +363,7 @@ export default function EditVisitModal({
               </div>
 
               {!form.is_custom_host ? (
-                <div className="space-y-1">
+                <div className="min-w-0 space-y-1">
                   <Label htmlFor="staff_id" className="text-xs">
                     Staf Host
                   </Label>
@@ -372,11 +372,12 @@ export default function EditVisitModal({
                     name="staff_id"
                     value={form.staff_id}
                     onChange={handleChange}
-                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1.5 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
+                    className="flex h-9 w-full min-w-0 max-w-full truncate rounded-md border border-zinc-200 bg-transparent px-3 py-1.5 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
                   >
                     <option value="">-- Pilih Staf --</option>
                     {staffList.map((s) => {
-                      const details = [s.staff_id, s.company, s.address || s.department].filter(Boolean).join(" - ")
+                      const rawDetails = [s.staff_id, s.company, s.address || s.department].filter(Boolean).join(" - ")
+                      const details = rawDetails.length > 45 ? `${rawDetails.slice(0, 45)}...` : rawDetails
                       return (
                         <option key={s.id} value={s.id}>
                           {s.name} {details ? `(${details})` : ""}
@@ -429,7 +430,7 @@ export default function EditVisitModal({
             {/* Card Swap / Assignment */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="card_select">Kartu Visitor</Label>
+                <Label htmlFor="card_select">Kartu Visitor (Opsional)</Label>
                 <select
                   id="card_select"
                   value={form.card_ids[0] || ""}
@@ -441,7 +442,7 @@ export default function EditVisitModal({
                   }
                   className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1.5 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
                 >
-                  <option value="">-- Pilih Kartu --</option>
+                  <option value="">Tidak Ada / Pilih Kartu</option>
                   {cardList.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.card_no} {c.status === "available" ? "(Tersedia)" : "(Sedang Dipakai)"}

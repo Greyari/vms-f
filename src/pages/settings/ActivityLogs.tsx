@@ -94,7 +94,7 @@ export default function ActivityLogs() {
   const [currentPage, setCurrentPage] = useState(1)
   const [lastPage, setLastPage] = useState(1)
   const [total, setTotal] = useState(0)
-  const perPage = 25
+  const perPage = 100
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false)

@@ -44,14 +44,10 @@ export default function PrintVisit() {
   const [visit, setVisit] = useState<any>(location.state?.visit || null)
   const [loading, setLoading] = useState<boolean>(!location.state?.visit)
 
-  // Print once both the pass and the yard's name are known, so paper never shows a placeholder.
-  useEffect(() => {
-    if (!visit || !configReady) return
-    const timer = setTimeout(() => {
-      window.print()
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [visit, configReady])
+  const handlePrintNow = () => {
+    toast.dismiss()
+    window.print()
+  }
 
   useEffect(() => {
     if (visit) return
@@ -138,6 +134,13 @@ export default function PrintVisit() {
                 color: black !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+              }
+              [data-sonner-toaster],
+              [data-sonner-toast],
+              section[aria-label*="Notifications"] {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
               }
               .print-container {
                 width: 24cm !important;
@@ -299,8 +302,9 @@ export default function PrintVisit() {
       {/* Tombol layar (tidak ikut tercetak) */}
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3 print:hidden">
         <button
-          onClick={() => window.print()}
-          className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800"
+          onClick={handlePrintNow}
+          disabled={!configReady}
+          className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Printer className="h-4 w-4" />
           Print Pass Now

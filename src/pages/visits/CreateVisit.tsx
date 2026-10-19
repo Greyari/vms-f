@@ -245,10 +245,10 @@ export default function CreateVisit() {
       try {
         const [locRes, staffRes, cardsRes, vehRes, purposeRes] =
           await Promise.all([
-            api.get("/locations", { params: { per_page: 2000 } }).catch(() => ({ data: [] })),
-            api.get("/staffs", { params: { per_page: 100 } }).catch(() => ({ data: [] })),
-            api.get("/cards").catch(() => ({ data: [] })),
-            api.get("/vehicle-cards").catch(() => ({ data: [] })),
+            api.get("/locations", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
+            api.get("/staffs", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
+            api.get("/cards", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
+            api.get("/vehicle-cards", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
             api.get("/lookups/purposes").catch(() => ({ data: [] })),
           ])
 
@@ -300,12 +300,6 @@ export default function CreateVisit() {
           (c: CardItem) => c.status === "available"
         )
         setCardList(availableCards)
-        if (availableCards.length > 0 && form.card_ids.length === 0) {
-          setForm((prev) => ({
-            ...prev,
-            card_ids: [availableCards[0].id.toString()],
-          }))
-        }
 
         const availableVehicles = rawVehicles.filter(
           (c: CardItem) => c.status === "available"
@@ -869,7 +863,7 @@ export default function CreateVisit() {
           {/* ======================================================== */}
           {/* KOLOM KIRI: SECTION 1 - Identitas Pengunjung             */}
           {/* ======================================================== */}
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="min-w-0 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
             <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
                 1
@@ -1405,7 +1399,7 @@ export default function CreateVisit() {
           {/* ======================================================== */}
           {/* KOLOM TENGAH: SECTION 2 - Tujuan Kunjungan & Host        */}
           {/* ======================================================== */}
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="min-w-0 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
             <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
                 2
@@ -1596,7 +1590,7 @@ export default function CreateVisit() {
               </div>
 
               {/* Host Destination Section */}
-              <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+              <div className="min-w-0 space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                     Host Destination
@@ -1615,7 +1609,7 @@ export default function CreateVisit() {
                 </div>
 
                 {!form.is_custom_host ? (
-                  <div className="space-y-1.5">
+                  <div className="min-w-0 space-y-1.5">
                     <Label htmlFor="staff_id" className="text-xs">Staff Host PIC</Label>
                     <Popover open={openStaff} onOpenChange={setOpenStaff}>
                       <PopoverTrigger asChild>
@@ -1624,22 +1618,24 @@ export default function CreateVisit() {
                           role="combobox"
                           disabled={loadingMaster}
                           className={cn(
-                            "w-full justify-between bg-white text-xs font-normal dark:bg-zinc-950",
+                            "w-full min-w-0 max-w-full overflow-hidden justify-between bg-white text-xs font-normal dark:bg-zinc-950",
                             !form.staff_id && "text-muted-foreground"
                           )}
                         >
-                          {loadingMaster
-                            ? "Memuat daftar staf..."
-                            : form.staff_id
-                              ? (() => {
-                                  const selected = staffList.find(
-                                    (item) => item.id.toString() === form.staff_id
-                                  )
-                                  if (!selected) return "Pilih Staf PIC Host..."
-                                  const details = [selected.staff_id, selected.company, selected.address || selected.department].filter(Boolean).join(" - ")
-                                  return details ? `${selected.name} (${details})` : selected.name
-                                })()
-                              : "Pilih Staf PIC Host..."}
+                          <span className="min-w-0 flex-1 truncate text-left">
+                            {loadingMaster
+                              ? "Memuat daftar staf..."
+                              : form.staff_id
+                                ? (() => {
+                                    const selected = staffList.find(
+                                      (item) => item.id.toString() === form.staff_id
+                                    )
+                                    if (!selected) return "Pilih Staf PIC Host..."
+                                    const details = [selected.staff_id, selected.company, selected.address || selected.department].filter(Boolean).join(" - ")
+                                    return details ? `${selected.name} (${details})` : selected.name
+                                  })()
+                                : "Pilih Staf PIC Host..."}
+                          </span>
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -1675,21 +1671,21 @@ export default function CreateVisit() {
                                         : "opacity-0"
                                     )}
                                   />
-                                  <div className="flex flex-col gap-0.5">
+                                  <div className="flex min-w-0 flex-1 flex-col gap-0.5 overflow-hidden">
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="text-xs font-semibold">{item.name}</span>
+                                      <span className="truncate text-xs font-semibold">{item.name}</span>
                                       {item.staff_id && (
-                                        <span className="rounded bg-zinc-100 px-1 py-0.2 text-[10px] font-mono font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                        <span className="shrink-0 rounded bg-zinc-100 px-1 py-0.2 text-[10px] font-mono font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                                           {item.staff_id}
                                         </span>
                                       )}
                                       {item.gender && (
-                                        <span className="text-[10px] text-zinc-500">
+                                        <span className="shrink-0 text-[10px] text-zinc-500">
                                           • {item.gender}
                                         </span>
                                       )}
                                     </div>
-                                    <span className="text-[10px] text-zinc-500">
+                                    <span className="truncate text-[10px] text-zinc-500">
                                       {[item.company, item.address || item.department].filter(Boolean).join(" • ") || "No Department"}
                                     </span>
                                   </div>
@@ -1707,10 +1703,10 @@ export default function CreateVisit() {
                       return (
                         <div className="mt-1 rounded-md border border-zinc-200 bg-zinc-50/80 p-2 text-[11px] text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300">
                           <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                            <div><span className="text-zinc-400">Staff No:</span> <span className="font-mono font-medium">{selected.staff_id || "-"}</span></div>
-                            <div><span className="text-zinc-400">Gender:</span> <span className="font-medium">{selected.gender || "-"}</span></div>
-                            <div><span className="text-zinc-400">Company:</span> <span className="font-medium">{selected.company || "-"}</span></div>
-                            <div><span className="text-zinc-400">Address / Role:</span> <span className="font-medium">{selected.address || selected.department || "-"}</span></div>
+                            <div className="min-w-0 truncate"><span className="text-zinc-400">Staff No:</span> <span className="font-mono font-medium">{selected.staff_id || "-"}</span></div>
+                            <div className="min-w-0 truncate"><span className="text-zinc-400">Gender:</span> <span className="font-medium">{selected.gender || "-"}</span></div>
+                            <div className="min-w-0 truncate" title={selected.company || "-"}><span className="text-zinc-400">Company:</span> <span className="font-medium">{selected.company || "-"}</span></div>
+                            <div className="min-w-0 truncate" title={selected.address || selected.department || "-"}><span className="text-zinc-400">Address / Role:</span> <span className="font-medium">{selected.address || selected.department || "-"}</span></div>
                           </div>
                         </div>
                       )
@@ -1737,7 +1733,7 @@ export default function CreateVisit() {
           {/* ======================================================== */}
           {/* KOLOM KANAN: SECTION 3 - Kartu Akses & Kendaraan         */}
           {/* ======================================================== */}
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="min-w-0 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
             <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
                 3
@@ -1753,7 +1749,7 @@ export default function CreateVisit() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="card_ids" className="text-xs font-semibold">
-                    Assign Visitor Cards
+                    Assign Visitor Cards (Optional)
                   </Label>
                   <Badge variant="outline" className="text-[11px] font-mono">
                     {loadingMaster
@@ -1766,7 +1762,7 @@ export default function CreateVisit() {
                   <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300 flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
                     <span>
-                      Tidak ada kartu pengunjung yang tersedia. Pastikan ada kartu fisik berstatus "available" di sistem.
+                      Tidak ada kartu pengunjung yang tersedia saat ini. Kunjungan tetap dapat disimpan tanpa kartu pengunjung (misal hanya menggunakan kartu kendaraan).
                     </span>
                   </div>
                 ) : (
@@ -1777,22 +1773,24 @@ export default function CreateVisit() {
                         role="combobox"
                         disabled={loadingMaster}
                         className={cn(
-                          "w-full justify-between text-xs font-normal",
+                          "w-full min-w-0 max-w-full overflow-hidden justify-between text-xs font-normal",
                           form.card_ids.length === 0 && "text-muted-foreground"
                         )}
                       >
-                        {loadingMaster
-                          ? "Memuat daftar kartu..."
-                          : form.card_ids.length > 0
-                            ? form.card_ids
-                                .map(
-                                  (id) =>
-                                    cardList.find((c) => c.id.toString() === id)
-                                      ?.card_no
-                                )
-                                .filter(Boolean)
-                                .join(", ")
-                            : "Pilih Kartu Akses Pengunjung..."}
+                        <span className="min-w-0 flex-1 truncate text-left">
+                          {loadingMaster
+                            ? "Memuat daftar kartu..."
+                            : form.card_ids.length > 0
+                              ? form.card_ids
+                                  .map(
+                                    (id) =>
+                                      cardList.find((c) => c.id.toString() === id)
+                                        ?.card_no
+                                  )
+                                  .filter(Boolean)
+                                  .join(", ")
+                              : "Tidak menggunakan kartu / Pilih Kartu Pengunjung..."}
+                        </span>
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -1806,6 +1804,25 @@ export default function CreateVisit() {
                         <CommandList>
                           <CommandEmpty>Kartu tidak ditemukan.</CommandEmpty>
                           <CommandGroup>
+                            <CommandItem
+                              value="tidak menggunakan kartu kosongkan none"
+                              onSelect={() => {
+                                handleSelectChange("card_ids", [])
+                                setOpenCard(false)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  form.card_ids.length === 0
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              <span className="text-xs text-zinc-500 italic">
+                                Tidak menggunakan kartu pengunjung
+                              </span>
+                            </CommandItem>
                             {cardList.map((item) => {
                               const isSelected = form.card_ids.includes(
                                 item.id.toString()
@@ -1892,18 +1909,20 @@ export default function CreateVisit() {
                       role="combobox"
                       disabled={loadingMaster}
                       className={cn(
-                        "w-full justify-between text-xs font-normal",
+                        "w-full min-w-0 max-w-full overflow-hidden justify-between text-xs font-normal",
                         !form.vehicle_card_id && "text-muted-foreground"
                       )}
                     >
-                      {loadingMaster
-                        ? "Memuat..."
-                        : form.vehicle_card_id
-                          ? vehicleList.find(
-                              (item) =>
-                                item.id.toString() === form.vehicle_card_id
-                            )?.card_no
-                          : "None / Select Vehicle Card..."}
+                      <span className="min-w-0 flex-1 truncate text-left">
+                        {loadingMaster
+                          ? "Memuat..."
+                          : form.vehicle_card_id
+                            ? vehicleList.find(
+                                (item) =>
+                                  item.id.toString() === form.vehicle_card_id
+                              )?.card_no
+                            : "None / Select Vehicle Card..."}
+                      </span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>

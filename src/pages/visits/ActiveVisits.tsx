@@ -108,7 +108,7 @@ export default function ActiveVisits() {
     direction: "asc" | "desc"
   } | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const itemsPerPage = 100
 
   // Alert Dialog States
   const [alertOpen, setAlertOpen] = useState(false)

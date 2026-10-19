@@ -80,7 +80,7 @@ interface BlacklistedVisitor {
   is_blacklisted: boolean
 }
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 100
 
 export default function BlacklistedVisitors() {
   const navigate = useNavigate()
