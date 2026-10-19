@@ -17,6 +17,7 @@ import { Loader2, Plus, Ship, Users, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { VesselArrivalItem } from "@/pages/vessels/VesselArrivals"
 import CrewSelectionDialog from "./CrewSelectionDialog"
+import SearchableLocationSelect from "@/components/common/SearchableLocationSelect"
 
 interface LocationOption {
   id: string
@@ -532,21 +533,17 @@ export default function VesselArrivalFormModal({
                 <Label htmlFor="vessel-select">
                   Pilih Kapal <span className="text-red-500">*</span>
                 </Label>
-                <select
+                <SearchableLocationSelect
                   id="vessel-select"
-                  aria-label="Pilih Kapal"
+                  ariaLabel="Pilih Kapal"
+                  options={vessels}
                   value={locationId}
-                  onChange={(e) => handleSelectVessel(e.target.value)}
+                  onChange={(val) => handleSelectVessel(val)}
+                  placeholder="-- Cari & Pilih Kapal (Nama, IMO, Captain, PIC) --"
+                  searchPlaceholder="Cari nama kapal, IMO No, Captain, PIC, atau Tipe..."
                   disabled={loadingVessels || submitting}
-                  className="mt-1 w-full h-10 px-3 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">-- Pilih Kapal --</option>
-                  {vessels.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} {v.code ? `(${v.code})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  className="mt-1 h-10"
+                />
                 {errors.location_id && (
                   <p className="text-xs text-red-500 mt-1">{errors.location_id}</p>
                 )}

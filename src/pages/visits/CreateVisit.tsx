@@ -52,6 +52,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import SearchableLocationSelect from "@/components/common/SearchableLocationSelect"
 import type { GlobalBlacklistHit, PreRegistration } from "@/types/hybrid"
 
 interface LocationItem {
@@ -172,6 +173,8 @@ export default function CreateVisit() {
     company: string
     occupation: string
     visitor_type: string
+    seaman_book_no: string
+    certificate_no: string
     phone: string
     email: string
     birth_place: string
@@ -193,6 +196,8 @@ export default function CreateVisit() {
     company: "",
     occupation: "",
     visitor_type: "visitor",
+    seaman_book_no: "",
+    certificate_no: "",
     phone: "",
     email: "",
     birth_place: "",
@@ -430,6 +435,10 @@ export default function CreateVisit() {
           name: visitor.name || prev.name,
           company: visitor.company || prev.company,
           occupation: visitor.occupation || prev.occupation,
+          visitor_type: visitor.visitor_type || prev.visitor_type,
+          location_id: visitor.vessel_id
+            ? String(visitor.vessel_id)
+            : prev.location_id,
           phone: visitor.phone || prev.phone,
           email: visitor.email || prev.email,
         }))
@@ -446,6 +455,10 @@ export default function CreateVisit() {
           name: visitor.name || prev.name,
           company: visitor.company || prev.company,
           occupation: visitor.occupation || prev.occupation,
+          visitor_type: visitor.visitor_type || prev.visitor_type,
+          location_id: visitor.vessel_id
+            ? String(visitor.vessel_id)
+            : prev.location_id,
           phone: visitor.phone || prev.phone,
           email: visitor.email || prev.email,
         }))
@@ -510,6 +523,10 @@ export default function CreateVisit() {
       name: visitor.name,
       company: visitor.company || "",
       occupation: visitor.occupation || prev.occupation,
+      visitor_type: visitor.visitor_type || prev.visitor_type,
+      location_id: visitor.vessel_id
+        ? String(visitor.vessel_id)
+        : prev.location_id,
       phone: visitor.phone || prev.phone,
       email: visitor.email || prev.email,
     }))
@@ -564,6 +581,14 @@ export default function CreateVisit() {
         address: form.address.trim() || null,
         vessel_id:
           form.visitor_type === "crew" && isVessel ? form.location_id : null,
+        seaman_book_no:
+          form.visitor_type === "crew"
+            ? form.seaman_book_no.trim() || null
+            : null,
+        certificate_no:
+          form.visitor_type === "crew"
+            ? form.certificate_no.trim() || null
+            : null,
       }
 
       const res = await api.post("/visitors", payload)
@@ -636,8 +661,16 @@ export default function CreateVisit() {
       if (form.birth_place.trim()) payload.birth_place = form.birth_place.trim()
       if (form.birth_date) payload.birth_date = form.birth_date
       if (form.visitor_type) payload.visitor_type = form.visitor_type
-      if (form.visitor_type === "crew" && isVessel) {
-        payload.vessel_id = form.location_id
+      if (form.visitor_type === "crew") {
+        if (isVessel) {
+          payload.vessel_id = form.location_id
+        }
+        if (form.seaman_book_no.trim()) {
+          payload.seaman_book_no = form.seaman_book_no.trim()
+        }
+        if (form.certificate_no.trim()) {
+          payload.certificate_no = form.certificate_no.trim()
+        }
       }
 
       if (form.is_custom_host || form.host_name) {
@@ -1101,21 +1134,117 @@ export default function CreateVisit() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="company" className="text-xs">Company / Agency (Optional)</Label>
-                <Input
-                  id="company"
-                  name="company"
-                  value={form.company}
-                  readOnly={visitorStatus === "registered" && isEditLockedVisitor}
-                  onChange={handleChange}
-                  placeholder="Contoh: PT Mitra Maritim"
-                  className={cn(
-                    "h-9 text-xs",
-                    visitorStatus === "registered" && isEditLockedVisitor && "bg-zinc-100 dark:bg-zinc-900"
-                  )}
-                />
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="company" className="text-xs">Company / Agency (Optional)</Label>
+                  <Input
+                    id="company"
+                    name="company"
+                    value={form.company}
+                    readOnly={visitorStatus === "registered" && isEditLockedVisitor}
+                    onChange={handleChange}
+                    placeholder="Contoh: PT Mitra Maritim"
+                    className={cn(
+                      "h-9 text-xs",
+                      visitorStatus === "registered" && isEditLockedVisitor && "bg-zinc-100 dark:bg-zinc-900"
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="visitor_type" className="text-xs font-semibold">
+                    Tipe Pengunjung (Visitor Type) *
+                  </Label>
+                  <select
+                    id="visitor_type"
+                    name="visitor_type"
+                    value={form.visitor_type}
+                    onChange={(e) => {
+                      const nextType = e.target.value
+                      setForm((prev) => ({
+                        ...prev,
+                        visitor_type: nextType,
+                        purpose:
+                          nextType === "crew" && !prev.purpose.trim()
+                            ? "Crew Sign-On"
+                            : prev.purpose,
+                      }))
+                    }}
+                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
+                  >
+                    <option value="visitor">Pengunjung Umum (Visitor)</option>
+                    <option value="crew">Crew Kapal (Pelaut / ABK)</option>
+                    <option value="temporary_worker">Tenaga Kerja Sementara</option>
+                    <option value="supplier">Supplier / Vendor</option>
+                    <option value="others">Lainnya</option>
+                  </select>
+                </div>
               </div>
+
+              {/* Panel Khusus jika Tipe Pengunjung = Crew Kapal */}
+              {form.visitor_type === "crew" && (
+                <div
+                  role="region"
+                  aria-label="Penugasan Crew Kapal"
+                  className="rounded-lg border border-blue-200 bg-blue-50/70 p-3.5 space-y-3 text-xs dark:border-blue-900/60 dark:bg-blue-950/30"
+                >
+                  <div className="flex items-start gap-2">
+                    <Ship className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <span className="font-semibold text-blue-950 dark:text-blue-200 block">
+                        Mode Kunjungan Kru Kapal (Auto Check-In Kedatangan Kru)
+                      </span>
+                      <p className="text-[11px] text-blue-800 dark:text-blue-300">
+                        Saat disimpan, kru ini otomatis ditugaskan ke manifest{" "}
+                        <strong>Kedatangan Kapal (Vessel Arrivals)</strong> kapal tujuan dan langsung terhitung{" "}
+                        <strong>Check-In (On-Board)</strong> beserta pencatatan log kru.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 pt-1">
+                    <div className="space-y-1">
+                      <Label htmlFor="crew_occupation" className="text-[11px] font-medium">
+                        Jabatan / Rank di Kapal
+                      </Label>
+                      <Input
+                        id="crew_occupation"
+                        name="occupation"
+                        value={form.occupation}
+                        onChange={handleChange}
+                        placeholder="Chief Eng, Bosun, ABK..."
+                        className="h-8 bg-white text-xs dark:bg-zinc-950"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="seaman_book_no" className="text-[11px] font-medium">
+                        No. Buku Pelaut
+                      </Label>
+                      <Input
+                        id="seaman_book_no"
+                        name="seaman_book_no"
+                        value={form.seaman_book_no}
+                        onChange={handleChange}
+                        placeholder="Opsional..."
+                        className="h-8 bg-white text-xs dark:bg-zinc-950"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="certificate_no" className="text-[11px] font-medium">
+                        No. Sertifikat (COC)
+                      </Label>
+                      <Input
+                        id="certificate_no"
+                        name="certificate_no"
+                        value={form.certificate_no}
+                        onChange={handleChange}
+                        placeholder="Opsional..."
+                        className="h-8 bg-white text-xs dark:bg-zinc-950"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Bagian Collapsible: Data Tambahan */}
               <div className="rounded border border-zinc-200 bg-zinc-50/50 p-2.5 dark:border-zinc-800 dark:bg-zinc-900/30">
@@ -1148,21 +1277,16 @@ export default function CreateVisit() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label htmlFor="visitor_type" className="text-[11px]">Tipe Pengunjung</Label>
-                        <select
-                          id="visitor_type"
-                          name="visitor_type"
-                          value={form.visitor_type}
+                        <Label htmlFor="nationality" className="text-[11px]">Kebangsaan</Label>
+                        <Input
+                          id="nationality"
+                          name="nationality"
+                          value={form.nationality}
                           disabled={visitorStatus === "registered" && isEditLockedVisitor}
                           onChange={handleChange}
-                          className="flex h-8 w-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-800 dark:bg-zinc-950"
-                        >
-                          <option value="visitor">Pengunjung Umum</option>
-                          <option value="crew">Crew Kapal</option>
-                          <option value="temporary_worker">Tenaga Kerja Sementara</option>
-                          <option value="supplier">Supplier / Vendor</option>
-                          <option value="others">Lainnya</option>
-                        </select>
+                          placeholder="Indonesia"
+                          className="h-8 text-xs"
+                        />
                       </div>
                     </div>
 
@@ -1293,34 +1417,26 @@ export default function CreateVisit() {
             </div>
 
             <div className="space-y-4">
-              {/* Lokasi / Vessel */}
+              {/* Lokasi / Vessel (Searchable Combobox) */}
               <div className="space-y-1.5">
                 <Label htmlFor="location_id" className="text-xs font-semibold">
                   Location / Vessel (Mandatory) *
                 </Label>
-                <select
+                <SearchableLocationSelect
                   id="location_id"
                   name="location_id"
                   value={form.location_id}
-                  onChange={handleChange}
-                  required
+                  onValueChange={(val) => handleSelectChange("location_id", val)}
+                  options={locations}
                   disabled={loadingMaster}
-                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
-                >
-                  {loadingMaster ? (
-                    <option value="">Memuat daftar lokasi...</option>
-                  ) : (
-                    <option value="">-- Select Location / Vessel --</option>
-                  )}
-                  {locations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
-                      {loc.code && loc.type && loc.type !== "location"
-                        ? ` (IMO: ${loc.code})`
-                        : ""}
-                    </option>
-                  ))}
-                </select>
+                  required
+                  placeholder={
+                    loadingMaster
+                      ? "Memuat daftar lokasi & kapal..."
+                      : "-- Cari & Pilih Lokasi / Kapal --"
+                  }
+                  searchPlaceholder="Cari nama kapal/lokasi, IMO No, Captain, PIC, Call Sign..."
+                />
               </div>
 
               {/* Kartu Informasi Kapal (tampil jika yang dipilih adalah Kapal, bukan Lokasi Darat) */}

@@ -129,4 +129,52 @@ describe('ActiveVisits Page', () => {
       expect(api.post).toHaveBeenCalledWith('/visits/101/checkout')
     })
   })
+
+  it('displays Crew Kapal badge and vessel metadata (IMO, Tipe, Captain, PIC) when visiting a vessel', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: [
+        {
+          id: 105,
+          ticket_number: '26/10/00005',
+          visitor_cards: [{ card_no: 'VIS-009' }],
+          visitor: {
+            name: 'Hendra Wijaya',
+            company: 'PT Pelayaran Nusantara',
+            visitor_type: 'crew',
+            occupation: 'Chief Officer',
+          },
+          location_name: 'GAS WIDURI',
+          location: {
+            id: 'v-1',
+            name: 'GAS WIDURI',
+            code: '9764790',
+            type: 'repair_vessel',
+            vessel_type: 'LPG TANKER',
+            captain: 'CAPT. SUTRISNO',
+            pic: 'ALVI',
+          },
+          host_name: 'CAPT. SUTRISNO',
+          purpose: 'Dinas / Penugasan Kru Kapal',
+          time_in: '09:15',
+          days_open: 0,
+        },
+      ],
+    })
+
+    render(
+      <MemoryRouter>
+        <ActiveVisits />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Hendra Wijaya')).toBeInTheDocument()
+      expect(screen.getByText(/Crew Kapal • Chief Officer/i)).toBeInTheDocument()
+      expect(screen.getByText('GAS WIDURI')).toBeInTheDocument()
+      expect(screen.getByText('LPG TANKER')).toBeInTheDocument()
+      expect(screen.getByText(/IMO: 9764790/i)).toBeInTheDocument()
+      expect(screen.getByText(/Capt: CAPT\. SUTRISNO/i)).toBeInTheDocument()
+      expect(screen.getByText(/PIC: ALVI/i)).toBeInTheDocument()
+    })
+  })
 })

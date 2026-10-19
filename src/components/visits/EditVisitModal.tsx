@@ -12,7 +12,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2 } from "lucide-react"
+import { Loader2, Ship } from "lucide-react"
+import SearchableLocationSelect from "@/components/common/SearchableLocationSelect"
 
 interface CardRef {
   id: number | string
@@ -23,6 +24,14 @@ interface CardRef {
 interface LocationRef {
   id: number | string
   name: string
+  code?: string | null
+  type?: string | null
+  vessel_type?: string | null
+  call_sign?: string | null
+  flag?: string | null
+  port?: string | null
+  captain?: string | null
+  pic?: string | null
 }
 
 interface StaffRef {
@@ -110,7 +119,7 @@ export default function EditVisitModal({
       setLoading(true)
       try {
         const [locRes, staffRes, cardRes, vehicleRes] = await Promise.all([
-          api.get("/locations").catch(() => ({ data: [] })),
+          api.get("/locations", { params: { per_page: 2000 } }).catch(() => ({ data: [] })),
           api.get("/staffs").catch(() => ({ data: [] })),
           api.get("/cards").catch(() => ({ data: [] })),
           api.get("/vehicle-cards").catch(() => ({ data: [] })),
@@ -177,13 +186,19 @@ export default function EditVisitModal({
     setSubmitting(true)
     try {
       const payload: Record<string, any> = {
-        location_id: form.location_id ? Number(form.location_id) : undefined,
+        location_id: form.location_id
+          ? /^\d+$/.test(form.location_id)
+            ? Number(form.location_id)
+            : form.location_id
+          : undefined,
         visitor_company: form.visitor_company.trim(),
         purpose: form.purpose.trim(),
         vehicle_plate: form.vehicle_plate.trim() || undefined,
         card_ids: form.card_ids.length > 0 ? form.card_ids : undefined,
         vehicle_card_id: form.vehicle_card_id
-          ? Number(form.vehicle_card_id)
+          ? /^\d+$/.test(form.vehicle_card_id)
+            ? Number(form.vehicle_card_id)
+            : form.vehicle_card_id
           : null,
       }
 
@@ -223,6 +238,11 @@ export default function EditVisitModal({
 
   if (!visit) return null
 
+  const selectedLocation =
+    locations.find((loc) => String(loc.id) === String(form.location_id)) || null
+  const isSelectedLocationVessel =
+    Boolean(selectedLocation?.type) && selectedLocation?.type !== "location"
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
@@ -243,21 +263,81 @@ export default function EditVisitModal({
             {/* Location */}
             <div className="space-y-1.5">
               <Label htmlFor="location_id">Lokasi / Kapal</Label>
-              <select
+              <SearchableLocationSelect
                 id="location_id"
                 name="location_id"
+                ariaLabel="Lokasi / Kapal"
+                options={locations}
                 value={form.location_id}
-                onChange={handleChange}
+                onChange={(val) =>
+                  setForm((prev) => ({ ...prev, location_id: val }))
+                }
+                placeholder="-- Cari & Pilih Lokasi / Kapal --"
+                searchPlaceholder="Cari nama lokasi/kapal, IMO No, Captain, atau PIC..."
                 required
-                className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1.5 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
-              >
-                <option value="">-- Pilih Lokasi / Kapal --</option>
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
+                className="h-9"
+              />
+              {selectedLocation && isSelectedLocationVessel && (
+                <div className="mt-2 rounded-md border border-blue-200 bg-blue-50/50 dark:border-blue-900/60 dark:bg-blue-950/20 p-2.5 text-xs space-y-1.5">
+                  <div className="flex items-center justify-between border-b border-blue-200/70 dark:border-blue-800/70 pb-1">
+                    <span className="font-semibold text-blue-900 dark:text-blue-200 flex items-center gap-1">
+                      <Ship className="h-3.5 w-3.5" />
+                      {selectedLocation.name} (IMO: {selectedLocation.code || "-"})
+                    </span>
+                    <span className="text-[11px] font-medium text-blue-700 dark:text-blue-300">
+                      {selectedLocation.vessel_type || selectedLocation.type}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap gap-3 text-zinc-700 dark:text-zinc-300">
+                      <span>
+                        Captain: <strong>{selectedLocation.captain || "-"}</strong>
+                      </span>
+                      <span>
+                        Note/PIC: <strong>{selectedLocation.pic || "-"}</strong>
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedLocation.captain && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              is_custom_host: true,
+                              staff_id: "",
+                              host_name: selectedLocation.captain || "",
+                            }))
+                          }
+                          className="h-6 px-2 text-[11px]"
+                        >
+                          + Captain sbg Host
+                        </Button>
+                      )}
+                      {selectedLocation.pic && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              is_custom_host: true,
+                              staff_id: "",
+                              host_name: selectedLocation.pic || "",
+                            }))
+                          }
+                          className="h-6 px-2 text-[11px]"
+                        >
+                          + PIC sbg Host
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Host: Staff or Custom */}

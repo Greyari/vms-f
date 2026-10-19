@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { AlertCircle, Loader2 } from "lucide-react"
+import SearchableLocationSelect from "@/components/common/SearchableLocationSelect"
 
 interface VisitorFormModalProps {
   open: boolean
@@ -418,19 +419,16 @@ export default function VisitorFormModal({
               </h4>
               <div className="space-y-2">
                 <Label htmlFor="vfm_vessel_id">Kapal Tugas (Vessel)</Label>
-                <select
+                <SearchableLocationSelect
                   id="vfm_vessel_id"
+                  ariaLabel="Kapal Tugas (Vessel)"
+                  options={vessels}
                   value={form.vessel_id}
-                  onChange={(e) => setForm({ ...form, vessel_id: e.target.value })}
-                  className="flex h-9 w-full rounded-md border border-input bg-white dark:bg-zinc-900 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">-- Pilih Kapal Tugas (Opsional) --</option>
-                  {vessels.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} {v.code ? `(IMO: ${v.code})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setForm({ ...form, vessel_id: val })}
+                  placeholder="-- Cari & Pilih Kapal Tugas (Opsional) --"
+                  searchPlaceholder="Cari nama kapal, IMO No, Captain, atau PIC..."
+                  className="h-9 bg-white dark:bg-zinc-900"
+                />
                 {selectedVessel && (
                   <div className="rounded border border-sky-200 bg-white dark:bg-zinc-900 dark:border-sky-800 p-2 text-xs text-zinc-700 dark:text-zinc-300 flex flex-wrap gap-3">
                     <span>

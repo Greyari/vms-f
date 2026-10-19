@@ -165,4 +165,38 @@ describe('VesselArrivalDetailModal', () => {
       })
     })
   })
+
+  it('switches to Riwayat Log Keluar-Masuk Kru tab and filters logs per crew member', async () => {
+    render(
+      <VesselArrivalDetailModal
+        open={true}
+        onClose={mockOnClose}
+        arrivalId="uuid-arrival-1"
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
+    })
+
+    // Click Riwayat Log Keluar-Masuk Kru tab
+    fireEvent.click(screen.getByRole('button', { name: /riwayat log keluar-masuk kru/i }))
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/filter kru/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/Check-In \(Masuk\)/i).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/Check-Out \(Turun\)/i).length).toBeGreaterThan(0)
+    })
+
+    // Filter specifically for Budi Santoso (crew-1)
+    fireEvent.change(screen.getByLabelText(/filter kru/i), {
+      target: { value: 'crew-1' },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
+      expect(screen.queryByText('Ahmad Pelaut')).not.toBeInTheDocument()
+    })
+  })
 })
+

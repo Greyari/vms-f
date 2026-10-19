@@ -23,6 +23,8 @@ import {
   RotateCw,
   ChevronLeft,
   ChevronRight,
+  Anchor,
+  Ship,
 } from "lucide-react"
 import EditVisitModal from "@/components/visits/EditVisitModal"
 
@@ -35,11 +37,22 @@ interface VisitorRef {
   id?: number | string
   name: string
   company?: string | null
+  visitor_type?: string | null
+  occupation?: string | null
+  vessel_id?: string | null
 }
 
 interface LocationRef {
   id?: number | string
   name: string
+  code?: string | null
+  type?: string | null
+  vessel_type?: string | null
+  call_sign?: string | null
+  flag?: string | null
+  port?: string | null
+  captain?: string | null
+  pic?: string | null
 }
 
 interface StaffRef {
@@ -55,6 +68,7 @@ export interface ReprintVisitRecord {
   visitor?: VisitorRef | null
   visitor_name?: string | null
   visitor_company?: string | null
+  location_id?: number | string | null
   location?: LocationRef | null
   location_name?: string | null
   staff?: StaffRef | null
@@ -121,12 +135,24 @@ export default function Reprint() {
       const name = (v.visitor?.name || v.visitor_name || "").toLowerCase()
       const company = (v.visitor_company || v.visitor?.company || "").toLowerCase()
       const location = (v.location_name || v.location?.name || "").toLowerCase()
+      const locCode = (v.location?.code || "").toLowerCase()
+      const locCaptain = (v.location?.captain || "").toLowerCase()
+      const locPic = (v.location?.pic || "").toLowerCase()
+      const locType = (v.location?.vessel_type || v.location?.type || "").toLowerCase()
+      const occupation = (v.visitor?.occupation || "").toLowerCase()
+      const visitorType = (v.visitor?.visitor_type || "").toLowerCase()
       const host = (v.host_name || v.staff?.name || "").toLowerCase()
       return (
         ticket.includes(q) ||
         name.includes(q) ||
         company.includes(q) ||
         location.includes(q) ||
+        locCode.includes(q) ||
+        locCaptain.includes(q) ||
+        locPic.includes(q) ||
+        locType.includes(q) ||
+        occupation.includes(q) ||
+        visitorType.includes(q) ||
         host.includes(q)
       )
     })
@@ -251,13 +277,55 @@ export default function Reprint() {
                         {ticketNo}
                       </TableCell>
                       <TableCell className="font-semibold text-zinc-900 dark:text-white">
-                        {visitorName}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span>{visitorName}</span>
+                          {visit.visitor?.visitor_type === "crew" && (
+                            <span className="inline-flex items-center gap-1 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                              <Anchor className="h-2.5 w-2.5" />
+                              Crew Kapal
+                              {visit.visitor?.occupation
+                                ? ` • ${visit.visitor.occupation}`
+                                : ""}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-zinc-600 dark:text-zinc-300">
                         {company}
                       </TableCell>
                       <TableCell className="font-medium text-zinc-800 dark:text-zinc-200">
-                        {location}
+                        <div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span>{location}</span>
+                            {visit.location?.type &&
+                              visit.location.type !== "location" && (
+                                <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                  <Ship className="h-2.5 w-2.5" />
+                                  {visit.location.vessel_type ||
+                                    visit.location.type}
+                                </span>
+                              )}
+                          </div>
+                          {visit.location?.type &&
+                            visit.location.type !== "location" &&
+                            (visit.location.code ||
+                              visit.location.captain ||
+                              visit.location.pic) && (
+                              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-normal text-zinc-500 dark:text-zinc-400">
+                                {visit.location.code && (
+                                  <span className="font-mono">
+                                    IMO: {visit.location.code}
+                                  </span>
+                                )}
+                                {visit.location.captain && (
+                                  <span>Capt: {visit.location.captain}</span>
+                                )}
+                                {visit.location.pic && (
+                                  <span>PIC: {visit.location.pic}</span>
+                                )}
+                              </div>
+                            )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-zinc-600 dark:text-zinc-300">
                         {host}

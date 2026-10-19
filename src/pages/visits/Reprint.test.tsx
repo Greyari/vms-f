@@ -139,4 +139,52 @@ describe('Reprint Visits Page', () => {
       expect(screen.getByRole('heading', { name: /edit kunjungan terbuka/i })).toBeInTheDocument()
     })
   })
+
+  it('displays Crew Kapal badge and vessel metadata (IMO, Tipe, Captain, PIC) in Reprint table', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: [
+        {
+          id: 205,
+          ticket_number: '26/10/00205',
+          visitor: {
+            name: 'Andi Saputra',
+            company: 'PT Samudera',
+            visitor_type: 'crew',
+            occupation: 'Bosun',
+          },
+          visitor_company: 'PT Samudera',
+          location_name: 'PACIFIC PRIDE',
+          location: {
+            id: 'v-2',
+            name: 'PACIFIC PRIDE',
+            code: '9123456',
+            type: 'tug_boat',
+            vessel_type: 'AHTS TUG',
+            captain: 'CAPT. HENDRO',
+            pic: 'DEDI',
+          },
+          host_name: 'CAPT. HENDRO',
+          purpose: 'Dinas Kru',
+          time_in: '08:00',
+          checked_out_at: null,
+        },
+      ],
+    })
+
+    render(
+      <MemoryRouter>
+        <Reprint />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Andi Saputra')).toBeInTheDocument()
+      expect(screen.getByText(/Crew Kapal • Bosun/i)).toBeInTheDocument()
+      expect(screen.getByText('PACIFIC PRIDE')).toBeInTheDocument()
+      expect(screen.getByText('AHTS TUG')).toBeInTheDocument()
+      expect(screen.getByText(/IMO: 9123456/i)).toBeInTheDocument()
+      expect(screen.getByText(/Capt: CAPT\. HENDRO/i)).toBeInTheDocument()
+      expect(screen.getByText(/PIC: DEDI/i)).toBeInTheDocument()
+    })
+  })
 })

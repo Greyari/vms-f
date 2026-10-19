@@ -475,6 +475,7 @@ describe("CreateVisit Page", () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText(/location/i)).toBeInTheDocument()
+      expect(screen.getByText(/GAS WIDURI/i)).toBeInTheDocument()
     })
 
     // Initially land location is selected -> no vessel info card
@@ -489,7 +490,7 @@ describe("CreateVisit Page", () => {
       expect(screen.getByRole("region", { name: /informasi kapal tujuan/i })).toBeInTheDocument()
       expect(screen.getByText("CAPT. SUTRISNO")).toBeInTheDocument()
       expect(screen.getByText("ALVI")).toBeInTheDocument()
-      expect(screen.getByText("LPG TANKER")).toBeInTheDocument()
+      expect(screen.getAllByText("LPG TANKER").length).toBeGreaterThan(0)
       expect(screen.getByText("POJR")).toBeInTheDocument()
     })
 
@@ -498,6 +499,97 @@ describe("CreateVisit Page", () => {
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("CAPT. SUTRISNO")).toBeInTheDocument()
+    })
+  })
+
+  it("supports Crew Kapal visit mode with crew document fields and auto-assignment payload", async () => {
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url.includes("/locations")) {
+        return Promise.resolve({
+          data: [
+            {
+              id: "vessel-widuri",
+              name: "GAS WIDURI",
+              code: "9764790",
+              type: "repair_vessel",
+              vessel_type: "LPG TANKER",
+              captain: "CAPT. SUTRISNO",
+              pic: "ALVI",
+              is_active: true,
+            },
+          ],
+        })
+      }
+      return masterData(url)
+    })
+
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: {
+        message: "Visit created",
+        visit: { id: "visit-crew-1", ticket_number: "26/10/00099" },
+      },
+    })
+
+    render(
+      <MemoryRouter>
+        <CreateVisit />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/tipe pengunjung/i)).toBeInTheDocument()
+      expect(screen.getByText(/GAS WIDURI/i)).toBeInTheDocument()
+    })
+
+    // Switch visitor_type to "crew"
+    fireEvent.change(screen.getByLabelText(/tipe pengunjung/i), {
+      target: { value: "crew" },
+    })
+
+    expect(
+      await screen.findByText(/mode kunjungan kru kapal/i)
+    ).toBeInTheDocument()
+
+    // Fill crew details
+    fireEvent.change(screen.getByLabelText(/id number/i), {
+      target: { value: "3201999988887777" },
+    })
+    fireEvent.change(screen.getByLabelText(/visitor name/i), {
+      target: { value: "Rudi Hartono" },
+    })
+    fireEvent.change(screen.getByLabelText(/jabatan \/ rank di kapal/i), {
+      target: { value: "Chief Engineer" },
+    })
+    fireEvent.change(screen.getByLabelText(/no\. buku pelaut/i), {
+      target: { value: "SB-998877" },
+    })
+    fireEvent.change(screen.getByLabelText(/no\. sertifikat/i), {
+      target: { value: "COC-112233" },
+    })
+
+    // Select vessel GAS WIDURI
+    fireEvent.change(screen.getByLabelText(/location/i), {
+      target: { value: "vessel-widuri" },
+    })
+
+    // Submit form
+    fireEvent.click(
+      screen.getByRole("button", { name: /save & print ticket/i })
+    )
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        "/visits",
+        expect.objectContaining({
+          visitor_type: "crew",
+          name: "Rudi Hartono",
+          occupation: "Chief Engineer",
+          seaman_book_no: "SB-998877",
+          certificate_no: "COC-112233",
+          location_id: "vessel-widuri",
+          vessel_id: "vessel-widuri",
+        })
+      )
     })
   })
 })

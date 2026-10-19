@@ -24,6 +24,8 @@ import {
   Printer,
   Pencil,
   Clock,
+  Anchor,
+  Ship,
 } from "lucide-react"
 import {
   AlertDialog,
@@ -47,11 +49,22 @@ interface VisitorRef {
   id?: number | string
   name: string
   company?: string | null
+  visitor_type?: string | null
+  occupation?: string | null
+  vessel_id?: string | null
 }
 
 interface LocationRef {
   id?: number | string
   name: string
+  code?: string | null
+  type?: string | null
+  vessel_type?: string | null
+  call_sign?: string | null
+  flag?: string | null
+  port?: string | null
+  captain?: string | null
+  pic?: string | null
 }
 
 interface StaffRef {
@@ -66,6 +79,7 @@ export interface VisitRecord {
   visitor_cards?: CardRef[]
   visitor?: VisitorRef | null
   visitor_company?: string | null
+  location_id?: number | string | null
   location?: LocationRef | null
   location_name?: string | null
   staff?: StaffRef | null
@@ -205,6 +219,16 @@ export default function ActiveVisits() {
           item.location?.name ||
           ""
         ).toLowerCase()
+        const locCode = (item.location?.code || "").toLowerCase()
+        const locCaptain = (item.location?.captain || "").toLowerCase()
+        const locPic = (item.location?.pic || "").toLowerCase()
+        const locType = (
+          item.location?.vessel_type ||
+          item.location?.type ||
+          ""
+        ).toLowerCase()
+        const occupation = (item.visitor?.occupation || "").toLowerCase()
+        const visitorType = (item.visitor?.visitor_type || "").toLowerCase()
         const cards = (item.visitor_cards || [])
           .map((c) => (c.card_no || "").toLowerCase())
           .join(" ")
@@ -215,6 +239,12 @@ export default function ActiveVisits() {
           ticket.includes(q) ||
           legacyNo.includes(q) ||
           location.includes(q) ||
+          locCode.includes(q) ||
+          locCaptain.includes(q) ||
+          locPic.includes(q) ||
+          locType.includes(q) ||
+          occupation.includes(q) ||
+          visitorType.includes(q) ||
           cards.includes(q)
         )
       })
@@ -349,7 +379,18 @@ export default function ActiveVisits() {
                           .join(", ") || "-"}
                       </TableCell>
                       <TableCell className="py-2 font-semibold">
-                        <span>{visit.visitor?.name}</span> <br />
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span>{visit.visitor?.name}</span>
+                          {visit.visitor?.visitor_type === "crew" && (
+                            <span className="inline-flex items-center gap-1 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                              <Anchor className="h-2.5 w-2.5" />
+                              Crew Kapal
+                              {visit.visitor?.occupation
+                                ? ` • ${visit.visitor.occupation}`
+                                : ""}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-xs font-normal text-zinc-500">
                           {visit.visitor_company ||
                             visit.visitor?.company ||
@@ -357,9 +398,42 @@ export default function ActiveVisits() {
                         </span>
                       </TableCell>
                       <TableCell className="font-medium text-zinc-800 dark:text-zinc-200">
-                        {visit.location_name ||
-                          visit.location?.name ||
-                          "-"}
+                        <div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span>
+                              {visit.location_name ||
+                                visit.location?.name ||
+                                "-"}
+                            </span>
+                            {visit.location?.type &&
+                              visit.location.type !== "location" && (
+                                <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                  <Ship className="h-2.5 w-2.5" />
+                                  {visit.location.vessel_type ||
+                                    visit.location.type}
+                                </span>
+                              )}
+                          </div>
+                          {visit.location?.type &&
+                            visit.location.type !== "location" &&
+                            (visit.location.code ||
+                              visit.location.captain ||
+                              visit.location.pic) && (
+                              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-normal text-zinc-500 dark:text-zinc-400">
+                                {visit.location.code && (
+                                  <span className="font-mono">
+                                    IMO: {visit.location.code}
+                                  </span>
+                                )}
+                                {visit.location.captain && (
+                                  <span>Capt: {visit.location.captain}</span>
+                                )}
+                                {visit.location.pic && (
+                                  <span>PIC: {visit.location.pic}</span>
+                                )}
+                              </div>
+                            )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-zinc-600 dark:text-zinc-300">
                         {visit.host_name || visit.staff?.name || "-"}
