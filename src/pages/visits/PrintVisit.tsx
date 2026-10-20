@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useLocation, useNavigate, useParams, Link } from "react-router-dom"
 import { toast } from "sonner"
 import api from "@/lib/axios"
@@ -43,11 +43,26 @@ export default function PrintVisit() {
 
   const [visit, setVisit] = useState<any>(location.state?.visit || null)
   const [loading, setLoading] = useState<boolean>(!location.state?.visit)
+  const hasPrintedRef = useRef(false)
 
   const handlePrintNow = () => {
+    hasPrintedRef.current = true
     toast.dismiss()
     window.print()
   }
+
+  // Auto-print once both the pass and the yard's name are known, so paper never shows a placeholder.
+  useEffect(() => {
+    if (!visit || !configReady || hasPrintedRef.current) return
+
+    hasPrintedRef.current = true
+    toast.dismiss()
+    const timer = setTimeout(() => {
+      toast.dismiss()
+      window.print()
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [visit, configReady])
 
   useEffect(() => {
     if (visit) return
@@ -137,7 +152,10 @@ export default function PrintVisit() {
               }
               [data-sonner-toaster],
               [data-sonner-toast],
-              section[aria-label*="Notifications"] {
+              section[aria-label*="Notifications"],
+              .toaster,
+              .cn-toast,
+              [data-sonner-toasts] {
                 display: none !important;
                 visibility: hidden !important;
                 opacity: 0 !important;

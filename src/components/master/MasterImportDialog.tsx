@@ -284,7 +284,7 @@ export default function MasterImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={(val) => (!val ? handleClose() : onOpenChange(val))}>
-      <DialogContent className="max-h-[88vh] sm:max-w-4xl overflow-y-auto">
+      <DialogContent className="max-h-[92vh] sm:max-w-6xl md:max-w-7xl w-[96vw] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />

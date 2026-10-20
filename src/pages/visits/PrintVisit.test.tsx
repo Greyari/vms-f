@@ -139,7 +139,7 @@ describe("PrintVisit Page", () => {
     ).toBeInTheDocument()
   })
 
-  it("does not auto-open print dialog on mount and only enables Print Pass Now after company name is known", async () => {
+  it("opens the print dialog automatically once the company name is known and supports manual reprint", async () => {
     let answer: (value: unknown) => void = () => {}
     vi.mocked(api.get).mockImplementation((url: string) =>
       url === "/app-config"
@@ -157,11 +157,13 @@ describe("PrintVisit Page", () => {
     await waitFor(() => expect(api.get).toHaveBeenCalled())
     answer({ data: yardConfig })
 
-    await waitFor(() => expect(printBtn).not.toBeDisabled())
-    expect(printSpy).not.toHaveBeenCalled()
+    await waitFor(() => expect(printSpy).toHaveBeenCalledTimes(1), {
+      timeout: 2000,
+    })
+    expect(printBtn).not.toBeDisabled()
 
     fireEvent.click(printBtn)
-    expect(printSpy).toHaveBeenCalledTimes(1)
+    expect(printSpy).toHaveBeenCalledTimes(2)
   })
 })
 

@@ -684,14 +684,15 @@ export default function CreateVisit() {
       }
 
       const res = await api.post("/visits", payload)
-      toast.success("Visit successfully registered!")
 
       const visit = res.data?.visit || res.data
       if (visit && visit.id) {
+        toast.dismiss()
         navigate(`/visits/${visit.id}/print`, {
           state: { visit },
         })
       } else {
+        toast.success("Visit successfully registered!")
         navigate("/active-visitors")
       }
     } catch (err: any) {

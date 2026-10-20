@@ -56,6 +56,7 @@ export interface CardItem {
   date_issued?: string | null
   card_type?: "visitor" | "vehicle"
   status: "available" | "in_use" | "lost" | "damaged"
+  note?: string | null
   created_at?: string
   updated_at?: string
 }
@@ -93,6 +94,7 @@ export default function Cards() {
   const [formName, setFormName] = useState("")
   const [formDateIssued, setFormDateIssued] = useState("")
   const [formStatus, setFormStatus] = useState<"available" | "lost" | "damaged">("available")
+  const [formNote, setFormNote] = useState("")
 
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState<CardItem | null>(null)
@@ -142,6 +144,7 @@ export default function Cards() {
     setFormName("VISITOR GREEN")
     setFormDateIssued(new Date().toISOString().slice(0, 10))
     setFormStatus("available")
+    setFormNote("")
     setModalOpen(true)
   }
 
@@ -152,6 +155,7 @@ export default function Cards() {
     setFormName(card.name || "")
     setFormDateIssued(card.date_issued ? String(card.date_issued).slice(0, 10) : "")
     setFormStatus(card.status === "in_use" ? "available" : (card.status || "available"))
+    setFormNote(card.note || "")
     setModalOpen(true)
   }
 
@@ -180,6 +184,7 @@ export default function Cards() {
         name: formName.trim() || null,
         date_issued: formDateIssued || null,
         card_type: cardType,
+        note: formNote.trim() || null,
       }
 
       if (editingCard) {
@@ -401,20 +406,21 @@ export default function Cards() {
                 <TableHead>NAME</TableHead>
                 <TableHead>DATE ISSUED (TK)</TableHead>
                 <TableHead>STATUS</TableHead>
+                <TableHead>CATATAN</TableHead>
                 <TableHead className="text-right">AKSI</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-28 text-center">
+                  <TableCell colSpan={8} className="h-28 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
                     <span className="mt-2 block text-xs text-zinc-500">Memuat data kartu...</span>
                   </TableCell>
                 </TableRow>
               ) : cards.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-zinc-500">
+                  <TableCell colSpan={8} className="h-24 text-center text-zinc-500">
                     Tidak ada kartu visitor ditemukan.
                   </TableCell>
                 </TableRow>
@@ -444,6 +450,15 @@ export default function Cards() {
                         {formatDateIssued(card.date_issued)}
                       </TableCell>
                       <TableCell>{getStatusBadge(card.status)}</TableCell>
+                      <TableCell className="max-w-[200px] text-xs text-zinc-600 dark:text-zinc-400">
+                        {card.note ? (
+                          <span className="truncate block font-normal" title={card.note}>
+                            {card.note}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400 dark:text-zinc-600">-</span>
+                        )}
+                      </TableCell>
                       <TableCell className="space-x-1.5 text-right whitespace-nowrap">
                         <Button
                           variant="outline"
@@ -514,7 +529,7 @@ export default function Cards() {
 
       {/* Modal Dialog Add/Edit */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl md:max-w-2xl w-[94vw]">
           <form onSubmit={handleSubmit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>
@@ -522,7 +537,7 @@ export default function Cards() {
               </DialogTitle>
               <DialogDescription>
                 {editingCard
-                  ? "Perbarui informasi dan status fisik kartu visitor."
+                  ? "Perbarui informasi, catatan, dan status fisik kartu visitor."
                   : "Masukkan rincian kartu fisik visitor baru."}
               </DialogDescription>
             </DialogHeader>
@@ -628,6 +643,37 @@ export default function Cards() {
                     <option value="damaged">Damaged (Rusak)</option>
                   </select>
                 )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="cards-note-input"
+                  className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                >
+                  CATATAN / KETERANGAN
+                  {formStatus === "lost" && (
+                    <span className="ml-1 text-amber-600 font-normal">
+                      (Disarankan: catat siapa yang menghilangkan, tanggal, atau kronologi)
+                    </span>
+                  )}
+                  {formStatus === "damaged" && (
+                    <span className="ml-1 text-rose-600 font-normal">
+                      (Disarankan: catat rincian kerusakan kartu fisik)
+                    </span>
+                  )}
+                </label>
+                <Input
+                  id="cards-note-input"
+                  value={formNote}
+                  onChange={(e) => setFormNote(e.target.value)}
+                  placeholder={
+                    formStatus === "lost"
+                      ? "Contoh: Hilang oleh tamu PT ABC di Dermaga 2 pada 19/10/2026..."
+                      : formStatus === "damaged"
+                      ? "Contoh: Chip RFID patah / kartu retak tidak terbaca reader..."
+                      : "Catatan atau keterangan kartu (opsional)..."
+                  }
+                />
               </div>
             </div>
 

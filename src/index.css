@@ -144,3 +144,16 @@
     color: #f4f4f5;
   }
 }
+
+@media print {
+  [data-sonner-toaster],
+  [data-sonner-toast],
+  section[aria-label*="Notifications"],
+  .toaster,
+  .cn-toast,
+  [data-sonner-toasts] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+}

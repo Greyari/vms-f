@@ -104,4 +104,39 @@ describe('Vehicle Cards Master Page', () => {
       }))
     })
   })
+
+  it('updates vehicle card to lost status with note', async () => {
+    vi.mocked(api.put).mockResolvedValue({
+      data: { id: 10, card_no: 'VEH-001', status: 'lost', note: 'Hilang di gerbang timur' },
+    })
+
+    render(<VehicleCards />)
+
+    await waitFor(() => {
+      expect(screen.getByText('VEH-001')).toBeInTheDocument()
+    })
+
+    const editButtons = screen.getAllByRole('button', { name: /edit/i })
+    fireEvent.click(editButtons[0])
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /edit kartu kendaraan/i })).toBeInTheDocument()
+    })
+
+    const statusSelect = document.getElementById('vehicle-cards-status-input') as HTMLSelectElement
+    fireEvent.change(statusSelect, { target: { value: 'lost' } })
+
+    const noteInput = screen.getByLabelText(/catatan \/ keterangan/i)
+    fireEvent.change(noteInput, { target: { value: 'Hilang di gerbang timur' } })
+
+    const saveButton = screen.getByRole('button', { name: /simpan/i })
+    fireEvent.click(saveButton)
+
+    await waitFor(() => {
+      expect(api.put).toHaveBeenCalledWith('/vehicle-cards/10', expect.objectContaining({
+        status: 'lost',
+        note: 'Hilang di gerbang timur',
+      }))
+    })
+  })
 })

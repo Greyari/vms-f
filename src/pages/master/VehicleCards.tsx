@@ -52,7 +52,8 @@ export interface VehicleCardItem {
   id: number | string
   card_no: string
   card_type: "vehicle"
-  status: "available" | "in_use" | "lost"
+  status: "available" | "in_use" | "lost" | "damaged"
+  note?: string | null
   created_at?: string
   updated_at?: string
 }
@@ -76,6 +77,8 @@ export default function VehicleCards() {
   const [submitting, setSubmitting] = useState(false)
   const [editingCard, setEditingCard] = useState<VehicleCardItem | null>(null)
   const [cardNo, setCardNo] = useState("")
+  const [cardStatus, setCardStatus] = useState<"available" | "lost" | "damaged">("available")
+  const [cardNote, setCardNote] = useState("")
 
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState<VehicleCardItem | null>(null)
@@ -121,12 +124,16 @@ export default function VehicleCards() {
   const openCreateModal = () => {
     setEditingCard(null)
     setCardNo("")
+    setCardStatus("available")
+    setCardNote("")
     setModalOpen(true)
   }
 
   const openEditModal = (card: VehicleCardItem) => {
     setEditingCard(card)
     setCardNo(card.card_no)
+    setCardStatus(card.status === "in_use" ? "available" : (card.status || "available"))
+    setCardNote(card.note || "")
     setModalOpen(true)
   }
 
@@ -139,14 +146,20 @@ export default function VehicleCards() {
 
     setSubmitting(true)
     try {
+      const payload: Record<string, unknown> = {
+        card_no: cardNo.trim(),
+        note: cardNote.trim() || null,
+      }
+
       if (editingCard) {
-        await api.put(`/vehicle-cards/${editingCard.id}`, { card_no: cardNo.trim() })
-        toast.success("Nomor kartu kendaraan berhasil diperbarui.")
+        if (editingCard.status !== "in_use") {
+          payload.status = cardStatus
+        }
+        await api.put(`/vehicle-cards/${editingCard.id}`, payload)
+        toast.success("Kartu kendaraan berhasil diperbarui.")
       } else {
-        await api.post("/vehicle-cards", {
-          card_no: cardNo.trim(),
-          status: "available",
-        })
+        payload.status = cardStatus
+        await api.post("/vehicle-cards", payload)
         toast.success("Kartu kendaraan baru berhasil ditambahkan.")
       }
       setModalOpen(false)
@@ -203,6 +216,12 @@ export default function VehicleCards() {
         return (
           <Badge variant="destructive" className="font-medium text-xs">
             Lost
+          </Badge>
+        )
+      case "damaged":
+        return (
+          <Badge className="bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-300 dark:border-rose-800">
+            Damaged
           </Badge>
         )
       default:
@@ -347,20 +366,21 @@ export default function VehicleCards() {
                 <TableHead>Nomor Kartu Kendaraan</TableHead>
                 <TableHead>Tipe Kartu</TableHead>
                 <TableHead>Status Operasional</TableHead>
+                <TableHead>Catatan</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-28 text-center">
+                  <TableCell colSpan={6} className="h-28 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
                     <span className="mt-2 block text-xs text-zinc-500">Memuat data kartu kendaraan...</span>
                   </TableCell>
                 </TableRow>
               ) : cards.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-zinc-500">
+                  <TableCell colSpan={6} className="h-24 text-center text-zinc-500">
                     Tidak ada kartu kendaraan ditemukan.
                   </TableCell>
                 </TableRow>
@@ -386,6 +406,15 @@ export default function VehicleCards() {
                         </Badge>
                       </TableCell>
                       <TableCell>{getStatusBadge(card.status)}</TableCell>
+                      <TableCell className="max-w-[200px] text-xs text-zinc-600 dark:text-zinc-400">
+                        {card.note ? (
+                          <span className="truncate block font-normal" title={card.note}>
+                            {card.note}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400 dark:text-zinc-600">-</span>
+                        )}
+                      </TableCell>
                       <TableCell className="space-x-1.5 text-right whitespace-nowrap">
                         <Button
                           variant="outline"
@@ -456,7 +485,7 @@ export default function VehicleCards() {
 
       {/* Modal Dialog Add/Edit */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl md:max-w-2xl w-[94vw]">
           <form onSubmit={handleSubmit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>
@@ -464,25 +493,91 @@ export default function VehicleCards() {
               </DialogTitle>
               <DialogDescription>
                 {editingCard
-                  ? "Ubah nomor fisik kartu kendaraan."
-                  : "Masukkan nomor kartu pass kendaraan baru. Status awal otomatis diset Available oleh sistem."}
+                  ? "Ubah nomor fisik, status operasional, dan catatan kartu kendaraan."
+                  : "Masukkan nomor kartu pass kendaraan baru dan catatan jika diperlukan."}
               </DialogDescription>
             </DialogHeader>
 
-            <div>
-              <label
-                htmlFor="vehicle-cards-cardno-input"
-                className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
-              >
-                Nomor Kartu Kendaraan <span className="text-red-500">*</span>
-              </label>
-              <Input
-                id="vehicle-cards-cardno-input"
-                value={cardNo}
-                onChange={(e) => setCardNo(e.target.value)}
-                placeholder="Misal: VEH-001"
-                required
-              />
+            <div className="space-y-3">
+              <div>
+                <label
+                  htmlFor="vehicle-cards-cardno-input"
+                  className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                >
+                  Nomor Kartu Kendaraan <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="vehicle-cards-cardno-input"
+                  value={cardNo}
+                  onChange={(e) => setCardNo(e.target.value)}
+                  placeholder="Misal: VEH-001"
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="vehicle-cards-status-input"
+                  className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                >
+                  Status Operasional
+                </label>
+                {editingCard && editingCard.status === "in_use" ? (
+                  <div className="space-y-1">
+                    <Input
+                      id="vehicle-cards-status-input"
+                      value="In Use (Sedang Digunakan)"
+                      disabled
+                      className="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 cursor-not-allowed"
+                    />
+                    <p className="text-[11px] text-zinc-500">
+                      Status In Use dikelola otomatis saat kendaraan check-in / check-out.
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    id="vehicle-cards-status-input"
+                    value={cardStatus}
+                    onChange={(e) => setCardStatus(e.target.value as "available" | "lost" | "damaged")}
+                    className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                  >
+                    <option value="available">Available (Tersedia)</option>
+                    <option value="lost">Lost (Hilang)</option>
+                    <option value="damaged">Damaged (Rusak)</option>
+                  </select>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="vehicle-cards-note-input"
+                  className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
+                >
+                  Catatan / Keterangan
+                  {cardStatus === "lost" && (
+                    <span className="ml-1 text-amber-600 font-normal">
+                      (Disarankan: catat siapa yang menghilangkan, nopol kendaraan, tanggal...)
+                    </span>
+                  )}
+                  {cardStatus === "damaged" && (
+                    <span className="ml-1 text-rose-600 font-normal">
+                      (Disarankan: catat rincian kerusakan fisik kartu)
+                    </span>
+                  )}
+                </label>
+                <Input
+                  id="vehicle-cards-note-input"
+                  value={cardNote}
+                  onChange={(e) => setCardNote(e.target.value)}
+                  placeholder={
+                    cardStatus === "lost"
+                      ? "Contoh: Hilang oleh pengemudi truk BP 1234 XY pada 19/10/2026..."
+                      : cardStatus === "damaged"
+                      ? "Contoh: Kartu tergilas ban / barcode rusak..."
+                      : "Catatan atau keterangan kartu kendaraan (opsional)..."
+                  }
+                />
+              </div>
             </div>
 
             <DialogFooter className="pt-2">

@@ -109,4 +109,39 @@ describe('Cards Master Page', () => {
       }))
     })
   })
+
+  it('submits card with lost status and note', async () => {
+    vi.mocked(api.put).mockResolvedValue({
+      data: { id: 1, card_no: 'ASL-2301', status: 'lost', note: 'Hilang di dermaga 2' },
+    })
+
+    render(<Cards />)
+
+    await waitFor(() => {
+      expect(screen.getByText('ASL-2301')).toBeInTheDocument()
+    })
+
+    const editButtons = screen.getAllByRole('button', { name: /edit/i })
+    fireEvent.click(editButtons[0])
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /edit kartu visitor/i })).toBeInTheDocument()
+    })
+
+    const statusSelect = document.getElementById('cards-status-input') as HTMLSelectElement
+    fireEvent.change(statusSelect, { target: { value: 'lost' } })
+
+    const noteInput = screen.getByLabelText(/catatan \/ keterangan/i)
+    fireEvent.change(noteInput, { target: { value: 'Hilang di dermaga 2' } })
+
+    const saveButton = screen.getByRole('button', { name: /simpan/i })
+    fireEvent.click(saveButton)
+
+    await waitFor(() => {
+      expect(api.put).toHaveBeenCalledWith('/cards/1', expect.objectContaining({
+        status: 'lost',
+        note: 'Hilang di dermaga 2',
+      }))
+    })
+  })
 })
