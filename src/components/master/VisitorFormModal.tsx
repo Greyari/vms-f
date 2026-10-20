@@ -102,7 +102,7 @@ export default function VisitorFormModal({
         visitor_type: visitor.visitor_type === "regular" ? "visitor" : visitor.visitor_type || "visitor",
         birth_place: visitor.birth_place || visitor.pob || "",
         birth_date: visitor.birth_date || visitor.dob || "",
-        gender: visitor.gender || "",
+        gender: visitor.gender ? (["M", "Male", "male", "L"].includes(visitor.gender) ? "M" : ["F", "Female", "female", "P"].includes(visitor.gender) ? "F" : visitor.gender) : "",
         nationality: visitor.nationality || "Indonesia",
         address: visitor.address || "",
         certificate_no: visitor.certificate_no || "",

@@ -141,6 +141,14 @@ export default function Staffs() {
     fetchStaffs()
   }, [fetchStaffs])
 
+  const normalizeGender = (g?: string | null): string => {
+    if (!g) return ""
+    const upper = g.trim().toUpperCase()
+    if (["M", "MALE", "LAKI-LAKI", "PRIA", "L"].includes(upper)) return "M"
+    if (["F", "FEMALE", "PEREMPUAN", "WANITA", "P"].includes(upper)) return "F"
+    return g
+  }
+
   const openForm = (staff: Staff | null = null) => {
     if (staff) {
       setForm({
@@ -148,7 +156,7 @@ export default function Staffs() {
         staff_id: staff.staff_id || "",
         name: staff.name || "",
         company: staff.company || "",
-        gender: staff.gender || "",
+        gender: normalizeGender(staff.gender),
         address: staff.address || "",
         is_active: staff.is_active ?? true,
       })
@@ -349,7 +357,7 @@ export default function Staffs() {
                     <TableCell className="font-mono font-medium">
                       {staff.staff_id}
                     </TableCell>
-                    <TableCell>{staff.gender || "-"}</TableCell>
+                    <TableCell>{staff.gender === "M" || staff.gender === "Male" ? "Laki-laki (M)" : staff.gender === "F" || staff.gender === "Female" ? "Perempuan (F)" : staff.gender || "-"}</TableCell>
                     <TableCell>{staff.address || "-"}</TableCell>
                     <TableCell>{staff.company || "-"}</TableCell>
                     <TableCell>
@@ -468,8 +476,8 @@ export default function Staffs() {
                   className="flex h-9 w-full rounded-md border border-input bg-white text-zinc-900 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-800"
                 >
                   <option value="" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Pilih Jenis Kelamin</option>
-                  <option value="Male" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Male (Laki-laki)</option>
-                  <option value="Female" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Female (Perempuan)</option>
+                  <option value="M" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Laki-laki (M)</option>
+                  <option value="F" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Perempuan (F)</option>
                 </select>
               </div>
             </div>

@@ -1313,7 +1313,7 @@ export default function CreateVisit() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       <div className="space-y-1">
                         <Label htmlFor="birth_place" className="text-[11px]">Tempat Lahir</Label>
                         <Input
@@ -1337,6 +1337,20 @@ export default function CreateVisit() {
                           onChange={handleChange}
                           className="h-8 text-xs"
                         />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="visitor_gender" className="text-[11px]">Jenis Kelamin</Label>
+                        <select
+                          id="visitor_gender"
+                          value={gender}
+                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
+                          onChange={(e) => setGender(e.target.value)}
+                          className="flex h-8 w-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
+                        >
+                          <option value="">Pilih (Opsional)</option>
+                          <option value="M">Laki-laki (M)</option>
+                          <option value="F">Perempuan (F)</option>
+                        </select>
                       </div>
                     </div>
 
@@ -1682,7 +1696,7 @@ export default function CreateVisit() {
                                       )}
                                       {item.gender && (
                                         <span className="shrink-0 text-[10px] text-zinc-500">
-                                          • {item.gender}
+                                          • {item.gender === "M" || item.gender === "Male" ? "Laki-laki (M)" : item.gender === "F" || item.gender === "Female" ? "Perempuan (F)" : item.gender}
                                         </span>
                                       )}
                                     </div>
@@ -1705,7 +1719,7 @@ export default function CreateVisit() {
                         <div className="mt-1 rounded-md border border-zinc-200 bg-zinc-50/80 p-2 text-[11px] text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300">
                           <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                             <div className="min-w-0 truncate"><span className="text-zinc-400">Staff No:</span> <span className="font-mono font-medium">{selected.staff_id || "-"}</span></div>
-                            <div className="min-w-0 truncate"><span className="text-zinc-400">Gender:</span> <span className="font-medium">{selected.gender || "-"}</span></div>
+                            <div className="min-w-0 truncate"><span className="text-zinc-400">Gender:</span> <span className="font-medium">{selected.gender === "M" || selected.gender === "Male" ? "Laki-laki (M)" : selected.gender === "F" || selected.gender === "Female" ? "Perempuan (F)" : selected.gender || "-"}</span></div>
                             <div className="min-w-0 truncate" title={selected.company || "-"}><span className="text-zinc-400">Company:</span> <span className="font-medium">{selected.company || "-"}</span></div>
                             <div className="min-w-0 truncate" title={selected.address || selected.department || "-"}><span className="text-zinc-400">Address / Role:</span> <span className="font-medium">{selected.address || selected.department || "-"}</span></div>
                           </div>
