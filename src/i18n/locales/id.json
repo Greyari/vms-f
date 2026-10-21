@@ -280,5 +280,31 @@
     "toast_import_success": "Import selesai: {{success}} berhasil disimpan ({{created}} baru, {{updated}} diperbarui), {{skipped}} dilewati, {{failed}} gagal.",
     "toast_import_empty_failed": "Import gagal: 0 data tersimpan, {{failed}} gagal.",
     "toast_import_failed": "Gagal mengeksekusi import data."
+  },
+  "vessel": {
+    "search_placeholder": "Cari nama kru, KTP/paspor/buku pelaut, perusahaan, kapal, IMO...",
+    "show_completed": "Tampilkan yang selesai",
+    "searching": "Mencari data...",
+    "group_vessels": "Kapal / Vessels",
+    "group_crew": "Kru / Crew",
+    "no_results": "Tidak ditemukan data yang cocok",
+    "try_other_keywords": "Coba gunakan nama orang, perusahaan, atau nama kapal lain.",
+    "active_crew": "{{count}} kru aktif",
+    "status_expected": "Belum Check-In",
+    "status_checked_in": "Di Kapal",
+    "status_checked_out": "Check-Out",
+    "status_blacklisted": "Blacklist",
+    "person_panel_title": "Panel Detail Kru Pelaut",
+    "check_in_btn": "Check-In ke Kapal",
+    "check_out_btn": "Check-Out dari Kapal",
+    "reactivate_btn": "Aktifkan Kembali",
+    "view_vessel_crew": "Lihat semua kru kapal ini",
+    "active_placement": "Penempatan Saat Ini",
+    "brief_history": "Riwayat Singkat Penempatan",
+    "no_history_logs": "Belum ada catatan riwayat pergerakan kru.",
+    "bulk_checkin": "Check-In Terpilih",
+    "bulk_checkout": "Check-Out Terpilih",
+    "transfer_dialog_title": "Pindah Penempatan Kru Kapal",
+    "transfer_dialog_desc": "Kru {{name}} saat ini masih tercatat aktif di {{oldVessel}}. Apakah Anda ingin memindahkan penempatannya ke {{newVessel}}?"
   }
 }

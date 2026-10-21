@@ -893,7 +893,7 @@ export default function CreateVisit() {
                   >
                     <option value="ktp">KTP</option>
                     <option value="sim">SIM</option>
-                    <option value="passport">Passport</option>
+                    <option value="passport">PASPOR</option>
                   </select>
                 </div>
 

@@ -7,7 +7,11 @@ export type Language = "id" | "en"
 interface I18nContextType {
   language: Language
   setLanguage: (lang: Language) => void
-  t: (path: string, params?: Record<string, string | number>) => string
+  t: (
+    path: string,
+    defaultValueOrParams?: string | Record<string, string | number>,
+    params?: Record<string, string | number>
+  ) => string
 }
 
 const dictionaries: Record<Language, Record<string, any>> = {
@@ -15,7 +19,15 @@ const dictionaries: Record<Language, Record<string, any>> = {
   en: enDict,
 }
 
-const resolveTranslation = (lang: Language, path: string, params?: Record<string, string | number>): string => {
+const resolveTranslation = (
+  lang: Language,
+  path: string,
+  defaultValueOrParams?: string | Record<string, string | number>,
+  maybeParams?: Record<string, string | number>
+): string => {
+  const defaultValue = typeof defaultValueOrParams === "string" ? defaultValueOrParams : undefined
+  const params = typeof defaultValueOrParams === "object" ? defaultValueOrParams : maybeParams
+
   const keys = path.split(".")
   let current: any = dictionaries[lang]
 
@@ -43,23 +55,25 @@ const resolveTranslation = (lang: Language, path: string, params?: Record<string
     current = fallback
   }
 
-  if (typeof current !== "string") {
-    return path
-  }
+  const result = typeof current === "string" ? current : (defaultValue || path)
 
   if (params) {
     return Object.entries(params).reduce((str, [paramKey, paramVal]) => {
       return str.replace(new RegExp(`{{${paramKey}}}`, "g"), String(paramVal))
-    }, current)
+    }, result)
   }
 
-  return current
+  return result
 }
 
 const I18nContext = createContext<I18nContextType>({
   language: "en",
   setLanguage: () => {},
-  t: (path: string, params?: Record<string, string | number>) => resolveTranslation("en", path, params),
+  t: (
+    path: string,
+    defaultValueOrParams?: string | Record<string, string | number>,
+    params?: Record<string, string | number>
+  ) => resolveTranslation("en", path, defaultValueOrParams, params),
 })
 
 export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -91,8 +105,12 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  const t = (path: string, params?: Record<string, string | number>): string => {
-    return resolveTranslation(language, path, params)
+  const t = (
+    path: string,
+    defaultValueOrParams?: string | Record<string, string | number>,
+    params?: Record<string, string | number>
+  ): string => {
+    return resolveTranslation(language, path, defaultValueOrParams, params)
   }
 
   return (

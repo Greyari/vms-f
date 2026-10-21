@@ -11,6 +11,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Table,
   TableBody,
   TableCell,
@@ -51,6 +61,11 @@ export interface CrewCandidate {
   seaman_book_no?: string | null
   is_blacklisted: boolean
   blacklist_reason?: string | null
+  active_placement?: {
+    vessel_arrival_id: string
+    vessel_name: string
+    status: string
+  } | null
 }
 
 interface CrewSelectionDialogProps {
@@ -87,6 +102,11 @@ export default function CrewSelectionDialog({
     seaman_book_no: "",
   })
   const [newCrewErrors, setNewCrewErrors] = useState<Record<string, string>>({})
+
+  // Pindah Kapal (Transfer) Dialog State
+  const [transferConfirmOpen, setTransferConfirmOpen] = useState(false)
+  const [transferCandidate, setTransferCandidate] = useState<CrewCandidate | null>(null)
+  const [transferring, setTransferring] = useState(false)
 
   // Debounce ref for remote search
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -175,21 +195,66 @@ export default function CrewSelectionDialog({
   }, [candidates, search])
 
   // Handlers
-  const handleToggleCrew = (id: string, isBlacklisted: boolean) => {
-    if (isBlacklisted) {
+  const handleToggleCrew = (candidate: CrewCandidate) => {
+    if (candidate.is_blacklisted) {
       toast.error("Kru dengan status blacklist tidak dapat dipilih")
+      return
+    }
+
+    if (selectedIds.has(candidate.id)) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(candidate.id)
+        return next
+      })
+      return
+    }
+
+    // Check if crew is currently active on another vessel arrival
+    if (
+      candidate.active_placement &&
+      candidate.active_placement.vessel_arrival_id &&
+      candidate.active_placement.vessel_arrival_id !== arrivalId
+    ) {
+      setTransferCandidate(candidate)
+      setTransferConfirmOpen(true)
       return
     }
 
     setSelectedIds((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
+      next.add(candidate.id)
       return next
     })
+  }
+
+  const handleConfirmTransfer = async () => {
+    if (!transferCandidate) return
+
+    if (arrivalId) {
+      setTransferring(true)
+      try {
+        await api.post(`/vessel-arrivals/${arrivalId}/crew/transfer`, {
+          visitor_id: transferCandidate.id,
+          source_arrival_id: transferCandidate.active_placement?.vessel_arrival_id,
+          notes: "Pindah kapal melalui pemilihan kru",
+        })
+        toast.success(`Kru ${transferCandidate.name} berhasil dipindahkan ke kapal ini.`)
+        setSelectedIds((prev) => new Set(prev).add(transferCandidate.id))
+        setTransferConfirmOpen(false)
+        setTransferCandidate(null)
+        fetchCandidates(search)
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || "Gagal memindahkan kru.")
+      } finally {
+        setTransferring(false)
+      }
+    } else {
+      setSelectedIds((prev) => new Set(prev).add(transferCandidate.id))
+      toast.info(`Kru ${transferCandidate.name} akan dipindahkan ke kapal ini saat kedatangan disimpan.`)
+      setTransferConfirmOpen(false)
+      setTransferCandidate(null)
+    }
   }
 
   const handleSelectAll = () => {
@@ -574,7 +639,7 @@ export default function CrewSelectionDialog({
                             aria-label={`Pilih kru ${candidate.name}`}
                             checked={isSelected}
                             disabled={isBlacklisted}
-                            onChange={() => handleToggleCrew(candidate.id, isBlacklisted)}
+                            onChange={() => handleToggleCrew(candidate)}
                             className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
                           />
                         </TableCell>
@@ -627,6 +692,16 @@ export default function CrewSelectionDialog({
                               <CheckCircle2 className="h-3 w-3 text-blue-600" />
                               Terpilih
                             </Badge>
+                          ) : candidate.active_placement && candidate.active_placement.vessel_arrival_id !== arrivalId ? (
+                            <div className="space-y-1">
+                              <Badge variant="outline" className="text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-300 flex items-center gap-1 w-fit text-xs font-medium">
+                                <Ship className="h-3 w-3" />
+                                Aktif: {candidate.active_placement.vessel_name}
+                              </Badge>
+                              <span className="text-[10px] text-muted-foreground block">
+                                Klik untuk pindah kapal
+                              </span>
+                            </div>
                           ) : (
                             <Badge variant="outline" className="text-emerald-700 dark:text-emerald-400 border-emerald-200 text-xs">
                               Siap Ditugaskan
@@ -655,6 +730,32 @@ export default function CrewSelectionDialog({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Pindah Kapal (Transfer) Confirmation Dialog */}
+      <AlertDialog open={transferConfirmOpen} onOpenChange={setTransferConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Pindah Kapal</AlertDialogTitle>
+            <AlertDialogDescription>
+              Kru <strong>{transferCandidate?.name}</strong> saat ini masih aktif di kapal{" "}
+              <strong>{transferCandidate?.active_placement?.vessel_name}</strong>.
+              <br className="my-1" />
+              Apakah Anda ingin melakukan <strong>Check-Out</strong> dari kapal lama dan memindahkannya ke kapal ini? Data riwayat di kapal lama tetap tersimpan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={transferring}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmTransfer}
+              disabled={transferring}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {transferring ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              Pindahkan Kru
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

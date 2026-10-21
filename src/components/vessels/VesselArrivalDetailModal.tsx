@@ -35,8 +35,12 @@ import {
   UserPlus,
   History,
   X,
+  RotateCcw,
+  CheckSquare,
+  Square,
 } from "lucide-react"
 import CrewSelectionDialog from "./CrewSelectionDialog"
+import CrewPersonPanelModal from "./CrewPersonPanelModal"
 
 interface CrewMember {
   id: string
@@ -151,6 +155,11 @@ export default function VesselArrivalDetailModal({
   const [selectedActionFilter, setSelectedActionFilter] = useState<string>("")
   const [actionNote, setActionNote] = useState<string>("")
 
+  // Bulk selection & Person Panel
+  const [selectedCrewIds, setSelectedCrewIds] = useState<Set<string>>(new Set())
+  const [personPanelVisitorId, setPersonPanelVisitorId] = useState<string | null>(null)
+  const [personPanelOpen, setPersonPanelOpen] = useState(false)
+
   useEffect(() => {
     if (!open || !arrivalId) {
       setDetail(null)
@@ -254,6 +263,71 @@ export default function VesselArrivalDetailModal({
   const checkedOutCrew = (detail?.crew || []).filter(
     (c) => c.pivot?.status === "checked_out"
   )
+
+  const sortedCrew = useMemo(() => {
+    if (!detail?.crew) return []
+    return [...detail.crew].sort((a, b) => {
+      const aOut = a.pivot?.status === "checked_out" ? 1 : 0
+      const bOut = b.pivot?.status === "checked_out" ? 1 : 0
+      if (aOut !== bOut) return aOut - bOut
+      return a.name.localeCompare(b.name)
+    })
+  }, [detail?.crew])
+
+  const handleCrewReactivate = async (visitorId: string) => {
+    if (!detail) return
+    setProcessingCrewId(visitorId)
+    try {
+      const res = await api.post(
+        `/vessel-arrivals/${detail.id}/crew/reactivate`,
+        { visitor_id: visitorId }
+      )
+      setDetail(res.data)
+      toast.success("Kru berhasil diaktifkan kembali.")
+      onUpdated?.()
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message || "Gagal mengaktifkan kembali kru."
+      )
+    } finally {
+      setProcessingCrewId(null)
+    }
+  }
+
+  const toggleSelectCrew = (crewId: string) => {
+    setSelectedCrewIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(crewId)) {
+        next.delete(crewId)
+      } else {
+        next.add(crewId)
+      }
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (!detail?.crew || detail.crew.length === 0) return
+    if (selectedCrewIds.size === detail.crew.length) {
+      setSelectedCrewIds(new Set())
+    } else {
+      setSelectedCrewIds(new Set(detail.crew.map((c) => c.id)))
+    }
+  }
+
+  const handleBulkCheckIn = async () => {
+    const ids = Array.from(selectedCrewIds)
+    if (ids.length === 0) return
+    await handleCrewCheckIn(ids)
+    setSelectedCrewIds(new Set())
+  }
+
+  const handleBulkCheckOut = async () => {
+    const ids = Array.from(selectedCrewIds)
+    if (ids.length === 0) return
+    await handleCrewCheckOut(ids)
+    setSelectedCrewIds(new Set())
+  }
 
   // Synthesize fallback logs from crew pivot timestamps if crew_logs is not provided
   const allCrewLogs = useMemo<CrewLogEntry[]>(() => {
@@ -558,12 +632,68 @@ export default function VesselArrivalDetailModal({
                 </div>
               </div>
 
+              {/* Bulk Actions Bar if items selected */}
+              {selectedCrewIds.size > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-lg text-xs">
+                  <div className="font-medium text-blue-900 dark:text-blue-200">
+                    Terpilih <strong>{selectedCrewIds.size}</strong> kru
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleBulkCheckIn}
+                      className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300"
+                    >
+                      <LogIn className="h-3 w-3 mr-1" />
+                      Check-In Terpilih
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleBulkCheckOut}
+                      className="h-7 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 dark:text-amber-300"
+                    >
+                      <LogOut className="h-3 w-3 mr-1" />
+                      Check-Out Terpilih
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setSelectedCrewIds(new Set())}
+                      className="h-7 text-xs text-zinc-500"
+                    >
+                      Batal
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {activeTab === "manifest" ? (
                 <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-zinc-50 dark:bg-zinc-800">
                       <TableRow>
-                        <TableHead className="w-12 text-center">No</TableHead>
+                        <TableHead className="w-10 text-center">
+                          <button
+                            type="button"
+                            onClick={toggleSelectAll}
+                            className="p-1 hover:text-blue-600 transition-colors"
+                            title="Pilih semua"
+                          >
+                            {detail.crew &&
+                            detail.crew.length > 0 &&
+                            selectedCrewIds.size === detail.crew.length ? (
+                              <CheckSquare className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <Square className="h-4 w-4 text-zinc-400" />
+                            )}
+                          </button>
+                        </TableHead>
+                        <TableHead className="w-10 text-center">No</TableHead>
                         <TableHead>Nama Kru & ID</TableHead>
                         <TableHead>Jabatan</TableHead>
                         <TableHead>Kebangsaan</TableHead>
@@ -573,20 +703,23 @@ export default function VesselArrivalDetailModal({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {!detail.crew || detail.crew.length === 0 ? (
+                      {!sortedCrew || sortedCrew.length === 0 ? (
                         <TableRow>
                           <TableCell
-                            colSpan={7}
+                            colSpan={8}
                             className="h-24 text-center text-zinc-500 text-sm"
                           >
                             Belum ada kru yang tercatat pada transaksi kedatangan ini.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        detail.crew.map((member, idx) => {
+                        sortedCrew.map((member, idx) => {
                           const isCheckedOut =
                             member.pivot?.status === "checked_out"
+                          const isExpected =
+                            member.pivot?.status === "expected"
                           const isBusy = processingCrewId === member.id
+                          const isSelected = selectedCrewIds.has(member.id)
                           const memberLogCount = allCrewLogs.filter(
                             (l) => l.visitor_id === member.id
                           ).length
@@ -594,23 +727,49 @@ export default function VesselArrivalDetailModal({
                           return (
                             <TableRow
                               key={member.id}
-                              className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50"
+                              className={`transition-colors ${
+                                isCheckedOut
+                                  ? "opacity-65 bg-zinc-50/60 dark:bg-zinc-900/40 text-zinc-500"
+                                  : "hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50"
+                              }`}
                             >
-                              <TableCell className="text-center text-xs text-zinc-500">
+                              <TableCell className="text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleSelectCrew(member.id)}
+                                  className="p-1 hover:text-blue-600 transition-colors"
+                                >
+                                  {isSelected ? (
+                                    <CheckSquare className="h-4 w-4 text-blue-600" />
+                                  ) : (
+                                    <Square className="h-4 w-4 text-zinc-400" />
+                                  )}
+                                </button>
+                              </TableCell>
+                              <TableCell className="text-center text-xs text-zinc-400">
                                 {idx + 1}
                               </TableCell>
                               <TableCell>
-                                <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
-                                  {member.name}
-                                </div>
-                                <div className="text-xs text-zinc-500">
-                                  {member.visitor_no
-                                    ? `ID: ${member.visitor_no}`
-                                    : ""}
-                                  {member.id_number
-                                    ? ` • ${member.id_type?.toUpperCase()}: ${member.id_number}`
-                                    : ""}
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPersonPanelVisitorId(member.id)
+                                    setPersonPanelOpen(true)
+                                  }}
+                                  className="text-left group cursor-pointer"
+                                >
+                                  <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 transition-colors underline-offset-2 group-hover:underline">
+                                    {member.name}
+                                  </div>
+                                  <div className="text-xs text-zinc-500">
+                                    {member.visitor_no
+                                      ? `ID: ${member.visitor_no}`
+                                      : ""}
+                                    {member.id_number
+                                      ? ` • ${member.id_type?.toUpperCase()}: ${member.id_number}`
+                                      : ""}
+                                  </div>
+                                </button>
                               </TableCell>
                               <TableCell className="text-sm">
                                 {member.occupation || "-"}
@@ -636,7 +795,7 @@ export default function VesselArrivalDetailModal({
                                   <div className="space-y-0.5">
                                     <Badge
                                       variant="secondary"
-                                      className="text-xs"
+                                      className="text-xs opacity-80"
                                     >
                                       Check-Out (Turun)
                                     </Badge>
@@ -648,6 +807,20 @@ export default function VesselArrivalDetailModal({
                                         )}
                                       </div>
                                     )}
+                                    {member.pivot?.notes && (
+                                      <div className="text-[11px] text-zinc-400 italic">
+                                        {member.pivot.notes}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : isExpected ? (
+                                  <div className="space-y-0.5">
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-300 text-xs"
+                                    >
+                                      Belum Check-In (Expected)
+                                    </Badge>
                                     {member.pivot?.notes && (
                                       <div className="text-[11px] text-zinc-400 italic">
                                         {member.pivot.notes}
@@ -695,9 +868,29 @@ export default function VesselArrivalDetailModal({
                                     size="sm"
                                     disabled={isBusy}
                                     onClick={() =>
+                                      handleCrewReactivate(member.id)
+                                    }
+                                    className="h-7 text-xs text-blue-700 border-blue-300 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-800"
+                                  >
+                                    {isBusy ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <>
+                                        <RotateCcw className="h-3 w-3 mr-1" />
+                                        Aktifkan Kembali
+                                      </>
+                                    )}
+                                  </Button>
+                                ) : isExpected ? (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={isBusy}
+                                    onClick={() =>
                                       handleCrewCheckIn([member.id])
                                     }
-                                    className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300 dark:border-amber-800"
+                                    className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
                                   >
                                     {isBusy ? (
                                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -909,6 +1102,26 @@ export default function VesselArrivalDetailModal({
             }}
           />
         )}
+
+        <CrewPersonPanelModal
+          open={personPanelOpen}
+          onClose={() => {
+            setPersonPanelOpen(false)
+            setPersonPanelVisitorId(null)
+          }}
+          visitorId={personPanelVisitorId}
+          onActionComplete={async () => {
+            if (arrivalId) {
+              try {
+                const res = await api.get(`/vessel-arrivals/${arrivalId}`)
+                setDetail(res.data)
+              } catch {
+                // silent
+              }
+            }
+            onUpdated?.()
+          }}
+        />
       </DialogContent>
     </Dialog>
   )

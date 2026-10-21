@@ -40,6 +40,8 @@ import {
 import VesselArrivalFormModal from "@/components/vessels/VesselArrivalFormModal"
 import VesselArrivalDetailModal from "@/components/vessels/VesselArrivalDetailModal"
 import SignOutVesselModal from "@/components/vessels/SignOutVesselModal"
+import UnifiedVesselCrewSearch from "@/components/vessels/UnifiedVesselCrewSearch"
+import CrewPersonPanelModal from "@/components/vessels/CrewPersonPanelModal"
 
 export interface VesselArrivalItem {
   id: string
@@ -60,6 +62,8 @@ export interface VesselArrivalItem {
   foreign_agent_location?: string | null
   crew_count?: number
   checked_in_crew_count?: number
+  active_crew_count?: number
+  completed_crew_count?: number
   crew?: Array<{
     id: string
     name?: string
@@ -109,6 +113,10 @@ export default function VesselArrivals() {
   // Sign Out Modal State
   const [signOutModalOpen, setSignOutModalOpen] = useState(false)
   const [selectedArrivalForSignOut, setSelectedArrivalForSignOut] = useState<VesselArrivalItem | null>(null)
+
+  // Person Panel Drawer State
+  const [personPanelOpen, setPersonPanelOpen] = useState(false)
+  const [selectedPersonVisitorId, setSelectedPersonVisitorId] = useState<string | null>(null)
 
   const fetchArrivals = useCallback(async () => {
     setLoading(true)
@@ -212,6 +220,20 @@ export default function VesselArrivals() {
           <Plus className="h-4 w-4" />
           Catat Kedatangan Baru
         </Button>
+      </div>
+
+      {/* Unified Search Kapal + Kru */}
+      <div className="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm space-y-2">
+        <UnifiedVesselCrewSearch
+          onSelectVessel={(arrivalId) => {
+            setSelectedArrivalIdForDetail(arrivalId)
+            setDetailModalOpen(true)
+          }}
+          onSelectCrew={(visitorId) => {
+            setSelectedPersonVisitorId(visitorId)
+            setPersonPanelOpen(true)
+          }}
+        />
       </div>
 
       {/* Filter Bar */}
@@ -370,11 +392,11 @@ export default function VesselArrivals() {
                         <div className="flex flex-col items-center gap-1">
                           <Badge variant="outline" className="flex items-center gap-1 mx-auto w-fit text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800">
                             <Users className="h-3 w-3" />
-                            {arrival.crew_count ?? 0} Kru
+                            {arrival.active_crew_count ?? arrival.checked_in_crew_count ?? arrival.crew_count ?? 0} Kru Aktif
                           </Badge>
-                          {typeof arrival.checked_in_crew_count === "number" && (arrival.crew_count ?? 0) > 0 && (
-                            <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                              {arrival.checked_in_crew_count} Check-In
+                          {typeof arrival.completed_crew_count === "number" && arrival.completed_crew_count > 0 && (
+                            <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+                              {arrival.completed_crew_count} Selesai
                             </span>
                           )}
                         </div>
@@ -522,6 +544,22 @@ export default function VesselArrivals() {
         onClose={() => setSignOutModalOpen(false)}
         onSuccess={fetchArrivals}
         arrival={selectedArrivalForSignOut}
+      />
+
+      {/* Person Panel Modal */}
+      <CrewPersonPanelModal
+        open={personPanelOpen}
+        onClose={() => {
+          setPersonPanelOpen(false)
+          setSelectedPersonVisitorId(null)
+        }}
+        visitorId={selectedPersonVisitorId}
+        onActionComplete={fetchArrivals}
+        onViewVesselCrew={(arrivalId: string) => {
+          setPersonPanelOpen(false)
+          setSelectedArrivalIdForDetail(arrivalId)
+          setDetailModalOpen(true)
+        }}
       />
     </div>
   )

@@ -10,7 +10,7 @@ function Field({
   label,
   children,
   mono,
-  bold,
+  bold = true,
   last,
 }: {
   label: string
@@ -21,11 +21,11 @@ function Field({
 }) {
   return (
     <div className={`flex pb-0.5 ${last ? "" : ""}`}>
-      <span className="inline-block w-36 shrink-0 font-bold text-gray-700">
+      <span className="inline-block w-36 shrink-0 font-bold text-black">
         {label}
       </span>
       <span
-        className={`uppercase ${mono ? "font-mono" : ""} ${bold ? "font-bold" : ""}`}
+        className={`uppercase text-black ${mono ? "font-mono font-bold" : ""} ${bold ? "font-bold" : ""}`}
       >
         : {children}
       </span>
@@ -146,9 +146,14 @@ export default function PrintVisit() {
                 margin: 0;
                 padding: 0;
                 background: white !important;
-                color: black !important;
+                color: #000000 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+              }
+              * {
+                color: #000000 !important;
+                text-shadow: none !important;
+                box-shadow: none !important;
               }
               [data-sonner-toaster],
               [data-sonner-toast],
@@ -181,25 +186,25 @@ export default function PrintVisit() {
       {/* Area pass (satu-satunya yang tercetak) */}
       <div className="print-container mx-auto box-border flex w-[24cm] max-w-full h-[15cm] flex-col border border-dashed border-zinc-300 p-4 print:border-0">
         {/* Header */}
-        <div className="mb-2 pb-1 text-center">
-          <h1 className="text-xl leading-tight font-black tracking-widest uppercase">
+        <div className="mb-2 pb-1.5 text-center">
+          <h1 className="text-xl leading-tight font-black tracking-widest uppercase text-black">
             {(companyName || FALLBACK_COMPANY_NAME).toUpperCase()}
           </h1>
           {config.company_address && (
-            <p className="text-[11px] leading-tight text-zinc-700">
+            <p className="text-[11px] leading-tight font-semibold text-black">
               {config.company_address}
             </p>
           )}
-          <h2 className="text-base leading-tight font-bold tracking-wider uppercase">
+          <h2 className="text-base leading-tight font-black tracking-wider uppercase text-black mt-0.5">
             VISITOR ENTRY PASS
           </h2>
-          <p className="font-mono text-sm leading-tight font-bold tracking-widest">
+          <p className="font-mono text-sm leading-tight font-black tracking-widest text-black">
             NO: {ticketNo}
           </p>
         </div>
 
         {/* Data */}
-        <div className="grid grid-cols-2 gap-x-5 text-[13px]">
+        <div className="grid grid-cols-2 gap-x-5 text-[13px] text-black">
           <div className="space-y-0.5">
             <Field label="VISITOR NAME">
               {visit.visitor?.name || visit.visitor_name || "-"}
@@ -247,19 +252,19 @@ export default function PrintVisit() {
         </div>
 
         {/* Purpose */}
-        <div className="mt-0.5 pt-0.5 text-[13px] leading-snug">
+        <div className="mt-0.5 pt-0.5 text-[13px] leading-snug text-black">
           <Field label="PURPOSE" last>
             {visit.purpose || "-"}
           </Field>
         </div>
 
         {/* Rules */}
-        <div className="my-1.5 grid grid-cols-2 gap-3 py-1 text-[13px] leading-tight">
-          <div className="border-black pr-2">
-            <p className="mb-0.5 uppercase">
+        <div className="my-1.5 grid grid-cols-2 gap-3 py-1.5 text-[12.5px] leading-tight">
+          <div className="">
+            <p className="mb-0.5 uppercase font-bold text-black">
               Rules & Regulations:
             </p>
-            <ul className="list-inside list-disc space-y-0.5 text-zinc-800">
+            <ul className="list-inside list-disc space-y-0.5 font-medium text-black">
               <li>Visitor pass must be visibly worn at all times in yard.</li>
               <li>
                 {companyName || "The company"} is not liable for injury or
@@ -272,10 +277,10 @@ export default function PrintVisit() {
             </ul>
           </div>
           <div className="pl-2">
-            <p className="mb-0.5 uppercase">
+            <p className="mb-0.5 uppercase font-bold text-black">
               Ketentuan Yard:
             </p>
-            <ul className="list-inside list-disc space-y-0.5 text-zinc-800">
+            <ul className="list-inside list-disc space-y-0.5 font-medium text-black">
               <li>
                 Pass harus selalu dikenakan selama berada di area galangan.
               </li>
@@ -292,27 +297,27 @@ export default function PrintVisit() {
         </div>
 
         {/* Signatures */}
-        <div className="mt-auto grid grid-cols-3 gap-6 text-center text-xs uppercase">
+        <div className="mt-auto grid grid-cols-3 gap-6 text-center text-xs uppercase text-black">
           <div>
             <div className="h-8" />
-            <div className="border-t border-black pt-0.5 font-bold">
+            <div className="border-t-2 border-black pt-1 font-bold text-black">
               {printedBy}
             </div>
-            <div className="text-[10px] text-zinc-600">Petugas / Security (Pencatat)</div>
+            <div className="text-[10px] font-bold text-black">Petugas / Security (Pencatat)</div>
           </div>
           <div>
             <div className="h-8" />
-            <div className="border-t border-black pt-0.5 font-semibold">
+            <div className="border-t-2 border-black pt-1 font-bold text-black">
               {visit.host_name || visit.staff?.name || "-"}
             </div>
-            <div className="text-[10px] text-zinc-600">Host / Staff Dikunjungi</div>
+            <div className="text-[10px] font-bold text-black">Host / Staff Dikunjungi</div>
           </div>
           <div>
             <div className="h-8" />
-            <div className="border-t border-black pt-0.5">
+            <div className="border-t-2 border-black pt-1 font-bold text-black">
               Visitor Signature
             </div>
-            <div className="text-[10px] text-zinc-600">Tanda Tangan Tamu</div>
+            <div className="text-[10px] font-bold text-black">Tanda Tangan Tamu</div>
           </div>
         </div>
       </div>
