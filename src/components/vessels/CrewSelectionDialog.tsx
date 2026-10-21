@@ -549,16 +549,6 @@ export default function CrewSelectionDialog({
                         <p className="text-xs text-zinc-400 max-w-sm">
                           Anda dapat menambahkan kru baru secara langsung tanpa perlu meninggalkan formulir ini.
                         </p>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={handleOpenNewCrew}
-                          className="mt-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-                        >
-                          <UserPlus className="h-3.5 w-3.5 mr-1" />
-                          Tambah Kru Sekarang
-                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

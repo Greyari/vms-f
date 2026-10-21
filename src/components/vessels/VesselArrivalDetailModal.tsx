@@ -332,7 +332,6 @@ export default function VesselArrivalDetailModal({
         <DialogHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pr-6">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-              <Ship className="h-5 w-5 text-blue-600" />
               Detail Kedatangan Kapal: {detail?.vessel_name || "Memuat..."}
             </DialogTitle>
             {detail && (

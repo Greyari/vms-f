@@ -13,11 +13,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Plus, Ship, Users, X } from "lucide-react"
+import { Loader2, Plus, Users, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { VesselArrivalItem } from "@/pages/vessels/VesselArrivals"
 import CrewSelectionDialog from "./CrewSelectionDialog"
 import SearchableLocationSelect from "@/components/common/SearchableLocationSelect"
+import { cn } from "@/lib/utils"
 
 interface LocationOption {
   id: string
@@ -39,6 +40,19 @@ interface VesselArrivalFormModalProps {
   onSuccess: () => void
   arrivalToEdit?: VesselArrivalItem | null
 }
+
+const POPULAR_PORTS = [
+  "Singapore",
+  "Turkey (Türkiye)",
+  "Malaysia",
+  "Barbados",
+  "Indonesia",
+  "China",
+  "India",
+  "Bangladesh",
+  "Panama",
+  "Marshall Islands",
+]
 
 export default function VesselArrivalFormModal({
   open,
@@ -350,13 +364,34 @@ export default function VesselArrivalFormModal({
       setSubmitting(false)
     }
   }
+  
+  const renderPortChips = (current: string, onPick: (value: string) => void) => (
+    <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
+      <span className="text-[11px] font-medium text-zinc-500">Saran Cepat:</span>
+      {POPULAR_PORTS.map((port) => (
+        <button
+          key={port}
+          type="button"
+          disabled={submitting}
+          onClick={() => onPick(port)}
+          className={cn(
+            "rounded border px-2 py-0.5 text-[11px] transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
+            current === port
+              ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+              : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          )}
+        >
+          {port}
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-5xl md:max-w-6xl w-[95vw]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-            <Ship className="h-5 w-5 text-blue-600" />
             {isEdit
               ? "Edit Kedatangan Kapal"
               : "Catat Kedatangan Kapal Baru"}
@@ -626,6 +661,7 @@ export default function VesselArrivalFormModal({
                   disabled={submitting}
                   className="mt-1"
                 />
+                {renderPortChips(signInPort, setSignInPort)}
               </div>
 
               <div>
@@ -655,6 +691,7 @@ export default function VesselArrivalFormModal({
                   disabled={submitting}
                   className="mt-1"
                 />
+                {renderPortChips(signOutPort, setSignOutPort)}
               </div>
             </div>
           </div>
