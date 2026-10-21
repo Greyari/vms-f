@@ -79,9 +79,9 @@ describe('VesselArrivals Page', () => {
       expect(screen.getByText('IMO9123456')).toBeInTheDocument()
       expect(screen.getByText('TB. SAMUDERA 01')).toBeInTheDocument()
       expect(screen.getByText('Capt. Robert')).toBeInTheDocument()
-      expect(screen.getByText(/5 Kru/i)).toBeInTheDocument()
-      expect(screen.getAllByText(/Sedang Sandar/i).length).toBeGreaterThan(0)
-      expect(screen.getAllByText(/Sudah Berangkat/i).length).toBeGreaterThan(0)
+      expect(screen.getByText(/5 (Kru|Crew)/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/Sedang Sandar|In Port/i).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/Sudah Berangkat|Departed/i).length).toBeGreaterThan(0)
     })
   })
 
@@ -112,10 +112,10 @@ describe('VesselArrivals Page', () => {
       expect(screen.getByText('MV. PACIFIC GLORY')).toBeInTheDocument()
     })
 
-    const searchInput = screen.getByPlaceholderText(/cari nama kapal/i)
+    const searchInput = screen.getByPlaceholderText(/cari nama kapal|search vessel/i)
     fireEvent.change(searchInput, { target: { value: 'PACIFIC' } })
 
-    const searchButton = screen.getByRole('button', { name: /cari/i })
+    const searchButton = screen.getByRole('button', { name: /cari|search/i })
     fireEvent.click(searchButton)
 
     await waitFor(() => {
@@ -140,13 +140,13 @@ describe('VesselArrivals Page', () => {
     })
 
     // Find and click delete button on first row
-    const deleteButtons = screen.getAllByRole('button', { name: /hapus/i })
+    const deleteButtons = screen.getAllByRole('button', { name: /hapus|delete/i })
     fireEvent.click(deleteButtons[0])
 
     // Confirmation dialog should be visible
-    expect(screen.getByText(/konfirmasi hapus kedatangan kapal/i)).toBeInTheDocument()
+    expect(screen.getByText(/konfirmasi hapus kedatangan kapal|confirm delete/i)).toBeInTheDocument()
 
-    const confirmButton = screen.getByRole('button', { name: /ya, hapus/i })
+    const confirmButton = screen.getByRole('button', { name: /ya, hapus|yes, delete/i })
     fireEvent.click(confirmButton)
 
     await waitFor(() => {
@@ -161,16 +161,16 @@ describe('VesselArrivals Page', () => {
       expect(screen.getByText('MV. PACIFIC GLORY')).toBeInTheDocument()
     })
 
-    const deleteButtons = screen.getAllByRole('button', { name: /hapus/i })
+    const deleteButtons = screen.getAllByRole('button', { name: /hapus|delete/i })
     fireEvent.click(deleteButtons[0])
 
-    expect(screen.getByText(/konfirmasi hapus kedatangan kapal/i)).toBeInTheDocument()
+    expect(screen.getByText(/konfirmasi hapus kedatangan kapal|confirm delete/i)).toBeInTheDocument()
 
-    const cancelButton = screen.getByRole('button', { name: /batal/i })
+    const cancelButton = screen.getByRole('button', { name: /batal|cancel/i })
     fireEvent.click(cancelButton)
 
     await waitFor(() => {
-      expect(screen.queryByText(/konfirmasi hapus kedatangan kapal/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/konfirmasi hapus kedatangan kapal|confirm delete/i)).not.toBeInTheDocument()
     })
     expect(api.delete).not.toHaveBeenCalled()
   })
@@ -184,10 +184,10 @@ describe('VesselArrivals Page', () => {
       expect(screen.getByText('MV. PACIFIC GLORY')).toBeInTheDocument()
     })
 
-    const deleteButtons = screen.getAllByRole('button', { name: /hapus/i })
+    const deleteButtons = screen.getAllByRole('button', { name: /hapus|delete/i })
     fireEvent.click(deleteButtons[0])
 
-    const confirmButton = screen.getByRole('button', { name: /ya, hapus/i })
+    const confirmButton = screen.getByRole('button', { name: /ya, hapus|yes, delete/i })
     fireEvent.click(confirmButton)
 
     await waitFor(() => {

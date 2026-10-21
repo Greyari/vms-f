@@ -117,7 +117,7 @@ describe('ActiveVisits Page', () => {
 
     // Alert dialog opens
     expect(
-      screen.getByText(/are you absolutely sure|konfirmasi check out/i)
+      screen.getByText(/are you absolutely sure|confirm visitor check-out|konfirmasi check-out/i)
     ).toBeInTheDocument()
 
     const confirmActionBtn = screen.getByRole('button', {

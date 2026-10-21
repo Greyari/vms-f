@@ -89,7 +89,7 @@ describe('Reprint Visits Page', () => {
       }))
     })
 
-    const dateInput = screen.getByLabelText(/tanggal kunjungan/i)
+    const dateInput = screen.getByLabelText(/tanggal kunjungan|visit date/i)
     fireEvent.change(dateInput, { target: { value: '2026-09-20' } })
 
     await waitFor(() => {
@@ -179,7 +179,7 @@ describe('Reprint Visits Page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Andi Saputra')).toBeInTheDocument()
-      expect(screen.getByText(/Crew Kapal • Bosun/i)).toBeInTheDocument()
+      expect(screen.getByText(/(crew kapal|vessel crew) • bosun/i)).toBeInTheDocument()
       expect(screen.getByText('PACIFIC PRIDE')).toBeInTheDocument()
       expect(screen.getByText('AHTS TUG')).toBeInTheDocument()
       expect(screen.getByText(/IMO: 9123456/i)).toBeInTheDocument()

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
+import { useTranslation } from "@/context/I18nContext"
 import { toast } from "sonner"
 import api from "@/lib/axios"
 
@@ -85,6 +86,7 @@ export interface VesselArrivalItem {
 const ITEMS_PER_PAGE = 100
 
 export default function VesselArrivals() {
+  const { t } = useTranslation()
   const [arrivals, setArrivals] = useState<VesselArrivalItem[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -203,10 +205,13 @@ export default function VesselArrivals() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
             <Ship className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            Kedatangan Kapal & Kru
+            {t("vessel_arrivals.title", "Kedatangan Kapal & Kru")}
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Pencatatan sandar kapal galangan, rute pelabuhan, keagenan, dan manifest kru kapal.
+            {t(
+              "vessel_arrivals.subtitle",
+              "Pencatatan sandar kapal galangan, rute pelabuhan, keagenan, dan manifest kru kapal."
+            )}
           </p>
         </div>
 
@@ -218,7 +223,7 @@ export default function VesselArrivals() {
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
         >
           <Plus className="h-4 w-4" />
-          Catat Kedatangan Baru
+          {t("vessel_arrivals.create_btn", "Catat Kedatangan Baru")}
         </Button>
       </div>
 
@@ -244,14 +249,14 @@ export default function VesselArrivals() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari nama kapal..."
+              placeholder={t("vessel_arrivals.search_placeholder", "Cari nama kapal...")}
               className="pl-9"
             />
           </div>
 
           <div>
             <label htmlFor="stay-status-filter" className="sr-only">
-              Filter Status Sandar
+              {t("vessel_arrivals.stay_status_all", "Filter Status Sandar")}
             </label>
             <select
               id="stay-status-filter"
@@ -263,9 +268,9 @@ export default function VesselArrivals() {
               }}
               className="w-full h-10 px-3 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">Semua Status Sandar</option>
-              <option value="not_out">Sedang Sandar</option>
-              <option value="out">Sudah Berangkat</option>
+              <option value="all">{t("vessel_arrivals.stay_status_all", "Semua Status Sandar")}</option>
+              <option value="not_out">{t("vessel_arrivals.stay_status_not_out", "Sedang Sandar")}</option>
+              <option value="out">{t("vessel_arrivals.stay_status_out", "Sudah Berangkat")}</option>
             </select>
           </div>
 
@@ -278,7 +283,7 @@ export default function VesselArrivals() {
                 setCurrentPage(1)
               }}
               aria-label="Tanggal masuk dari"
-              placeholder="Dari Tanggal"
+              placeholder={t("vessel_arrivals.date_from_placeholder", "Dari Tanggal")}
             />
           </div>
 
@@ -291,19 +296,19 @@ export default function VesselArrivals() {
                 setCurrentPage(1)
               }}
               aria-label="Tanggal masuk sampai"
-              placeholder="Sampai Tanggal"
+              placeholder={t("vessel_arrivals.date_to_placeholder", "Sampai Tanggal")}
             />
           </div>
 
           <div className="flex items-center gap-2">
             <Button type="submit" variant="default" className="flex-1">
-              Cari
+              {t("common.search", "Cari")}
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={handleResetFilters}
-              title="Reset Filter"
+              title={t("common.reset", "Reset Filter")}
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
@@ -317,14 +322,14 @@ export default function VesselArrivals() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12 text-center">No</TableHead>
-                <TableHead>Nama Kapal & Kode IMO</TableHead>
-                <TableHead>Kedatangan (Sign-In)</TableHead>
-                <TableHead>Keberangkatan (Sign-Out)</TableHead>
-                <TableHead>Nakhoda / Captain</TableHead>
-                <TableHead className="text-center">Kru Sandar</TableHead>
-                <TableHead>Agen</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead className="w-12 text-center">{t("vessel_arrivals.col_no", "No")}</TableHead>
+                <TableHead>{t("vessel_arrivals.col_vessel_imo", "Nama Kapal & Kode IMO")}</TableHead>
+                <TableHead>{t("vessel_arrivals.col_sign_in", "Kedatangan (Sign-In)")}</TableHead>
+                <TableHead>{t("vessel_arrivals.col_sign_out", "Keberangkatan (Sign-Out)")}</TableHead>
+                <TableHead>{t("vessel_arrivals.col_captain", "Nakhoda / Captain")}</TableHead>
+                <TableHead className="text-center">{t("vessel_arrivals.col_crew", "Kru Sandar")}</TableHead>
+                <TableHead>{t("vessel_arrivals.col_agent", "Agen")}</TableHead>
+                <TableHead className="text-right">{t("vessel_arrivals.col_actions", "Aksi")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -333,14 +338,14 @@ export default function VesselArrivals() {
                   <TableCell colSpan={8} className="h-32 text-center">
                     <div className="flex items-center justify-center gap-2 text-zinc-500">
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      Memuat data kedatangan kapal...
+                      {t("common.loading", "Memuat data kedatangan kapal...")}
                     </div>
                   </TableCell>
                 </TableRow>
               ) : arrivals.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="h-32 text-center text-zinc-500">
-                    Tidak ada data kedatangan kapal yang ditemukan.
+                    {t("common.no_data", "Tidak ada data kedatangan kapal yang ditemukan.")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -371,12 +376,12 @@ export default function VesselArrivals() {
                       <TableCell>
                         {isInPort ? (
                           <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
-                            Sedang Sandar
+                            {t("vessel_arrivals.in_port", "Sedang Sandar")}
                           </Badge>
                         ) : (
                           <div>
                             <Badge variant="secondary" className="mb-1">
-                              Sudah Berangkat
+                              {t("vessel_arrivals.departed", "Sudah Berangkat")}
                             </Badge>
                             <div className="text-sm font-medium">{arrival.sign_out_date}</div>
                             <div className="text-xs text-zinc-500">
@@ -392,11 +397,11 @@ export default function VesselArrivals() {
                         <div className="flex flex-col items-center gap-1">
                           <Badge variant="outline" className="flex items-center gap-1 mx-auto w-fit text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800">
                             <Users className="h-3 w-3" />
-                            {arrival.active_crew_count ?? arrival.checked_in_crew_count ?? arrival.crew_count ?? 0} Kru Aktif
+                            {arrival.active_crew_count ?? arrival.checked_in_crew_count ?? arrival.crew_count ?? 0} {t("vessel_arrivals.crew_count_label", "Kru")}
                           </Badge>
                           {typeof arrival.completed_crew_count === "number" && arrival.completed_crew_count > 0 && (
                             <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
-                              {arrival.completed_crew_count} Selesai
+                              {arrival.completed_crew_count} {t("vessel_arrivals.completed_crew_count", "Selesai")}
                             </span>
                           )}
                         </div>
@@ -447,7 +452,7 @@ export default function VesselArrivals() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            title="Hapus"
+                            title={t("common.delete", "Hapus")}
                             onClick={() => handleDeleteClick(arrival)}
                             className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
                           >
@@ -466,11 +471,11 @@ export default function VesselArrivals() {
         {/* Paginasi */}
         <div className="p-4 border-t border-zinc-200 dark:border-zinc-700 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-zinc-500">
           <div>
-            Total <span className="font-semibold text-zinc-900 dark:text-zinc-100">{totalItems}</span> transaksi kedatangan kapal
+            {t("common.total", "Total")} <span className="font-semibold text-zinc-900 dark:text-zinc-100">{totalItems}</span> {t("vessel_arrivals.total_records", "transaksi kedatangan kapal")}
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs">
-              Halaman {currentPage} dari {totalPages}
+              {t("common.page", "Halaman")} {currentPage} {t("common.of", "dari")} {totalPages}
             </span>
             <Button
               variant="outline"
@@ -496,14 +501,13 @@ export default function VesselArrivals() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Hapus Kedatangan Kapal</AlertDialogTitle>
+            <AlertDialogTitle>{t("vessel_arrivals.delete_confirm_title", "Konfirmasi Hapus Kedatangan Kapal")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus data transaksi kedatangan kapal{" "}
-              <strong className="text-zinc-900 dark:text-zinc-100">{itemToDelete?.vessel_name}</strong>? Tindakan ini akan menghapus data sandar dan melepaskan seluruh manifest kru terkait.
+              {t("vessel_arrivals.delete_confirm_desc", "Apakah Anda yakin ingin menghapus data transaksi kedatangan kapal {{name}}? Tindakan ini akan menghapus data sandar dan melepaskan seluruh manifest kru terkait.", { name: itemToDelete?.vessel_name || "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t("common.cancel", "Batal")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               disabled={deleting}
@@ -512,10 +516,10 @@ export default function VesselArrivals() {
               {deleting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menghapus...
+                  {t("common.processing", "Menghapus...")}
                 </>
               ) : (
-                "Ya, Hapus"
+                t("common.confirm_delete", "Ya, Hapus")
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

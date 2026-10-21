@@ -150,6 +150,12 @@ export default function AppLayout() {
           icon: Ship,
           show: can("/reports/vessels"),
         },
+        {
+          name: t("nav.crew_report", "Laporan Kru Kapal"),
+          path: "/reports/crew",
+          icon: Users,
+          show: can("/reports/crew"),
+        },
       ],
     },
     {

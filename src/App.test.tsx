@@ -67,7 +67,7 @@ describe("App Router Integration", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: /cetak ulang pass kunjungan/i })
+        screen.getByRole("heading", { name: /cetak ulang pass kunjungan|reprint visitor pass/i })
       ).toBeInTheDocument()
     })
   })
@@ -126,7 +126,7 @@ describe("App Router Integration", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: /kedatangan kapal & kru/i })
+        screen.getByRole("heading", { name: /kedatangan kapal & kru|vessel & crew arrivals/i })
       ).toBeInTheDocument()
     })
   })
@@ -149,7 +149,7 @@ describe("App Router Integration", () => {
     await waitFor(() => {
       expect(
         screen.getByRole("heading", {
-          name: /laporan kunjungan \(visitor report\)/i,
+          name: /laporan kunjungan|visitor report/i,
         })
       ).toBeInTheDocument()
     })
@@ -173,7 +173,7 @@ describe("App Router Integration", () => {
     await waitFor(() => {
       expect(
         screen.getByRole("heading", {
-          name: /laporan kedatangan kapal \(vessel report\)/i,
+          name: /laporan kedatangan kapal|vessel arrival report/i,
         })
       ).toBeInTheDocument()
     })

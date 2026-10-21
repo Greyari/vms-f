@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 import {
   Users,
   ClipboardList,
@@ -104,6 +105,7 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -134,7 +136,7 @@ export default function Dashboard() {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-3">
         <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-zinc-900 dark:border-zinc-100" />
-        <p className="text-sm font-medium text-zinc-500">Memuat data operasional dashboard...</p>
+        <p className="text-sm font-medium text-zinc-500">{t("dashboard.loading", "Memuat data operasional dashboard...")}</p>
       </div>
     )
   }
@@ -143,7 +145,7 @@ export default function Dashboard() {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-3 text-center">
         <AlertTriangle className="h-8 w-8 text-amber-500" />
-        <p className="text-sm text-zinc-500">Gagal memuat data dashboard.</p>
+        <p className="text-sm text-zinc-500">{t("dashboard.error_load", "Gagal memuat data dashboard.")}</p>
         <Button
           onClick={() => {
             setLoading(true)
@@ -152,7 +154,7 @@ export default function Dashboard() {
           className="inline-flex items-center gap-2"
         >
           <RefreshCw className="h-4 w-4" />
-          Coba Lagi
+          {t("dashboard.retry", "Coba Lagi")}
         </Button>
       </div>
     )
@@ -160,9 +162,9 @@ export default function Dashboard() {
 
   const statCards = [
     {
-      label: "Pengunjung Aktif di Yard",
+      label: t("dashboard.stat_active_yard", "Pengunjung Aktif di Yard"),
       value: data.stats.active_visits,
-      sub: `Hari ini: +${data.stats.today_visits || 0} masuk · ${data.stats.today_checkouts || 0} keluar`,
+      sub: t("dashboard.stat_active_yard_sub", `Hari ini: +${data.stats.today_visits || 0} masuk · ${data.stats.today_checkouts || 0} keluar`).replace("{{today}}", String(data.stats.today_visits || 0)).replace("{{out}}", String(data.stats.today_checkouts || 0)),
       icon: UserCheck,
       color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-50/70 dark:bg-emerald-950/20",
@@ -170,9 +172,9 @@ export default function Dashboard() {
       onClick: () => navigate("/visits/activate"),
     },
     {
-      label: "Kru Kapal di Galangan (On-Board)",
+      label: t("dashboard.stat_crew_onboard", "Kru Kapal di Galangan (On-Board)"),
       value: data.crew?.active_onboard ?? data.stats.active_crew ?? 0,
-      sub: `Dari ${data.stats.total_crew || 0} total kru terdaftar`,
+      sub: t("dashboard.stat_crew_onboard_sub", `Dari ${data.stats.total_crew || 0} total kru terdaftar`).replace("{{total}}", String(data.stats.total_crew || 0)),
       icon: Anchor,
       color: "text-blue-600 dark:text-blue-400",
       bg: "bg-blue-50/70 dark:bg-blue-950/20",
@@ -180,9 +182,9 @@ export default function Dashboard() {
       onClick: () => navigate("/vessels/arrivals"),
     },
     {
-      label: "Kapal Bersandar di Galangan",
+      label: t("dashboard.stat_vessels_in_yard", "Kapal Bersandar di Galangan"),
       value: data.vessels?.active_in_yard ?? data.stats.active_vessels ?? 0,
-      sub: `Dari ${data.stats.total_vessels || 0} total kapal di master data`,
+      sub: t("dashboard.stat_vessels_in_yard_sub", `Dari ${data.stats.total_vessels || 0} total kapal di master data`).replace("{{total}}", String(data.stats.total_vessels || 0)),
       icon: Ship,
       color: "text-cyan-600 dark:text-cyan-400",
       bg: "bg-cyan-50/70 dark:bg-cyan-950/20",
@@ -190,9 +192,9 @@ export default function Dashboard() {
       onClick: () => navigate("/vessels/arrivals"),
     },
     {
-      label: "Kunjungan Bulan Ini",
+      label: t("dashboard.stat_month_visits", "Kunjungan Bulan Ini"),
       value: data.stats.month_visits,
-      sub: "Laporan rekapitulasi bulan berjalan",
+      sub: t("dashboard.stat_month_visits_sub", "Laporan rekapitulasi bulan berjalan"),
       icon: ClipboardList,
       color: "text-purple-600 dark:text-purple-400",
       bg: "bg-purple-50/70 dark:bg-purple-950/20",
@@ -200,9 +202,9 @@ export default function Dashboard() {
       onClick: () => navigate("/reports/visitors"),
     },
     {
-      label: "Database Pengunjung Master",
+      label: t("dashboard.stat_total_visitors", "Database Pengunjung Master"),
       value: data.stats.total_visitors,
-      sub: "Tamu, vendor & kontraktor terdaftar",
+      sub: t("dashboard.stat_total_visitors_sub", "Tamu, vendor & kontraktor terdaftar"),
       icon: Users,
       color: "text-zinc-600 dark:text-zinc-400",
       bg: "bg-zinc-50 dark:bg-zinc-900/50",
@@ -210,9 +212,9 @@ export default function Dashboard() {
       onClick: () => navigate("/master/visitors"),
     },
     {
-      label: "Data Blacklist Terpantau",
+      label: t("dashboard.stat_blacklist", "Data Blacklist Terpantau"),
       value: data.stats.active_blacklists_count ?? data.stats.blacklisted_visitors ?? 0,
-      sub: "Daftar cekal keamanan aktif",
+      sub: t("dashboard.stat_blacklist_sub", "Daftar cekal keamanan aktif"),
       icon: ShieldOff,
       color: "text-rose-600 dark:text-rose-400",
       bg: "bg-rose-50/70 dark:bg-rose-950/20",
@@ -231,14 +233,14 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-              Dashboard Operasional VMS
+              {t("dashboard.title", "Dashboard Operasional VMS")}
             </h1>
             <Badge variant="outline" className="text-xs font-mono">
-              Live Monitoring
+              {t("dashboard.live_monitoring", "Live Monitoring")}
             </Badge>
           </div>
           <p className="mt-1 text-xs text-zinc-500 sm:text-sm dark:text-zinc-400">
-            Pusat pemantauan kunjungan harian, kapal & kru di galangan, serta status kartu akses.
+            {t("dashboard.subtitle", "Pusat pemantauan kunjungan harian, kapal & kru di galangan, serta status kartu akses.")}
           </p>
         </div>
 
@@ -250,7 +252,7 @@ export default function Dashboard() {
             className="h-9 gap-1.5 bg-zinc-900 text-xs font-semibold text-white shadow-sm hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             <PlusCircle className="h-4 w-4" />
-            + Tambah Kunjungan
+            {t("dashboard.add_visit", "+ Tambah Kunjungan")}
           </Button>
           <Button
             variant="outline"
@@ -259,7 +261,7 @@ export default function Dashboard() {
             className="h-9 gap-1.5 text-xs"
           >
             <UserCheck className="h-4 w-4 text-emerald-600" />
-            Kunjungan Aktif
+            {t("dashboard.active_visits", "Kunjungan Aktif")}
           </Button>
           <Button
             variant="outline"
@@ -268,7 +270,7 @@ export default function Dashboard() {
             className="h-9 gap-1.5 text-xs"
           >
             <Ship className="h-4 w-4 text-blue-600" />
-            Kedatangan Kapal / Kru
+            {t("dashboard.vessel_arrivals", "Kedatangan Kapal / Kru")}
           </Button>
           <Button
             variant="outline"
@@ -277,7 +279,7 @@ export default function Dashboard() {
             className="h-9 gap-1.5 text-xs"
           >
             <Printer className="h-4 w-4 text-zinc-600" />
-            Cetak Ulang Tiket
+            {t("dashboard.reprint_ticket", "Cetak Ulang Tiket")}
           </Button>
         </div>
       </div>
@@ -287,7 +289,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400">
           <span className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
-            Koneksi auto-refresh terganggu — menampilkan data terakhir yang berhasil dimuat.
+            {t("dashboard.connection_interrupted", "Koneksi auto-refresh terganggu — menampilkan data terakhir yang berhasil dimuat.")}
           </span>
           <Button
             variant="outline"
@@ -296,7 +298,7 @@ export default function Dashboard() {
             className="h-7 text-xs"
           >
             <RefreshCw className="mr-1 h-3.5 w-3.5" />
-            Muat Ulang
+            {t("dashboard.reload", "Muat Ulang")}
           </Button>
         </div>
       )}
@@ -339,14 +341,14 @@ export default function Dashboard() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  Tren Kunjungan 7 Hari Terakhir
+                  {t("dashboard.chart_title", "Tren Kunjungan 7 Hari Terakhir")}
                 </h2>
                 <p className="text-xs text-zinc-500">
-                  Volume kunjungan masuk per hari di area galangan
+                  {t("dashboard.chart_subtitle", "Volume kunjungan masuk per hari di area galangan")}
                 </p>
               </div>
               <Badge variant="secondary" className="text-xs font-mono font-medium">
-                7 Hari Terakhir
+                {t("dashboard.chart_badge", "7 Hari Terakhir")}
               </Badge>
             </div>
             <div className="h-64 w-full">
@@ -365,7 +367,7 @@ export default function Dashboard() {
                     }}
                     labelStyle={{ color: "#a1a1aa", fontWeight: "bold" }}
                   />
-                  <Bar dataKey="total" name="Kunjungan" fill="#18181b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" name={t("dashboard.chart_series", "Kunjungan")} fill="#18181b" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -378,10 +380,10 @@ export default function Dashboard() {
                 <Ship className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <div>
                   <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    Kapal Sedang Bersandar di Galangan
+                    {t("dashboard.vessels_title", "Kapal Sedang Bersandar di Galangan")}
                   </h2>
                   <p className="text-xs text-zinc-500">
-                    Daftar kapal aktif dengan personil kru yang sedang on-board
+                    {t("dashboard.vessels_subtitle", "Daftar kapal aktif dengan personil kru yang sedang on-board")}
                   </p>
                 </div>
               </div>
@@ -391,7 +393,7 @@ export default function Dashboard() {
                 onClick={() => navigate("/vessels/arrivals")}
                 className="h-8 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
               >
-                Lihat Semua ({data.vessels?.active_in_yard || 0})
+                {t("dashboard.view_all", "Lihat Semua")} ({data.vessels?.active_in_yard || 0})
                 <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
               </Button>
             </div>
@@ -400,7 +402,7 @@ export default function Dashboard() {
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 p-6 text-center dark:border-zinc-800">
                 <Ship className="h-8 w-8 text-zinc-300 dark:text-zinc-700" />
                 <p className="mt-2 text-xs font-medium text-zinc-500">
-                  Tidak ada kedatangan kapal yang tercatat aktif saat ini.
+                  {t("dashboard.no_active_vessels", "Tidak ada kedatangan kapal yang tercatat aktif saat ini.")}
                 </p>
               </div>
             ) : (
@@ -424,13 +426,13 @@ export default function Dashboard() {
                         )}
                       </div>
                       <p className="text-xs text-zinc-500">
-                        Nakhoda: <strong className="font-medium text-zinc-700 dark:text-zinc-300">{v.captain || "-"}</strong> · Masuk: {v.sign_in_date}
+                        {t("dashboard.captain", "Nakhoda")}: <strong className="font-medium text-zinc-700 dark:text-zinc-300">{v.captain || "-"}</strong> · {t("dashboard.sign_in", "Masuk")}: {v.sign_in_date}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900 font-medium text-xs">
                         <Anchor className="mr-1 h-3 w-3" />
-                        {v.active_crew_count} Kru On-Board
+                        {v.active_crew_count} {t("dashboard.crew_onboard", "Kru On-Board")}
                       </Badge>
                     </div>
                   </div>
@@ -448,7 +450,7 @@ export default function Dashboard() {
               <div className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  Kartu Akses Pengunjung
+                  {t("dashboard.visitor_cards", "Kartu Akses Pengunjung")}
                 </h2>
               </div>
               <Button
@@ -457,25 +459,25 @@ export default function Dashboard() {
                 onClick={() => navigate("/master/cards")}
                 className="h-7 px-2 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
               >
-                Kelola
+                {t("dashboard.manage", "Kelola")}
               </Button>
             </div>
             <div className="space-y-2.5">
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Tersedia (Available)</span>
+                <span className="text-zinc-500">{t("dashboard.available", "Tersedia (Available)")}</span>
                 <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                  {data.cards.available} kartu
+                  {data.cards.available} {t("dashboard.cards_unit", "kartu")}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Sedang Digunakan (In Use)</span>
+                <span className="text-zinc-500">{t("dashboard.in_use", "Sedang Digunakan (In Use)")}</span>
                 <span className="font-bold font-mono text-amber-600 dark:text-amber-400">
-                  {data.cards.in_use} kartu
+                  {data.cards.in_use} {t("dashboard.cards_unit", "kartu")}
                 </span>
               </div>
               <div className="flex justify-between border-t border-zinc-100 pt-2 text-xs font-semibold dark:border-zinc-800">
-                <span className="text-zinc-600 dark:text-zinc-400">Total Kartu Fisik</span>
-                <span className="font-mono text-zinc-900 dark:text-zinc-100">{data.cards.total} kartu</span>
+                <span className="text-zinc-600 dark:text-zinc-400">{t("dashboard.total_cards", "Total Kartu Fisik")}</span>
+                <span className="font-mono text-zinc-900 dark:text-zinc-100">{data.cards.total} {t("dashboard.cards_unit", "kartu")}</span>
               </div>
               <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                 <div
@@ -494,7 +496,7 @@ export default function Dashboard() {
               <div className="flex items-center gap-2">
                 <Car className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  Kartu Akses Kendaraan
+                  {t("dashboard.vehicle_cards", "Kartu Akses Kendaraan")}
                 </h2>
               </div>
               <Button
@@ -503,25 +505,25 @@ export default function Dashboard() {
                 onClick={() => navigate("/master/vehicle-cards")}
                 className="h-7 px-2 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
               >
-                Kelola
+                {t("dashboard.manage", "Kelola")}
               </Button>
             </div>
             <div className="space-y-2.5">
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Tersedia (Available)</span>
+                <span className="text-zinc-500">{t("dashboard.available", "Tersedia (Available)")}</span>
                 <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                  {data.vehicle_cards.available} kartu
+                  {data.vehicle_cards.available} {t("dashboard.cards_unit", "kartu")}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Sedang Digunakan (In Use)</span>
+                <span className="text-zinc-500">{t("dashboard.in_use", "Sedang Digunakan (In Use)")}</span>
                 <span className="font-bold font-mono text-amber-600 dark:text-amber-400">
-                  {data.vehicle_cards.in_use} kartu
+                  {data.vehicle_cards.in_use} {t("dashboard.cards_unit", "kartu")}
                 </span>
               </div>
               <div className="flex justify-between border-t border-zinc-100 pt-2 text-xs font-semibold dark:border-zinc-800">
-                <span className="text-zinc-600 dark:text-zinc-400">Total Kartu Kendaraan</span>
-                <span className="font-mono text-zinc-900 dark:text-zinc-100">{data.vehicle_cards.total} kartu</span>
+                <span className="text-zinc-600 dark:text-zinc-400">{t("dashboard.total_vehicle_cards", "Total Kartu Kendaraan")}</span>
+                <span className="font-mono text-zinc-900 dark:text-zinc-100">{data.vehicle_cards.total} {t("dashboard.cards_unit", "kartu")}</span>
               </div>
               <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                 <div
@@ -540,7 +542,7 @@ export default function Dashboard() {
               <div className="flex items-center gap-2">
                 <Compass className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  Aktivitas Kru Terkini
+                  {t("dashboard.recent_crew_activity", "Aktivitas Kru Terkini")}
                 </h2>
               </div>
               <Button
@@ -549,13 +551,13 @@ export default function Dashboard() {
                 onClick={() => navigate("/vessels/arrivals")}
                 className="h-7 px-2 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
               >
-                Log Lengkap
+                {t("dashboard.full_log", "Log Lengkap")}
               </Button>
             </div>
 
             {recentCrewLogs.length === 0 ? (
               <p className="py-4 text-center text-xs text-zinc-500">
-                Belum ada aktivitas kru tercatat baru-baru ini.
+                {t("dashboard.no_recent_crew_activity", "Belum ada aktivitas kru tercatat baru-baru ini.")}
               </p>
             ) : (
               <div className="space-y-3">
@@ -571,17 +573,17 @@ export default function Dashboard() {
                         </span>
                       </div>
                       <p className="text-[11px] text-zinc-500 truncate max-w-[200px]">
-                        Kapal: {log.vessel_name}
+                        {t("dashboard.vessel", "Kapal")}: {log.vessel_name}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
                       {log.action === "check_in" ? (
                         <Badge variant="outline" className="bg-emerald-50 text-[10px] text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300">
-                          <LogIn className="mr-0.5 h-2.5 w-2.5" /> On Board
+                          <LogIn className="mr-0.5 h-2.5 w-2.5" /> {t("dashboard.on_board", "On Board")}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="bg-amber-50 text-[10px] text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300">
-                          <LogOut className="mr-0.5 h-2.5 w-2.5" /> Sign Off
+                          <LogOut className="mr-0.5 h-2.5 w-2.5" /> {t("dashboard.sign_off", "Sign Off")}
                         </Badge>
                       )}
                       <p className="mt-0.5 font-mono text-[10px] text-zinc-400">
@@ -602,14 +604,14 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                Pengunjung & Kru yang Sedang Aktif di Yard
+                {t("dashboard.active_visitors_table_title", "Pengunjung & Kru yang Sedang Aktif di Yard")}
               </h2>
               <Badge className="bg-zinc-900 text-xs text-white dark:bg-zinc-100 dark:text-zinc-900">
-                {data.recent_visits.length} Terbaru
+                {data.recent_visits.length} {t("dashboard.latest", "Terbaru")}
               </Badge>
             </div>
             <p className="text-xs text-zinc-500">
-              Daftar tamu dan kru kapal yang masih berstatus kunjungan terbuka (belum check-out)
+              {t("dashboard.active_visitors_table_subtitle", "Daftar tamu dan kru kapal yang masih berstatus kunjungan terbuka (belum check-out)")}
             </p>
           </div>
           <Button
@@ -618,7 +620,7 @@ export default function Dashboard() {
             onClick={() => navigate("/visits/activate")}
             className="h-8 gap-1 text-xs"
           >
-            Lihat Semua Kunjungan Aktif
+            {t("dashboard.view_all_active", "Lihat Semua Kunjungan Aktif")}
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -627,10 +629,10 @@ export default function Dashboard() {
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <CheckCircle2 className="h-8 w-8 text-emerald-500" />
             <p className="mt-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Tidak ada tamu aktif di area galangan saat ini.
+              {t("dashboard.no_active_visitors", "Tidak ada tamu aktif di area galangan saat ini.")}
             </p>
             <p className="text-xs text-zinc-500">
-              Semua pengunjung telah melakukan check-out.
+              {t("dashboard.all_checked_out", "Semua pengunjung telah melakukan check-out.")}
             </p>
           </div>
         ) : (
@@ -638,14 +640,14 @@ export default function Dashboard() {
             <table className="w-full text-left text-xs">
               <thead className="border-b border-zinc-200 bg-zinc-50/70 text-[11px] font-semibold text-zinc-600 uppercase dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400">
                 <tr>
-                  <th className="py-2.5 px-3">No. Tiket</th>
-                  <th className="py-2.5 px-3">Nama Pengunjung & Instansi</th>
-                  <th className="py-2.5 px-3">Tipe</th>
-                  <th className="py-2.5 px-3">Tujuan (Lokasi / Kapal)</th>
-                  <th className="py-2.5 px-3">Host PIC / Nakhoda</th>
-                  <th className="py-2.5 px-3">Kartu Akses</th>
-                  <th className="py-2.5 px-3">Jam Masuk</th>
-                  <th className="py-2.5 px-3 text-right">Aksi</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_ticket", "No. Tiket")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_visitor", "Nama Pengunjung & Instansi")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_type", "Tipe")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_destination", "Tujuan (Lokasi / Kapal)")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_host", "Host PIC / Nakhoda")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_card", "Kartu Akses")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_time_in", "Jam Masuk")}</th>
+                  <th className="py-2.5 px-3 text-right">{t("dashboard.th_action", "Aksi")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -665,11 +667,11 @@ export default function Dashboard() {
                     <td className="py-3 px-3">
                       {visit.visitor_type === "crew" ? (
                         <Badge variant="outline" className="bg-blue-50 text-[10px] text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300">
-                          <Anchor className="mr-0.5 h-2.5 w-2.5" /> Kru Kapal
+                          <Anchor className="mr-0.5 h-2.5 w-2.5" /> {t("dashboard.crew_badge", "Kru Kapal")}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="bg-zinc-50 text-[10px] text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300">
-                          Tamu
+                          {t("dashboard.guest_badge", "Tamu")}
                         </Badge>
                       )}
                     </td>
@@ -716,7 +718,7 @@ export default function Dashboard() {
                           size="sm"
                           onClick={() => navigate(`/visits/${visit.id}/print`, { state: { visit } })}
                           className="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-                          title="Cetak Tiket Pass"
+                          title={t("dashboard.print_pass_title", "Cetak Tiket Pass")}
                         >
                           <Printer className="h-3.5 w-3.5" />
                         </Button>
@@ -726,7 +728,7 @@ export default function Dashboard() {
                           onClick={() => navigate("/visits/activate")}
                           className="h-7 px-2 text-[11px]"
                         >
-                          Kelola
+                          {t("dashboard.manage", "Kelola")}
                         </Button>
                       </div>
                     </td>

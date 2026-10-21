@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -71,6 +72,7 @@ export interface VesselReportItem {
 const ALL = "all"
 
 export default function VesselReport() {
+  const { t } = useTranslation()
   const [mode, setMode] = useState<"list_ships" | "list_ships_with_crew">("list_ships")
   const [loading, setLoading] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
@@ -118,12 +120,12 @@ export default function VesselReport() {
         }
       } catch (err: any) {
         console.error(err)
-        toast.error("Gagal memuat laporan kedatangan kapal.")
+        toast.error(t("vessel_report.fetch_error", "Gagal memuat laporan kedatangan kapal."))
       } finally {
         setLoading(false)
       }
     },
-    [perPage]
+    [perPage, t]
   )
 
   useEffect(() => {
@@ -182,10 +184,10 @@ export default function VesselReport() {
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
 
-      toast.success("File Excel laporan kapal berhasil diunduh.")
+      toast.success(t("vessel_report.export_success", "File Excel laporan kapal berhasil diunduh."))
     } catch (err: any) {
       console.error(err)
-      toast.error("Gagal mengunduh file Excel laporan kapal.")
+      toast.error(t("vessel_report.export_error", "Gagal mengunduh file Excel laporan kapal."))
     } finally {
       setExportLoading(false)
     }
@@ -197,10 +199,13 @@ export default function VesselReport() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Laporan Kedatangan Kapal (Vessel Report)
+            {t("vessel_report.title", "Laporan Kedatangan Kapal (Vessel Report)")}
           </h1>
           <p className="text-sm text-zinc-500">
-            Rekapitulasi transaksi sandar kapal galangan, manifest kru on-board, dan perhitungan hari sandar.
+            {t(
+              "vessel_report.subtitle",
+              "Rekapitulasi transaksi sandar kapal galangan, manifest kru on-board, dan perhitungan hari sandar."
+            )}
           </p>
         </div>
 
@@ -217,7 +222,7 @@ export default function VesselReport() {
             ) : (
               <FileDown className="h-4 w-4" />
             )}
-            Export Excel
+            {t("common.export_excel", "Export Excel")}
           </Button>
         </div>
       </div>
@@ -235,7 +240,7 @@ export default function VesselReport() {
           }}
         >
           <Ship className="h-4 w-4" />
-          Ringkasan Kapal (List Ships)
+          {t("vessel_report.tab_list_ships", "Ringkasan Kapal (List Ships)")}
         </Button>
         <Button
           type="button"
@@ -248,7 +253,7 @@ export default function VesselReport() {
           }}
         >
           <Users className="h-4 w-4" />
-          Rincian Bersama Kru (List Ships With Crew)
+          {t("vessel_report.tab_list_ships_crew", "Rincian Bersama Kru (List Ships With Crew)")}
         </Button>
       </div>
 
@@ -257,15 +262,15 @@ export default function VesselReport() {
         <form onSubmit={handleApplyFilter} className="space-y-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             <Filter className="h-4 w-4" />
-            Filter Laporan Kapal
+            {t("vessel_report.filter_box_title", "Filter Laporan Kapal")}
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {/* Nama Kapal */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Nama Kapal</Label>
+              <Label className="text-xs">{t("vessel_report.vessel_name_label", "Nama Kapal")}</Label>
               <Input
-                placeholder="Nama kapal..."
+                placeholder={t("vessel_report.vessel_name_placeholder", "Nama kapal...")}
                 value={vesselName}
                 onChange={(e) => setVesselName(e.target.value)}
                 className="h-9 text-sm"
@@ -274,23 +279,23 @@ export default function VesselReport() {
 
             {/* Status Sandar */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Status Sandar</Label>
+              <Label className="text-xs">{t("vessel_report.stay_status_label", "Status Sandar")}</Label>
               <Select value={stayStatus} onValueChange={setStayStatus}>
                 <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Semua Status" />
+                  <SelectValue placeholder={t("vessel_report.stay_status_all", "Semua Status")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL}>Semua Status (All)</SelectItem>
-                  <SelectItem value="not_out">Sedang Sandar (Not Out)</SelectItem>
-                  <SelectItem value="in">Masuk pada Periode (In)</SelectItem>
-                  <SelectItem value="out">Sudah Keluar (Out)</SelectItem>
+                  <SelectItem value={ALL}>{t("vessel_report.stay_status_all", "Semua Status (All)")}</SelectItem>
+                  <SelectItem value="not_out">{t("vessel_report.stay_status_not_out", "Sedang Sandar (Not Out)")}</SelectItem>
+                  <SelectItem value="in">{t("vessel_report.stay_status_in", "Masuk pada Periode (In)")}</SelectItem>
+                  <SelectItem value="out">{t("vessel_report.stay_status_out", "Sudah Keluar (Out)")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Rentang Tanggal */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Tanggal Dari</Label>
+              <Label className="text-xs">{t("common.date_from", "Tanggal Dari")}</Label>
               <Input
                 type="date"
                 value={dateFrom}
@@ -299,7 +304,7 @@ export default function VesselReport() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Tanggal Sampai</Label>
+              <Label className="text-xs">{t("common.date_to", "Tanggal Sampai")}</Label>
               <Input
                 type="date"
                 value={dateTo}
@@ -312,7 +317,7 @@ export default function VesselReport() {
             {mode === "list_ships_with_crew" && (
               <>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">No. Kru Dari</Label>
+                  <Label className="text-xs">{t("vessel_report.crew_no_from", "No. Kru Dari")}</Label>
                   <Input
                     type="number"
                     placeholder="cth. 200000"
@@ -322,7 +327,7 @@ export default function VesselReport() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">No. Kru Sampai</Label>
+                  <Label className="text-xs">{t("vessel_report.crew_no_to", "No. Kru Sampai")}</Label>
                   <Input
                     type="number"
                     placeholder="cth. 200500"
@@ -344,7 +349,7 @@ export default function VesselReport() {
               className="gap-1.5"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              Reset
+              {t("common.reset", "Reset")}
             </Button>
             <Button
               type="submit"
@@ -357,7 +362,7 @@ export default function VesselReport() {
               ) : (
                 <Search className="h-3.5 w-3.5" />
               )}
-              Terapkan Filter
+              {t("common.filter", "Terapkan Filter")}
             </Button>
           </div>
         </form>
@@ -370,13 +375,13 @@ export default function VesselReport() {
             <Table>
               <TableHeader className="bg-zinc-50 dark:bg-zinc-900/50">
                 <TableRow>
-                  <TableHead className="w-12 text-center">No</TableHead>
-                  <TableHead>Nama Kapal & Kode</TableHead>
-                  <TableHead>Tanggal Sandar & Asal</TableHead>
-                  <TableHead>Tanggal Keluar & Tujuan</TableHead>
-                  <TableHead>Total Hari</TableHead>
-                  <TableHead>Nakhoda / Captain</TableHead>
-                  <TableHead>Agen</TableHead>
+                  <TableHead className="w-12 text-center">{t("common.no", "No")}</TableHead>
+                  <TableHead>{t("vessel_report.col_vessel_name", "Nama Kapal & Kode")}</TableHead>
+                  <TableHead>{t("vessel_report.col_sign_in", "Tanggal Sandar & Asal")}</TableHead>
+                  <TableHead>{t("vessel_report.col_sign_out", "Tanggal Keluar & Tujuan")}</TableHead>
+                  <TableHead>{t("vessel_report.col_total_days", "Total Hari")}</TableHead>
+                  <TableHead>{t("vessel_report.col_captain", "Nakhoda / Captain")}</TableHead>
+                  <TableHead>{t("common.agent", "Agen")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -384,13 +389,13 @@ export default function VesselReport() {
                   <TableRow>
                     <TableCell colSpan={7} className="h-32 text-center text-zinc-500">
                       <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
-                      <span className="mt-2 block text-xs">Memuat data kedatangan kapal...</span>
+                      <span className="mt-2 block text-xs">{t("common.loading", "Memuat data kedatangan kapal...")}</span>
                     </TableCell>
                   </TableRow>
                 ) : records.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-32 text-center text-zinc-500">
-                      Tidak ada data kedatangan kapal yang sesuai dengan kriteria filter.
+                      {t("vessel_report.no_records", "Tidak ada data kedatangan kapal yang sesuai dengan kriteria filter.")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -438,17 +443,17 @@ export default function VesselReport() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary" className="font-mono">
-                            {item.total_days} Hari
+                            {item.total_days} {t("vessel_report.days_unit", "Hari")}
                           </Badge>
                         </TableCell>
                         <TableCell>{item.captain || "-"}</TableCell>
                         <TableCell>
                           <div className="text-[11px]">
                             {item.local_agent_company && (
-                              <div>Lokal: {item.local_agent_company}</div>
+                              <div>{t("vessel_report.agent_local", "Lokal")}: {item.local_agent_company}</div>
                             )}
                             {item.foreign_agent_company && (
-                              <div className="text-zinc-500">Asing: {item.foreign_agent_company}</div>
+                              <div className="text-zinc-500">{t("vessel_report.agent_foreign", "Asing")}: {item.foreign_agent_company}</div>
                             )}
                             {!item.local_agent_company && !item.foreign_agent_company && "-"}
                           </div>
@@ -466,11 +471,11 @@ export default function VesselReport() {
             {loading ? (
               <div className="p-8 text-center text-zinc-500">
                 <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
-                <span className="mt-2 block text-xs">Memuat data kapal dan manifest kru...</span>
+                <span className="mt-2 block text-xs">{t("common.loading", "Memuat data kapal dan manifest kru...")}</span>
               </div>
             ) : records.length === 0 ? (
               <div className="p-8 text-center text-zinc-500 text-xs">
-                Tidak ada data kedatangan kapal yang sesuai dengan kriteria filter.
+                {t("vessel_report.no_records", "Tidak ada data kedatangan kapal yang sesuai dengan kriteria filter.")}
               </div>
             ) : (
               records.map((item, index) => {
@@ -499,10 +504,10 @@ export default function VesselReport() {
 
                       <div className="flex items-center gap-3 text-xs text-zinc-600 dark:text-zinc-400">
                         <div>
-                          Masuk: <strong className="text-zinc-800 dark:text-zinc-200">{item.sign_in_date || "-"}</strong>
+                          {t("vessel_arrivals.col_sign_in", "Masuk")}: <strong className="text-zinc-800 dark:text-zinc-200">{item.sign_in_date || "-"}</strong>
                         </div>
                         <div>
-                          Keluar:{" "}
+                          {t("vessel_arrivals.col_sign_out", "Keluar")}:{" "}
                           {isInPort ? (
                             <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 text-[10px]">
                               IN PORT
@@ -512,13 +517,13 @@ export default function VesselReport() {
                           )}
                         </div>
                         <Badge variant="secondary" className="font-mono text-[10px]">
-                          {item.total_days} Hari
+                          {item.total_days} {t("vessel_report.days_unit", "Hari")}
                         </Badge>
                         <div>
-                          Kapten: <strong>{item.captain || "-"}</strong>
+                          {t("vessel_arrivals.col_captain", "Kapten")}: <strong>{item.captain || "-"}</strong>
                         </div>
                         <Badge variant="outline" className="text-blue-600 border-blue-200 dark:text-blue-400 text-[10px]">
-                          {crewList.length} Kru
+                          {crewList.length} {t("vessel_arrivals.crew_count_label", "Kru")}
                         </Badge>
                       </div>
                     </div>
@@ -527,20 +532,20 @@ export default function VesselReport() {
                     <div className="pl-4 pr-1">
                       {crewList.length === 0 ? (
                         <div className="text-xs text-zinc-400 italic py-2">
-                          Tidak ada kru terdaftar pada kedatangan kapal ini.
+                          {t("vessel_report.no_crew", "Tidak ada kru terdaftar pada kedatangan kapal ini.")}
                         </div>
                       ) : (
                         <Table className="border rounded-md">
                           <TableHeader className="bg-zinc-50/50 dark:bg-zinc-900/30">
                             <TableRow className="text-[11px]">
-                              <TableHead className="w-12">No. Kru</TableHead>
-                              <TableHead>Nama Kru</TableHead>
-                              <TableHead>No. ID / Paspor</TableHead>
-                              <TableHead>Gender</TableHead>
-                              <TableHead>Jabatan</TableHead>
-                              <TableHead>Kebangsaan</TableHead>
-                              <TableHead>Buku Pelaut</TableHead>
-                              <TableHead>Sertifikat</TableHead>
+                              <TableHead className="w-12">{t("crew_report.col_crew_no", "No. Kru")}</TableHead>
+                              <TableHead>{t("crew_report.col_crew_name", "Nama Kru")}</TableHead>
+                              <TableHead>{t("crew_report.col_id_passport", "No. ID / Paspor")}</TableHead>
+                              <TableHead>{t("crew_report.col_gender", "Gender")}</TableHead>
+                              <TableHead>{t("crew_report.col_occupation", "Jabatan")}</TableHead>
+                              <TableHead>{t("crew_report.col_nationality", "Kebangsaan")}</TableHead>
+                              <TableHead>{t("crew_report.col_seaman_book", "Buku Pelaut")}</TableHead>
+                              <TableHead>{t("crew_report.col_certificate", "Sertifikat")}</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -576,11 +581,11 @@ export default function VesselReport() {
         {/* Pagination Footer */}
         <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800">
           <div>
-            Total <strong className="text-zinc-900 dark:text-zinc-100">{total}</strong> transaksi kapal
+            {t("common.total", "Total")} <strong className="text-zinc-900 dark:text-zinc-100">{total}</strong> {t("vessel_report.vessel_transactions", "transaksi kapal")}
           </div>
           <div className="flex items-center gap-2">
             <span>
-              Halaman {page} dari {lastPage || 1}
+              {t("common.page", "Halaman")} {page} {t("common.of", "dari")} {lastPage || 1}
             </span>
             <Button
               variant="outline"

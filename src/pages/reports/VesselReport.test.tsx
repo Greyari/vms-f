@@ -109,13 +109,13 @@ describe('VesselReport Page', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText(/Laporan Kedatangan Kapal/i)).toBeInTheDocument()
+    expect(screen.getByText(/Laporan Kedatangan Kapal|Vessel Arrival Report/i)).toBeInTheDocument()
 
     await waitFor(() => {
       expect(screen.getByText('MV Samudera Pasifik')).toBeInTheDocument()
       expect(screen.getByText('IMO-9876543')).toBeInTheDocument()
       expect(screen.getByText('Capt. Haddock')).toBeInTheDocument()
-      expect(screen.getByText(/4 Hari/i)).toBeInTheDocument()
+      expect(screen.getByText(/4 (Hari|Days)/i)).toBeInTheDocument()
       expect(screen.getByText('IN PORT')).toBeInTheDocument()
     })
   })
@@ -131,7 +131,7 @@ describe('VesselReport Page', () => {
       expect(screen.getByText('MV Samudera Pasifik')).toBeInTheDocument()
     })
 
-    const withCrewTab = screen.getByRole('button', { name: /Rincian Bersama Kru/i })
+    const withCrewTab = screen.getByRole('button', { name: /Rincian Bersama Kru|Detailed With Crew/i })
     fireEvent.click(withCrewTab)
 
     await waitFor(() => {
@@ -163,10 +163,10 @@ describe('VesselReport Page', () => {
       expect(screen.getByText('MV Samudera Pasifik')).toBeInTheDocument()
     })
 
-    const vesselInput = screen.getByPlaceholderText(/Nama kapal/i)
+    const vesselInput = screen.getByPlaceholderText(/Nama kapal|vessel name/i)
     fireEvent.change(vesselInput, { target: { value: 'Samudera' } })
 
-    const searchButton = screen.getByRole('button', { name: /Terapkan Filter/i })
+    const searchButton = screen.getByRole('button', { name: /Terapkan Filter|Apply Filter|Filter/i })
     fireEvent.click(searchButton)
 
     await waitFor(() => {

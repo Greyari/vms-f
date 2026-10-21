@@ -20,6 +20,7 @@ export const ROUTE_PERMISSIONS = {
   "/reports/visits": "view_reports",
   "/visits/report": "view_reports",
   "/reports/vessels": "view_reports",
+  "/reports/crew": "view_reports",
   "/settings/users": "view_users",
   "/settings/logs": "view_logs",
   "/settings/roles": "view_roles",

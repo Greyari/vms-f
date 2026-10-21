@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -85,6 +86,7 @@ export interface VisitReportItem {
 const ALL = "__all__"
 
 export default function VisitorReport() {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [exportExcelLoading, setExportExcelLoading] = useState(false)
   const [exportPdfLoading, setExportPdfLoading] = useState(false)
@@ -222,10 +224,10 @@ export default function VisitorReport() {
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
 
-      toast.success("File Excel berhasil diunduh.")
+      toast.success(t("visitor_report.export_excel_success", "File Excel berhasil diunduh."))
     } catch (err: any) {
       console.error(err)
-      toast.error("Gagal mengunduh file Excel laporan kunjungan.")
+      toast.error(t("visitor_report.export_excel_error", "Gagal mengunduh file Excel laporan kunjungan."))
     } finally {
       setExportExcelLoading(false)
     }
@@ -250,11 +252,11 @@ export default function VisitorReport() {
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
 
-      toast.success("Dokumen PDF berhasil diunduh.")
+      toast.success(t("visitor_report.export_pdf_success", "Dokumen PDF berhasil diunduh."))
     } catch (err: any) {
       console.error(err)
       if (err.response?.status === 422) {
-        let msg = "Data yang akan dicetak melebihi batas maksimal 5.000 baris. Silakan persempit rentang tanggal atau filter lainnya sebelum mencetak dokumen."
+        let msg = t("visitor_report.limit_exceeded_msg", "Data yang akan dicetak melebihi batas maksimal 5.000 baris. Silakan persempit rentang tanggal atau filter lainnya sebelum mencetak dokumen.")
         if (err.response.data instanceof Blob) {
           try {
             const text = await err.response.data.text()
@@ -269,7 +271,7 @@ export default function VisitorReport() {
         setLimitAlertMessage(msg)
         setLimitAlertOpen(true)
       } else {
-        toast.error("Gagal mencetak dokumen PDF.")
+        toast.error(t("visitor_report.export_pdf_error", "Gagal mencetak dokumen PDF."))
       }
     } finally {
       setExportPdfLoading(false)
@@ -282,10 +284,13 @@ export default function VisitorReport() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Laporan Kunjungan (Visitor Report)
+            {t("visitor_report.title", "Laporan Kunjungan (Visitor Report)")}
           </h1>
           <p className="text-sm text-zinc-500">
-            Audit riwayat kunjungan tamu, log pergerakan gerbang, dan pelaporan kepatuhan fasilitas.
+            {t(
+              "visitor_report.subtitle",
+              "Audit riwayat kunjungan tamu, log pergerakan gerbang, dan pelaporan kepatuhan fasilitas."
+            )}
           </p>
         </div>
 
@@ -302,7 +307,7 @@ export default function VisitorReport() {
             ) : (
               <FileDown className="h-4 w-4" />
             )}
-            Export Excel
+            {t("common.export_excel", "Export Excel")}
           </Button>
           <Button
             variant="outline"
@@ -316,7 +321,7 @@ export default function VisitorReport() {
             ) : (
               <Printer className="h-4 w-4" />
             )}
-            Cetak / PDF
+            {t("common.print_pdf", "Cetak / PDF")}
           </Button>
         </div>
       </div>
@@ -326,13 +331,13 @@ export default function VisitorReport() {
         <form onSubmit={handleApplyFilter} className="space-y-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             <Filter className="h-4 w-4" />
-            Filter Multi-Kriteria
+            {t("visitor_report.filter_title", "Filter Multi-Kriteria")}
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {/* Rentang Tanggal */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Tanggal Mulai</Label>
+              <Label className="text-xs">{t("common.date_from", "Tanggal Mulai")}</Label>
               <Input
                 type="date"
                 value={dateFrom}
@@ -341,7 +346,7 @@ export default function VisitorReport() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Tanggal Selesai</Label>
+              <Label className="text-xs">{t("common.date_to", "Tanggal Selesai")}</Label>
               <Input
                 type="date"
                 value={dateTo}
@@ -352,7 +357,7 @@ export default function VisitorReport() {
 
             {/* Rentang Jam */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Jam Masuk (Dari)</Label>
+              <Label className="text-xs">{t("common.time_from", "Jam Masuk (Dari)")}</Label>
               <Input
                 type="time"
                 value={timeFrom}
@@ -361,7 +366,7 @@ export default function VisitorReport() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Jam Masuk (Sampai)</Label>
+              <Label className="text-xs">{t("common.time_to", "Jam Masuk (Sampai)")}</Label>
               <Input
                 type="time"
                 value={timeTo}
@@ -372,7 +377,7 @@ export default function VisitorReport() {
 
             {/* Rentang Visitor No */}
             <div className="space-y-1.5">
-              <Label className="text-xs">No. Visitor (Dari)</Label>
+              <Label className="text-xs">{t("visitor_report.visitor_no_from", "No. Visitor (Dari)")}</Label>
               <Input
                 type="number"
                 placeholder="cth. 100000"
@@ -382,7 +387,7 @@ export default function VisitorReport() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">No. Visitor (Sampai)</Label>
+              <Label className="text-xs">{t("visitor_report.visitor_no_to", "No. Visitor (Sampai)")}</Label>
               <Input
                 type="number"
                 placeholder="cth. 100500"
@@ -394,18 +399,18 @@ export default function VisitorReport() {
 
             {/* Nama & Perusahaan */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Nama Pengunjung</Label>
+              <Label className="text-xs">{t("visitor_report.visitor_name_label", "Nama Pengunjung")}</Label>
               <Input
-                placeholder="Nama pengunjung..."
+                placeholder={t("visitor_report.visitor_name_placeholder", "Nama pengunjung...")}
                 value={visitorName}
                 onChange={(e) => setVisitorName(e.target.value)}
                 className="h-9 text-sm"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Perusahaan</Label>
+              <Label className="text-xs">{t("visitor_report.company_label", "Perusahaan")}</Label>
               <Input
-                placeholder="Nama perusahaan..."
+                placeholder={t("visitor_report.company_placeholder", "Nama perusahaan...")}
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 className="h-9 text-sm"
@@ -414,18 +419,18 @@ export default function VisitorReport() {
 
             {/* Host & Lokasi */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Staf / Host Tujuan</Label>
+              <Label className="text-xs">{t("visitor_report.host_label", "Staf / Host Tujuan")}</Label>
               <Input
-                placeholder="Nama staf/host..."
+                placeholder={t("visitor_report.host_placeholder", "Nama staf/host...")}
                 value={staff}
                 onChange={(e) => setStaff(e.target.value)}
                 className="h-9 text-sm"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Lokasi Tujuan</Label>
+              <Label className="text-xs">{t("visitor_report.location_label", "Lokasi Tujuan")}</Label>
               <Input
-                placeholder="Lokasi atau kapal..."
+                placeholder={t("visitor_report.location_placeholder", "Lokasi atau kapal...")}
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 className="h-9 text-sm"
@@ -434,18 +439,18 @@ export default function VisitorReport() {
 
             {/* Nomor Kartu & Plat */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Nomor Kartu</Label>
+              <Label className="text-xs">{t("visitor_report.card_no_label", "Nomor Kartu")}</Label>
               <Input
-                placeholder="Nomor kartu..."
+                placeholder={t("visitor_report.card_no_placeholder", "Nomor kartu...")}
                 value={cardNo}
                 onChange={(e) => setCardNo(e.target.value)}
                 className="h-9 text-sm"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Plat / Kode Lokasi</Label>
+              <Label className="text-xs">{t("visitor_report.vehicle_or_location_code", "Plat / Kode Lokasi")}</Label>
               <Input
-                placeholder="Plat kendaraan / IMO..."
+                placeholder={t("visitor_report.plate_placeholder", "Plat kendaraan / IMO...")}
                 value={locationCodeOrVehicleNo}
                 onChange={(e) => setLocationCodeOrVehicleNo(e.target.value)}
                 className="h-9 text-sm"
@@ -454,13 +459,13 @@ export default function VisitorReport() {
 
             {/* Dropdown Tipe Visitor */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Tipe Pengunjung</Label>
+              <Label className="text-xs">{t("visitor_report.visitor_type_label", "Tipe Pengunjung")}</Label>
               <Select value={visitorType} onValueChange={setVisitorType}>
                 <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Semua Tipe" />
+                  <SelectValue placeholder={t("common.all", "Semua Tipe")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL}>Semua Tipe</SelectItem>
+                  <SelectItem value={ALL}>{t("common.all", "Semua Tipe")}</SelectItem>
                   <SelectItem value="regular">Regular</SelectItem>
                   <SelectItem value="contractor">Contractor</SelectItem>
                   <SelectItem value="crew">Crew</SelectItem>
@@ -471,13 +476,13 @@ export default function VisitorReport() {
 
             {/* Dropdown Tipe Kartu */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Tipe Kartu</Label>
+              <Label className="text-xs">{t("visitor_report.card_type_label", "Tipe Kartu")}</Label>
               <Select value={cardType} onValueChange={setCardType}>
                 <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Semua Kartu" />
+                  <SelectValue placeholder={t("common.all", "Semua Kartu")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL}>Semua Tipe</SelectItem>
+                  <SelectItem value={ALL}>{t("common.all", "Semua Tipe")}</SelectItem>
                   <SelectItem value="visitor">Visitor</SelectItem>
                   <SelectItem value="vehicle">Vehicle</SelectItem>
                 </SelectContent>
@@ -494,7 +499,7 @@ export default function VisitorReport() {
                 className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-700"
               />
               <Label htmlFor="open-only-checkbox" className="text-sm font-medium cursor-pointer">
-                Hanya Kunjungan Aktif (Open Only / Belum Checkout)
+                {t("visitor_report.only_open_label", "Hanya Kunjungan Aktif (Open Only / Belum Checkout)")}
               </Label>
             </div>
           </div>
@@ -508,7 +513,7 @@ export default function VisitorReport() {
               className="gap-1.5"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              Reset
+              {t("common.reset", "Reset")}
             </Button>
             <Button
               type="submit"
@@ -521,7 +526,7 @@ export default function VisitorReport() {
               ) : (
                 <Search className="h-3.5 w-3.5" />
               )}
-              Terapkan Filter
+              {t("common.filter", "Terapkan Filter")}
             </Button>
           </div>
         </form>
@@ -533,16 +538,16 @@ export default function VisitorReport() {
           <Table>
             <TableHeader className="bg-zinc-50 dark:bg-zinc-900/50">
               <TableRow>
-                <TableHead className="w-12 text-center">No</TableHead>
-                <TableHead>Tanggal & Jam Masuk</TableHead>
-                <TableHead>No. Tiket</TableHead>
-                <TableHead>Pengunjung</TableHead>
-                <TableHead>Perusahaan</TableHead>
-                <TableHead>Host / Lokasi</TableHead>
-                <TableHead>Jam Keluar</TableHead>
-                <TableHead>Kartu</TableHead>
-                <TableHead>Plat</TableHead>
-                <TableHead>Tujuan / Keperluan</TableHead>
+                <TableHead className="w-12 text-center">{t("common.no", "No")}</TableHead>
+                <TableHead>{t("visitor_report.col_sign_in", "Tanggal & Jam Masuk")}</TableHead>
+                <TableHead>{t("visitor_report.col_ticket", "No. Tiket")}</TableHead>
+                <TableHead>{t("visitor_report.col_visitor", "Pengunjung")}</TableHead>
+                <TableHead>{t("visitor_report.col_company", "Perusahaan")}</TableHead>
+                <TableHead>{t("visitor_report.col_location", "Host / Lokasi")}</TableHead>
+                <TableHead>{t("visitor_report.col_sign_out", "Jam Keluar")}</TableHead>
+                <TableHead>{t("visitor_report.col_cards", "Kartu")}</TableHead>
+                <TableHead>{t("visitor_report.col_vehicle", "Plat")}</TableHead>
+                <TableHead>{t("visitor_report.col_purpose", "Tujuan / Keperluan")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -550,13 +555,13 @@ export default function VisitorReport() {
                 <TableRow>
                   <TableCell colSpan={10} className="h-32 text-center text-zinc-500">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
-                    <span className="mt-2 block text-xs">Memuat data laporan...</span>
+                    <span className="mt-2 block text-xs">{t("common.loading", "Memuat data laporan...")}</span>
                   </TableCell>
                 </TableRow>
               ) : records.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="h-32 text-center text-zinc-500">
-                    Tidak ada data kunjungan ditemukan yang sesuai dengan kriteria filter.
+                    {t("visitor_report.no_records", "Tidak ada data kunjungan ditemukan yang sesuai dengan kriteria filter.")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -639,11 +644,11 @@ export default function VisitorReport() {
         {/* Pagination Footer */}
         <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800">
           <div>
-            Total <strong className="text-zinc-900 dark:text-zinc-100">{total}</strong> data kunjungan
+            {t("common.total", "Total")} <strong className="text-zinc-900 dark:text-zinc-100">{total}</strong> {t("visitor_report.visits_count_label", "data kunjungan")}
           </div>
           <div className="flex items-center gap-2">
             <span>
-              Halaman {page} dari {lastPage || 1}
+              {t("common.page", "Halaman")} {page} {t("common.of", "dari")} {lastPage || 1}
             </span>
             <Button
               variant="outline"
@@ -675,15 +680,15 @@ export default function VisitorReport() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
               <AlertTriangle className="h-5 w-5" />
-              Batas Cetak Terlampaui (Maksimal 5.000 Baris)
+              {t("visitor_report.limit_dialog_title", "Batas Cetak Terlampaui (Maksimal 5.000 Baris)")}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-600 dark:text-zinc-400">
-              {limitAlertMessage || "Data yang akan dicetak melebihi batas maksimal 5.000 baris. Silakan persempit rentang tanggal atau filter lainnya sebelum mencetak dokumen."}
+              {limitAlertMessage || t("visitor_report.limit_exceeded_msg", "Data yang akan dicetak melebihi batas maksimal 5.000 baris. Silakan persempit rentang tanggal atau filter lainnya sebelum mencetak dokumen.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setLimitAlertOpen(false)}>
-              Mengerti
+              {t("common.understood", "Mengerti")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

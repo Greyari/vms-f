@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import {
   Table,
@@ -89,6 +90,7 @@ const getTodayString = (): string => {
 }
 
 export default function Reprint() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   // Filters
@@ -117,7 +119,7 @@ export default function Reprint() {
       setCurrentPage(1)
     } catch (error) {
       console.error("Error fetching reprint visits", error)
-      toast.error("Gagal memuat daftar tiket kunjungan")
+      toast.error(t("reprint.fetch_error", "Gagal memuat daftar tiket kunjungan"))
     } finally {
       setLoading(false)
     }
@@ -168,9 +170,9 @@ export default function Reprint() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Cetak Ulang Pass Kunjungan</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("reprint.title", "Cetak Ulang Pass Kunjungan")}</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Pencarian dan pencetakan ulang tiket visitor pass berdasarkan tanggal operasional.
+            {t("reprint.subtitle", "Pencarian dan pencetakan ulang tiket visitor pass berdasarkan tanggal operasional.")}
           </p>
         </div>
       </div>
@@ -185,7 +187,7 @@ export default function Reprint() {
                 className="flex items-center gap-1.5 text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 cursor-pointer"
               >
                 <Calendar className="h-4 w-4 text-zinc-500" />
-                Tanggal Kunjungan
+                {t("reprint.visit_date", "Tanggal Kunjungan")}
               </label>
               <Input
                 id="reprint-date-filter"
@@ -201,7 +203,7 @@ export default function Reprint() {
               size="sm"
               onClick={fetchVisits}
               disabled={loading}
-              title="Muat Ulang"
+              title={t("reprint.reload", "Muat Ulang")}
               className="cursor-pointer"
             >
               <RotateCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -211,7 +213,7 @@ export default function Reprint() {
           <div className="relative w-full md:w-72">
             <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-400" />
             <Input
-              placeholder="Cari tiket, nama tamu, atau PT..."
+              placeholder={t("reprint.search_placeholder", "Cari tiket, nama tamu, atau PT...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8"
@@ -224,15 +226,15 @@ export default function Reprint() {
           <Table>
             <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
               <TableRow>
-                <TableHead className="w-12 text-center">No</TableHead>
-                <TableHead>Nomor Tiket</TableHead>
-                <TableHead>Nama Pengunjung</TableHead>
-                <TableHead>Perusahaan</TableHead>
-                <TableHead>Lokasi / Kapal</TableHead>
-                <TableHead>Host</TableHead>
-                <TableHead>Waktu Masuk</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead className="w-12 text-center">{t("reprint.no", "No")}</TableHead>
+                <TableHead>{t("reprint.ticket_no", "Nomor Tiket")}</TableHead>
+                <TableHead>{t("reprint.visitor_name", "Nama Pengunjung")}</TableHead>
+                <TableHead>{t("reprint.company", "Perusahaan")}</TableHead>
+                <TableHead>{t("reprint.location_vessel", "Lokasi / Kapal")}</TableHead>
+                <TableHead>{t("reprint.host", "Host")}</TableHead>
+                <TableHead>{t("reprint.time_in", "Waktu Masuk")}</TableHead>
+                <TableHead>{t("reprint.status", "Status")}</TableHead>
+                <TableHead className="text-right">{t("reprint.action", "Aksi")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -240,13 +242,13 @@ export default function Reprint() {
                 <TableRow>
                   <TableCell colSpan={9} className="h-28 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
-                    <span className="mt-2 block text-xs text-zinc-500">Memuat data tiket kunjungan...</span>
+                    <span className="mt-2 block text-xs text-zinc-500">{t("reprint.loading", "Memuat data tiket kunjungan...")}</span>
                   </TableCell>
                 </TableRow>
               ) : paginatedData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="h-24 text-center text-zinc-500">
-                    Tidak ada tiket kunjungan ditemukan untuk tanggal ini.
+                    {t("reprint.not_found", "Tidak ada tiket kunjungan ditemukan untuk tanggal ini.")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -282,7 +284,7 @@ export default function Reprint() {
                           {visit.visitor?.visitor_type === "crew" && (
                             <span className="inline-flex items-center gap-1 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
                               <Anchor className="h-2.5 w-2.5" />
-                              Crew Kapal
+                              {t("reprint.crew_badge", "Crew Kapal")}
                               {visit.visitor?.occupation
                                 ? ` • ${visit.visitor.occupation}`
                                 : ""}
@@ -336,11 +338,11 @@ export default function Reprint() {
                       <TableCell>
                         {isOpen ? (
                           <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
-                            Open
+                            {t("reprint.open_badge", "Open")}
                           </Badge>
                         ) : (
                           <Badge variant="secondary" className="text-zinc-600 dark:text-zinc-400">
-                            Checked Out
+                            {t("reprint.checked_out_badge", "Checked Out")}
                           </Badge>
                         )}
                       </TableCell>
@@ -358,7 +360,7 @@ export default function Reprint() {
                           className="cursor-pointer"
                         >
                           <Printer className="h-4 w-4 mr-1" />
-                          Print
+                          {t("reprint.print_btn", "Print")}
                         </Button>
                         {isOpen && (
                           <Button
@@ -370,7 +372,7 @@ export default function Reprint() {
                             className="cursor-pointer"
                           >
                             <Pencil className="h-4 w-4 mr-1" />
-                            Edit
+                            {t("reprint.edit_btn", "Edit")}
                           </Button>
                         )}
                       </TableCell>
@@ -385,12 +387,12 @@ export default function Reprint() {
         {/* Pagination Controls */}
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-zinc-500 dark:text-zinc-400">
-            Menampilkan{" "}
+            {t("reprint.showing", "Menampilkan")}{" "}
             {filteredVisits.length > 0
               ? (currentPage - 1) * itemsPerPage + 1
               : 0}{" "}
-            hingga {Math.min(currentPage * itemsPerPage, filteredVisits.length)} dari{" "}
-            {filteredVisits.length} kunjungan
+            {t("reprint.to", "hingga")} {Math.min(currentPage * itemsPerPage, filteredVisits.length)} {t("reprint.of", "dari")}{" "}
+            {filteredVisits.length} {t("reprint.visits", "kunjungan")}
           </div>
           <div className="flex gap-2">
             <Button

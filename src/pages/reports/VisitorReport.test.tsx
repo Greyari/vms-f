@@ -104,7 +104,7 @@ describe('VisitorReport Page', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText(/Laporan Kunjungan/i)).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: /Laporan Kunjungan|Visitor Report/i })).toBeInTheDocument()
 
     await waitFor(() => {
       expect(screen.getByText('26/09/00001')).toBeInTheDocument()
@@ -133,13 +133,13 @@ describe('VisitorReport Page', () => {
       )
     })
 
-    const nameInput = screen.getByPlaceholderText(/Nama pengunjung/i)
+    const nameInput = screen.getByPlaceholderText(/Nama pengunjung|visitor name/i)
     fireEvent.change(nameInput, { target: { value: 'Budi' } })
 
-    const companyInput = screen.getByPlaceholderText(/Nama perusahaan/i)
+    const companyInput = screen.getByPlaceholderText(/Nama perusahaan|company name/i)
     fireEvent.change(companyInput, { target: { value: 'PT Samudera' } })
 
-    const searchButton = screen.getByRole('button', { name: /Terapkan Filter/i })
+    const searchButton = screen.getByRole('button', { name: /Terapkan Filter|Apply Filter|Filter/i })
     fireEvent.click(searchButton)
 
     await waitFor(() => {
@@ -167,10 +167,10 @@ describe('VisitorReport Page', () => {
       expect(screen.getByText('26/09/00001')).toBeInTheDocument()
     })
 
-    const openOnlyCheckbox = screen.getByLabelText(/Hanya Kunjungan Aktif/i)
+    const openOnlyCheckbox = screen.getByLabelText(/Hanya (Kunjungan Aktif|yang Masih Terbuka)|Only Open Visits/i)
     fireEvent.click(openOnlyCheckbox)
 
-    const searchButton = screen.getByRole('button', { name: /Terapkan Filter/i })
+    const searchButton = screen.getByRole('button', { name: /Terapkan Filter|Apply Filter|Filter/i })
     fireEvent.click(searchButton)
 
     await waitFor(() => {
@@ -240,24 +240,24 @@ describe('VisitorReport Page', () => {
       expect(screen.getByText('26/09/00001')).toBeInTheDocument()
     })
 
-    const printBtn = screen.getByRole('button', { name: /Cetak \/ PDF/i })
+    const printBtn = screen.getByRole('button', { name: /Cetak \/ PDF|Print \/ PDF/i })
     fireEvent.click(printBtn)
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Batas Cetak Terlampaui/i)
+        screen.getByRole("heading", { name: /Batas Cetak Terlampaui|Print Limit Exceeded/i })
       ).toBeInTheDocument()
       expect(
-        screen.getByText(/5\.000 baris/i)
-      ).toBeInTheDocument()
+        screen.getAllByText(/5\.000|5,000/i).length
+      ).toBeGreaterThanOrEqual(1)
     })
 
-    const dismissBtn = screen.getByRole('button', { name: /Mengerti/i })
+    const dismissBtn = screen.getByRole('button', { name: /Mengerti|Dismiss|Understood|OK/i })
     fireEvent.click(dismissBtn)
 
     await waitFor(() => {
       expect(
-        screen.queryByText(/Batas Cetak Terlampaui/i)
+        screen.queryByText(/Batas Cetak Terlampaui|Print Limit Exceeded/i)
       ).not.toBeInTheDocument()
     })
   })

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import api from "@/lib/axios"
 import { useAuth } from "@/context/AuthContext"
+import { useTranslation } from "@/context/I18nContext"
 
 import {
   Table,
@@ -97,6 +98,7 @@ export interface VisitRecord {
 export default function ActiveVisits() {
   const navigate = useNavigate()
   const { hasPermission } = useAuth()
+  const { t } = useTranslation()
   const [visits, setVisits] = useState<VisitRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
@@ -273,9 +275,9 @@ export default function ActiveVisits() {
     <div className="p-6">
       <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Active Visitors</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("active_visits.title", "Active Visitors")}</h1>
           <p className="text-sm text-zinc-500">
-            Monitoring open visits, overdue stays, and rapid check-out operations.
+            {t("active_visits.subtitle", "Monitoring open visits, overdue stays, and rapid check-out operations.")}
           </p>
         </div>
       </div>
@@ -285,7 +287,7 @@ export default function ActiveVisits() {
           <div className="relative w-full md:w-1/3">
             <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />
             <Input
-              placeholder="Search visitor name, company, or card no..."
+              placeholder={t("active_visits.search_placeholder", "Search visitor name, company, or card no...")}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value)
@@ -305,16 +307,16 @@ export default function ActiveVisits() {
                   className="cursor-pointer"
                 >
                   <div className="flex items-center">
-                    Ticket No <ArrowUpDown className="ml-2 h-4 w-4" />
+                    {t("active_visits.col_ticket", "Ticket No")} <ArrowUpDown className="ml-2 h-4 w-4" />
                   </div>
                 </TableHead>
-                <TableHead>Card No</TableHead>
+                <TableHead>{t("active_visits.col_card", "Card No")}</TableHead>
                 <TableHead
                   onClick={() => handleSort("visitor.name")}
                   className="cursor-pointer"
                 >
                   <div className="flex items-center">
-                    Visitor Name <ArrowUpDown className="ml-2 h-4 w-4" />
+                    {t("active_visits.col_visitor", "Visitor Name")} <ArrowUpDown className="ml-2 h-4 w-4" />
                   </div>
                 </TableHead>
                 <TableHead
@@ -322,21 +324,21 @@ export default function ActiveVisits() {
                   className="cursor-pointer"
                 >
                   <div className="flex items-center">
-                    Destination <ArrowUpDown className="ml-2 h-4 w-4" />
+                    {t("active_visits.col_destination", "Destination")} <ArrowUpDown className="ml-2 h-4 w-4" />
                   </div>
                 </TableHead>
-                <TableHead>Host</TableHead>
-                <TableHead>Purpose</TableHead>
+                <TableHead>{t("active_visits.col_host", "Host")}</TableHead>
+                <TableHead>{t("active_visits.col_purpose", "Purpose")}</TableHead>
                 <TableHead
                   onClick={() => handleSort("time_in")}
                   className="cursor-pointer"
                 >
                   <div className="flex items-center">
-                    Time In <ArrowUpDown className="ml-2 h-4 w-4" />
+                    {t("active_visits.col_time_in", "Time In")} <ArrowUpDown className="ml-2 h-4 w-4" />
                   </div>
                 </TableHead>
-                <TableHead>Days Open</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead>{t("active_visits.col_days_open", "Days Open")}</TableHead>
+                <TableHead className="text-right">{t("common.actions", "Action")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -448,11 +450,11 @@ export default function ActiveVisits() {
                         {daysOpen > 0 ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
                             <Clock className="h-3 w-3" />
-                            {daysOpen} hari ({daysOpen}d)
+                            {daysOpen} {t("active_visits.days_suffix", "hari")} ({daysOpen}d)
                           </span>
                         ) : (
                           <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
-                            Hari ini
+                            {t("active_visits.today", "Hari ini")}
                           </span>
                         )}
                       </TableCell>
@@ -467,7 +469,7 @@ export default function ActiveVisits() {
                           {checkoutLoading === visit.id.toString() ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            "Check Out"
+                            t("active_visits.checkout_btn", "Check Out")
                           )}
                         </Button>
                         <Button
@@ -478,7 +480,7 @@ export default function ActiveVisits() {
                               state: { visit },
                             })
                           }
-                          title="Cetak Pass"
+                          title={t("reprint.print_btn", "Cetak Pass")}
                           className="cursor-pointer"
                         >
                           <Printer className="h-4 w-4" />
@@ -487,7 +489,7 @@ export default function ActiveVisits() {
                           variant="outline"
                           size="sm"
                           onClick={() => setEditingVisit(visit)}
-                          title="Edit Kunjungan Terbuka"
+                          title={t("common.edit", "Edit Kunjungan Terbuka")}
                           className="cursor-pointer"
                         >
                           <Pencil className="h-4 w-4" />
@@ -499,7 +501,7 @@ export default function ActiveVisits() {
                             onClick={() =>
                               confirmDelete(visit.id.toString())
                             }
-                            title="Hapus Kunjungan"
+                            title={t("common.delete", "Hapus Kunjungan")}
                             className="cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -517,12 +519,12 @@ export default function ActiveVisits() {
         {/* Pagination */}
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-zinc-500">
-            Showing{" "}
+            {t("common.showing", "Showing")}{" "}
             {filteredAndSorted.length > 0
               ? (currentPage - 1) * itemsPerPage + 1
               : 0}{" "}
-            to {Math.min(currentPage * itemsPerPage, filteredAndSorted.length)}{" "}
-            of {filteredAndSorted.length} entries
+            {t("common.to", "to")} {Math.min(currentPage * itemsPerPage, filteredAndSorted.length)}{" "}
+            {t("common.of", "of")} {filteredAndSorted.length} {t("common.entries", "entries")}
           </div>
           <div className="flex gap-2">
             <Button
@@ -551,20 +553,15 @@ export default function ActiveVisits() {
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t("active_visits.checkout_confirm_title", "Are you absolutely sure?")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action will mark visitor{" "}
-              <strong className="font-semibold text-zinc-900 dark:text-zinc-50">
-                {selectedVisit?.visitor?.name}
-              </strong>{" "}
-              as checked out and record their exit time. The assigned visitor cards
-              will be released to available status.
+              {t("active_visits.checkout_confirm_desc", "This action will mark visitor {{name}} as checked out and record their exit time. The assigned visitor cards will be released to available status.", { name: selectedVisit?.visitor?.name || "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel", "Cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={executeCheckOut}>
-              Confirm Check Out
+              {t("active_visits.checkout_confirm_btn", "Confirm Check Out")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -574,20 +571,18 @@ export default function ActiveVisits() {
       <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Kunjungan?</AlertDialogTitle>
+            <AlertDialogTitle>{t("active_visits.delete_confirm_title", "Hapus Kunjungan?")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tindakan ini tidak dapat dibatalkan. Riwayat kunjungan ini akan
-              dihapus secara permanen, dan kartu visitor akan dikembalikan ke
-              status "available".
+              {t("active_visits.delete_confirm_desc", "Tindakan ini tidak dapat dibatalkan. Riwayat kunjungan ini akan dihapus secara permanen, dan kartu visitor akan dikembalikan ke status available.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel", "Batal")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={executeDelete}
               className="bg-red-600 hover:bg-red-700"
             >
-              Hapus Permanen
+              {t("common.delete", "Hapus Permanen")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

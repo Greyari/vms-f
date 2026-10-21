@@ -12,6 +12,7 @@ import CreateVisit from "./pages/visits/CreateVisit"
 import ActiveVisits from "./pages/visits/ActiveVisits"
 import VisitorReport from "./pages/reports/VisitorReport"
 import VesselReport from "./pages/reports/VesselReport"
+import CrewReport from "./pages/reports/CrewReport"
 import PrintVisit from "./pages/visits/PrintVisit"
 import Reprint from "./pages/visits/Reprint"
 import Locations from "./pages/master/Locations"
@@ -85,6 +86,7 @@ function App() {
               {guarded("/visits/reprint", <Reprint />)}
               {guarded("/reports/visits", <VisitorReport />)}
               {guarded("/reports/vessels", <VesselReport />)}
+              {guarded("/reports/crew", <CrewReport />)}
               {/* Backwards compatibility alias */}
               {guarded("/visits/report", <VisitorReport />)}
               {guarded("/vessel-arrivals", <VesselArrivals />)}

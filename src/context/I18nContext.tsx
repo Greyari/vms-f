@@ -85,7 +85,6 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch {
         // LocalStorage access issues
       }
-      // If running inside vitest/node test environment and no explicit setting, default to en
       const env = (globalThis as unknown as { process?: { env?: { NODE_ENV?: string } } }).process?.env
       if (env?.NODE_ENV === "test") {
         return "en"
