@@ -591,7 +591,7 @@ export default function BlacklistModal({
               </div>
               <Badge variant="secondary" className="text-xs shrink-0 font-medium">
                 <UserCheck className="h-3 w-3 mr-1 text-emerald-600" />
-                Data Terkunci
+                {t("blacklist.data_locked", "Data Terkunci")}
               </Badge>
             </div>
           </div>

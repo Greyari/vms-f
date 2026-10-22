@@ -16,6 +16,8 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    const currentLang = localStorage.getItem("vms_lang") || "id"
+    config.headers["Accept-Language"] = currentLang
     return config
   },
   (error) => {
@@ -30,6 +32,7 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status
     const url = error.config?.url || ""
+    const isId = (localStorage.getItem("vms_lang") || "id") === "id"
 
     // Check-KTP requests: backend returns 200 with data: null for unregistered visitors.
     // Suppress toasts on check-ktp probes.
@@ -43,15 +46,23 @@ api.interceptors.response.use(
     } else if (status === 403) {
       toast.error(
         error.response?.data?.message ||
-          "You do not have permission to perform this action."
+          (isId
+            ? "Anda tidak memiliki izin untuk melakukan tindakan ini."
+            : "You do not have permission to perform this action.")
       )
     } else if (status === 429) {
       toast.error(
         error.response?.data?.message ||
-          "Too many requests. Please wait a moment before trying again."
+          (isId
+            ? "Terlalu banyak permintaan. Silakan tunggu beberapa saat."
+            : "Too many requests. Please wait a moment before trying again.")
       )
     } else if (status && status >= 500) {
-      toast.error("A server error occurred. Please contact the administrator.")
+      toast.error(
+        isId
+          ? "Terjadi kesalahan pada server. Silakan hubungi administrator."
+          : "A server error occurred. Please contact the administrator."
+      )
     } else if (
       !isCheckKtpProbe &&
       status &&
@@ -61,7 +72,10 @@ api.interceptors.response.use(
     ) {
       // General unexpected client error toast (exclude 422 validation handled in form)
       toast.error(
-        error.response?.data?.message || "An unexpected error occurred."
+        error.response?.data?.message ||
+          (isId
+            ? "Terjadi kesalahan yang tidak terduga."
+            : "An unexpected error occurred.")
       )
     }
 

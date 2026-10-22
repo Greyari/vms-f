@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { useTranslation } from "@/context/I18nContext"
 import { useNavigate } from "react-router-dom"
 import { isCancel } from "axios"
 import { toast } from "sonner"
@@ -110,6 +111,7 @@ const POPULAR_PURPOSES = [
 ]
 
 export default function CreateVisit() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [checkingKtp, setCheckingKtp] = useState(false)
@@ -871,14 +873,14 @@ export default function CreateVisit() {
               </span>
               <User className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                Identitas Pengunjung (Visitor Identity)
+                {t("create_visit.section1_title", "Identitas Pengunjung (Visitor Identity)")}
               </h2>
             </div>
 
             {/* LANGKAH A: Input Cek / Cari Pengunjung */}
             <div className="rounded-md border border-zinc-200 bg-zinc-50/70 p-3.5 space-y-3 dark:border-zinc-800 dark:bg-zinc-900/30">
               <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                Langkah A: Cek / Cari Pengunjung
+                {t("create_visit.step_a_title", "Langkah A: Cek / Cari Pengunjung")}
               </p>
 
               <div className="grid grid-cols-3 gap-2">
@@ -915,7 +917,7 @@ export default function CreateVisit() {
                         }}
                         required
                         autoComplete="off"
-                        placeholder="Ketik nomor identitas..."
+                        placeholder={t("create_visit.id_number_placeholder", "Ketik nomor identitas...")}
                         className="h-9 bg-white text-xs dark:bg-zinc-950"
                       />
                     </PopoverAnchor>
@@ -953,7 +955,7 @@ export default function CreateVisit() {
                               ))
                             ) : (
                               <div className="p-3 text-center text-xs text-zinc-500">
-                                Pengunjung baru. Klik Cek/Cari untuk verifikasi.
+                                {t("create_visit.new_visitor_hint", "Pengunjung baru. Klik Cek/Cari untuk verifikasi.")}
                               </div>
                             )}
                           </CommandGroup>
@@ -978,14 +980,14 @@ export default function CreateVisit() {
                   ) : (
                     <Search className="mr-2 h-3.5 w-3.5" />
                   )}
-                  Check / Search ID
+                  {t("create_visit.check_search_btn", "Check / Search ID")}
                 </Button>
               </div>
 
               {/* Cari berdasarkan Nama (Autocomplete) */}
               <div className="space-y-1 pt-1">
                 <Label htmlFor="search_name" className="text-xs text-zinc-500">
-                  Atau cari berdasarkan Nama Pengunjung:
+                  {t("create_visit.search_by_name", "Atau cari berdasarkan Nama Pengunjung:")}
                 </Label>
                 <Popover open={openName} onOpenChange={setOpenName}>
                   <PopoverAnchor asChild>
@@ -1001,7 +1003,7 @@ export default function CreateVisit() {
                           if (nameSearchQuery.length >= 2) setOpenName(true)
                         }}
                         autoComplete="off"
-                        placeholder="Ketik nama untuk mencari..."
+                        placeholder={t("create_visit.search_name_placeholder", "Ketik nama untuk mencari...")}
                         className="h-9 bg-white pr-8 text-xs dark:bg-zinc-950"
                       />
                       <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
@@ -1041,7 +1043,7 @@ export default function CreateVisit() {
                             ))
                           ) : (
                             <div className="p-3 text-center text-xs text-zinc-500">
-                              Tidak ada saran nama ditemukan.
+                              {t("create_visit.no_name_suggestions", "Tidak ada saran nama ditemukan.")}
                             </div>
                           )}
                         </CommandGroup>
@@ -1058,7 +1060,7 @@ export default function CreateVisit() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-emerald-800 font-semibold text-xs dark:text-emerald-300">
                     <UserCheck className="h-4 w-4 text-emerald-600" />
-                    <span>Pengunjung Ditemukan / Visitor Found</span>
+                    <span>{t("create_visit.visitor_found", "Pengunjung Ditemukan / Visitor Found")}</span>
                   </div>
                   <Button
                     type="button"
@@ -1068,7 +1070,7 @@ export default function CreateVisit() {
                     className="h-7 text-xs text-emerald-800 hover:bg-emerald-100 dark:text-emerald-300"
                   >
                     <Edit2 className="mr-1 h-3 w-3" />
-                    {isEditLockedVisitor ? "Edit Data" : "Kunci Data"}
+                    {isEditLockedVisitor ? t("create_visit.edit_data", "Edit Data") : t("create_visit.lock_data", "Kunci Data")}
                   </Button>
                 </div>
 
@@ -1101,11 +1103,11 @@ export default function CreateVisit() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sky-800 font-semibold text-xs dark:text-sky-300">
                     <UserPlus className="h-4 w-4 text-sky-600" />
-                    <span>Pengunjung Belum Terdaftar / New Visitor</span>
+                    <span>{t("create_visit.visitor_new", "Pengunjung Belum Terdaftar / New Visitor")}</span>
                   </div>
                 </div>
                 <p className="text-xs text-sky-700 dark:text-sky-400">
-                  Data pengunjung belum ada di master. Lengkapi formulir di bawah ini untuk didaftarkan secara otomatis.
+                  {t("create_visit.new_visitor_desc", "Data pengunjung belum ada di master. Lengkapi formulir di bawah ini untuk didaftarkan secara otomatis.")}
                 </p>
               </div>
             )}
@@ -1113,7 +1115,7 @@ export default function CreateVisit() {
             {/* Form Input Detail Identitas (Editable / Read-only state) */}
             <div className="space-y-3 pt-1">
               <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-xs">Visitor Name *</Label>
+                <Label htmlFor="name" className="text-xs">{t("create_visit.visitor_name", "Visitor Name *")}</Label>
                 <Input
                   id="name"
                   name="name"
@@ -1121,7 +1123,7 @@ export default function CreateVisit() {
                   readOnly={visitorStatus === "registered" && isEditLockedVisitor}
                   onChange={handleChange}
                   required
-                  placeholder="Nama lengkap pengunjung..."
+                  placeholder={t("create_visit.visitor_name_placeholder", "Nama lengkap pengunjung...")}
                   className={cn(
                     "h-9 text-xs",
                     visitorStatus === "registered" && isEditLockedVisitor && "bg-zinc-100 dark:bg-zinc-900"
@@ -1131,7 +1133,7 @@ export default function CreateVisit() {
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="company" className="text-xs">Company / Agency (Optional)</Label>
+                  <Label htmlFor="company" className="text-xs">{t("create_visit.company", "Company / Agency (Optional)")}</Label>
                   <Input
                     id="company"
                     name="company"
@@ -1148,7 +1150,7 @@ export default function CreateVisit() {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="visitor_type" className="text-xs font-semibold">
-                    Tipe Pengunjung (Visitor Type) *
+                    {t("create_visit.visitor_type", "Tipe Pengunjung (Visitor Type) *")}
                   </Label>
                   <select
                     id="visitor_type"
@@ -1167,11 +1169,11 @@ export default function CreateVisit() {
                     }}
                     className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
                   >
-                    <option value="visitor">Pengunjung Umum (Visitor)</option>
-                    <option value="crew">Crew Kapal (Pelaut / ABK)</option>
-                    <option value="temporary_worker">Tenaga Kerja Sementara</option>
-                    <option value="supplier">Supplier / Vendor</option>
-                    <option value="others">Lainnya</option>
+                    <option value="visitor">{t("create_visit.type_visitor", "Pengunjung Umum (Visitor)")}</option>
+                    <option value="crew">{t("create_visit.type_crew", "Crew Kapal (Pelaut / ABK)")}</option>
+                    <option value="temporary_worker">{t("create_visit.type_temp_worker", "Tenaga Kerja Sementara")}</option>
+                    <option value="supplier">{t("create_visit.type_supplier", "Supplier / Vendor")}</option>
+                    <option value="others">{t("create_visit.type_others", "Lainnya")}</option>
                   </select>
                 </div>
               </div>
@@ -1421,7 +1423,7 @@ export default function CreateVisit() {
               </span>
               <Building2 className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                Tujuan Kunjungan & Host (Destination & Host)
+                {t("create_visit.section2_title", "Tujuan Kunjungan & Host (Destination & Host)")}
               </h2>
             </div>
 
@@ -1429,7 +1431,7 @@ export default function CreateVisit() {
               {/* Lokasi / Vessel (Searchable Combobox) */}
               <div className="space-y-1.5">
                 <Label htmlFor="location_id" className="text-xs font-semibold">
-                  Location / Vessel (Mandatory) *
+                  {t("create_visit.location_vessel", "Location / Vessel (Mandatory) *")}
                 </Label>
                 <SearchableLocationSelect
                   id="location_id"
@@ -1561,7 +1563,7 @@ export default function CreateVisit() {
               {/* Purpose of Visit */}
               <div className="space-y-1.5">
                 <Label htmlFor="purpose" className="text-xs font-semibold">
-                  Purpose of Visit *
+                  {t("create_visit.purpose_of_visit", "Purpose of Visit *")}
                 </Label>
                 <Input
                   id="purpose"
@@ -1570,7 +1572,7 @@ export default function CreateVisit() {
                   onChange={handleChange}
                   list="purpose-suggestions"
                   required
-                  placeholder="Contoh: Survey, Meeting, Maintenance..."
+                  placeholder={t("create_visit.purpose_placeholder", "Contoh: Survey, Meeting, Maintenance...")}
                   className="h-10 text-xs"
                 />
                 <datalist id="purpose-suggestions">
@@ -1582,7 +1584,7 @@ export default function CreateVisit() {
                 {/* Quick Purpose Chips */}
                 <div className="flex flex-wrap items-center gap-1.5 pt-1">
                   <span className="text-[11px] font-medium text-zinc-500">
-                    Saran Cepat:
+                    {t("create_visit.quick_suggestions", "Saran Cepat:")}
                   </span>
                   {POPULAR_PURPOSES.map((tag) => (
                     <button
@@ -1608,7 +1610,7 @@ export default function CreateVisit() {
               <div className="min-w-0 space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-                    Host Destination
+                    {t("create_visit.host_destination", "Host Destination")}
                   </Label>
                   <label className="flex cursor-pointer items-center gap-1.5 text-xs text-zinc-600 select-none dark:text-zinc-400">
                     <input
@@ -1619,13 +1621,13 @@ export default function CreateVisit() {
                       }
                       className="rounded border-zinc-300"
                     />
-                    <span>Custom Host Name</span>
+                    <span>{t("create_visit.custom_host_toggle", "Custom Host Name")}</span>
                   </label>
                 </div>
 
                 {!form.is_custom_host ? (
                   <div className="min-w-0 space-y-1.5">
-                    <Label htmlFor="staff_id" className="text-xs">Staff Host PIC</Label>
+                    <Label htmlFor="staff_id" className="text-xs">{t("create_visit.staff_host", "Staff Host PIC")}</Label>
                     <Popover open={openStaff} onOpenChange={setOpenStaff}>
                       <PopoverTrigger asChild>
                         <Button
@@ -1755,7 +1757,7 @@ export default function CreateVisit() {
               </span>
               <CreditCard className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                Kartu Akses & Kendaraan (Pass & Vehicle)
+                {t("create_visit.section3_title", "Kartu Akses & Kendaraan (Pass & Vehicle)")}
               </h2>
             </div>
 
@@ -1764,7 +1766,7 @@ export default function CreateVisit() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="card_ids" className="text-xs font-semibold">
-                    Assign Visitor Cards (Optional)
+                    {t("create_visit.assign_cards", "Assign Visitor Cards (Optional)")}
                   </Label>
                   <Badge variant="outline" className="text-[11px] font-mono">
                     {loadingMaster
@@ -1998,7 +2000,7 @@ export default function CreateVisit() {
               {/* Plat Nomor Kendaraan */}
               <div className="space-y-1.5">
                 <Label htmlFor="vehicle_no" className="text-xs font-semibold">
-                  Vehicle Plate Number (Optional)
+                  {t("create_visit.vehicle_plate", "Vehicle Plate Number (Optional)")}
                 </Label>
                 <Input
                   id="vehicle_no"
@@ -2006,7 +2008,7 @@ export default function CreateVisit() {
                   className="w-full text-xs"
                   value={form.vehicle_no}
                   onChange={handleChange}
-                  placeholder="Contoh: BP 1234 XY"
+                  placeholder={t("create_visit.vehicle_plate_placeholder", "Contoh: BP 1234 XY")}
                 />
               </div>
             </div>
@@ -2018,11 +2020,11 @@ export default function CreateVisit() {
           <div className="text-xs text-zinc-500 hidden sm:block">
             {visitorStatus === "blacklisted" ? (
               <span className="text-red-600 font-medium">
-                Pendaftaran diblokir karena pengunjung berada dalam daftar blacklist.
+                {t("create_visit.blocked_blacklisted", "Pendaftaran diblokir karena pengunjung berada dalam daftar blacklist.")}
               </span>
             ) : (
               <span>
-                Pastikan data Section 1, 2, dan 3 telah lengkap sebelum mencetak tiket.
+                {t("create_visit.complete_all_sections", "Pastikan data Section 1, 2, dan 3 telah lengkap sebelum mencetak tiket.")}
               </span>
             )}
           </div>
@@ -2035,12 +2037,12 @@ export default function CreateVisit() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Memproses & Menyimpan...
+                  {t("common.processing", "Memproses & Menyimpan...")}
                 </>
               ) : (
                 <>
                   <Printer className="mr-2 h-4 w-4" />
-                  Save & Print Ticket
+                  {t("create_visit.submit_btn", "Save & Print Ticket")}
                 </>
               )}
             </Button>
@@ -2054,16 +2056,14 @@ export default function CreateVisit() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-amber-600">
               <AlertTriangle className="h-5 w-5" />
-              Kunjungan Terbuka Terdeteksi
+              {t("create_visit.conflict_title", "Kunjungan Lama Terbuka Terdeteksi")}
             </DialogTitle>
             <DialogDescription className="text-zinc-700 dark:text-zinc-300">
               {conflictMessage}
             </DialogDescription>
           </DialogHeader>
           <p className="text-xs text-zinc-500">
-            Sistem dapat melakukan check-out otomatis pada kunjungan terbuka
-            sebelumnya secara atomik dan langsung mendaftarkan kunjungan baru
-            ini.
+            {t("create_visit.conflict_desc", "Sistem dapat melakukan check-out otomatis pada kunjungan terbuka sebelumnya secara atomik dan langsung mendaftarkan kunjungan baru ini.")}
           </p>
           <DialogFooter className="mt-4 gap-2">
             <Button
@@ -2071,7 +2071,7 @@ export default function CreateVisit() {
               onClick={() => setConflictOpen(false)}
               disabled={loading}
             >
-              Batal
+              {t("common.cancel", "Batal")}
             </Button>
             <Button
               onClick={() => {
@@ -2081,7 +2081,7 @@ export default function CreateVisit() {
               disabled={loading}
               className="bg-amber-600 text-white hover:bg-amber-700"
             >
-              {loading ? "Memproses..." : "Tutup Kunjungan Lama & Check-In"}
+              {loading ? t("common.processing", "Memproses...") : t("create_visit.close_and_checkin", "Tutup Kunjungan Lama & Check-In")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2096,7 +2096,7 @@ export default function CreateVisit() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <Globe className="h-5 w-5" />
-              Loloskan Satu Kunjungan
+              {t("create_visit.override_title", "Loloskan Satu Kunjungan (Supervisor Override)")}
             </DialogTitle>
             <DialogDescription className="text-zinc-700 dark:text-zinc-300">
               Tamu ini ada di blacklist global ({overrideEntry?.reason_label},
@@ -2107,7 +2107,7 @@ export default function CreateVisit() {
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="override_reason">
-              Alasan (minimal 10 karakter)
+              {t("create_visit.override_reason_label", "Alasan (minimal 10 karakter)")}
             </Label>
             <Textarea
               id="override_reason"
@@ -2133,7 +2133,7 @@ export default function CreateVisit() {
                 submitVisit(false, reason)
               }}
             >
-              Loloskan & Check-In
+              {t("create_visit.override_submit", "Loloskan & Check-In")}
             </Button>
           </DialogFooter>
         </DialogContent>

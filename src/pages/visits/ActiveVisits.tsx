@@ -153,12 +153,12 @@ export default function ActiveVisits() {
     try {
       await api.post(`/visits/${visitId}/checkout`)
       toast.success(
-        `Visitor ${selectedVisit.visitor?.name || "visitor"} checked out`
+        t("active_visits.toast_checkout_success", "Visitor {{name}} checked out", { name: selectedVisit.visitor?.name || "visitor" })
       )
       fetchVisits()
     } catch (error: any) {
       console.error("Checkout failed", error)
-      toast.error(error.response?.data?.message || "Checkout failed!")
+      toast.error(error.response?.data?.message || t("active_visits.toast_checkout_failed", "Checkout failed!"))
     } finally {
       setCheckoutLoading(null)
       setSelectedVisit(null)
@@ -175,11 +175,11 @@ export default function ActiveVisits() {
     if (!selectedDeleteVisitId) return
     try {
       await api.delete(`/visits/${selectedDeleteVisitId}`)
-      toast.success("Visit deleted")
+      toast.success(t("active_visits.toast_delete_success", "Visit deleted"))
       fetchVisits()
     } catch (error: any) {
       console.error("Delete failed", error)
-      toast.error(error.response?.data?.message || "Failed to delete visit")
+      toast.error(error.response?.data?.message || t("active_visits.toast_delete_failed", "Failed to delete visit"))
     } finally {
       setDeleteAlertOpen(false)
       setSelectedDeleteVisitId(null)
@@ -354,7 +354,7 @@ export default function ActiveVisits() {
                     colSpan={9}
                     className="h-24 text-center text-zinc-500"
                   >
-                    No active visitors found.
+                    {t("active_visits.no_data", "No active visitors found.")}
                   </TableCell>
                 </TableRow>
               ) : (

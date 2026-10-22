@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Loader2, RefreshCw, Search, ShieldCheck } from "lucide-react"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,18 +25,13 @@ import {
 } from "@/components/ui/dialog"
 import type { GlobalBlacklistEntry, OutboxRow } from "@/types/hybrid"
 
-const STATUS_LABEL: Record<OutboxRow["status"], string> = {
-  pending: "Menunggu dikirim",
-  sent: "Diterima hub",
-  rejected: "Ditolak hub",
-}
-
 /**
  * The Global tab of the Blacklist page (hybrid spec §6.3, decisions FE-4b, SEC-3): the mirror of the
  * global blacklist, revocation of entries this yard registered, and the queue of requests waiting for
  * the hub. Changes appear in the list only after the hub accepts them and the next pull brings them back.
  */
 export default function GlobalBlacklistPanel() {
+  const { t } = useTranslation()
   const [entries, setEntries] = useState<GlobalBlacklistEntry[]>([])
   const [outbox, setOutbox] = useState<OutboxRow[]>([])
   const [loading, setLoading] = useState(false)
@@ -45,6 +41,12 @@ export default function GlobalBlacklistPanel() {
   const [note, setNote] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [syncing, setSyncing] = useState(false)
+
+  const statusLabels: Record<OutboxRow["status"], string> = {
+    pending: t("blacklist.outbox_status_pending", "Menunggu dikirim"),
+    sent: t("blacklist.outbox_status_sent", "Diterima hub"),
+    rejected: t("blacklist.outbox_status_rejected", "Ditolak hub"),
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -60,11 +62,11 @@ export default function GlobalBlacklistPanel() {
       setEntries(Array.isArray(list.data) ? list.data : (list.data?.data ?? []))
       setOutbox(queue.data?.data ?? [])
     } catch {
-      toast.error("Gagal memuat blacklist global.")
+      toast.error(t("blacklist.toast_load_failed", "Gagal memuat blacklist global."))
     } finally {
       setLoading(false)
     }
-  }, [search, status])
+  }, [search, status, t])
 
   useEffect(() => {
     const timer = setTimeout(load, 300)
@@ -79,13 +81,19 @@ export default function GlobalBlacklistPanel() {
         local_note: note.trim(),
       })
       toast.success(
-        "Pencabutan masuk antrean dan dikirim pada siklus sync berikutnya."
+        t(
+          "blacklist.toast_revoke_queued",
+          "Pencabutan masuk antrean dan dikirim pada siklus sync berikutnya."
+        )
       )
       setRevoking(null)
       setNote("")
       load()
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Pencabutan gagal dicatat.")
+      toast.error(
+        err.response?.data?.message ||
+          t("blacklist.toast_revoke_failed", "Pencabutan gagal dicatat.")
+      )
     } finally {
       setSubmitting(false)
     }
@@ -95,10 +103,10 @@ export default function GlobalBlacklistPanel() {
     setSyncing(true)
     try {
       await api.post("/sync/run")
-      toast.success("Siklus sync selesai.")
+      toast.success(t("blacklist.toast_sync_success", "Siklus sync selesai."))
       load()
     } catch {
-      toast.error("Sync gagal dijalankan.")
+      toast.error(t("blacklist.toast_sync_failed", "Sync gagal dijalankan."))
     } finally {
       setSyncing(false)
     }
@@ -111,23 +119,35 @@ export default function GlobalBlacklistPanel() {
           <div className="relative w-full md:w-1/3">
             <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />
             <Input
-              placeholder="Cari nama atau nomor identitas..."
+              placeholder={t(
+                "blacklist.global_search_placeholder",
+                "Cari nama atau nomor identitas..."
+              )}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8"
-              aria-label="Cari blacklist global"
+              aria-label={t(
+                "blacklist.global_search_placeholder",
+                "Cari blacklist global"
+              )}
             />
           </div>
           <div className="flex gap-2">
             <select
-              aria-label="Status entri"
+              aria-label={t("blacklist.col_status", "Status entri")}
               value={status}
               onChange={(e) => setStatus(e.target.value as typeof status)}
               className="h-9 rounded-md border border-zinc-200 bg-transparent px-2 text-sm dark:border-zinc-800"
             >
-              <option value="active">Aktif</option>
-              <option value="revoked">Dicabut</option>
-              <option value="all">Semua</option>
+              <option value="active">
+                {t("blacklist.global_status_active", "Aktif")}
+              </option>
+              <option value="revoked">
+                {t("blacklist.global_status_revoked", "Dicabut")}
+              </option>
+              <option value="all">
+                {t("blacklist.global_status_all", "Semua")}
+              </option>
             </select>
             <Button
               variant="outline"
@@ -140,7 +160,7 @@ export default function GlobalBlacklistPanel() {
               ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
               )}
-              Sync sekarang
+              {t("blacklist.sync_now", "Sync sekarang")}
             </Button>
           </div>
         </div>
@@ -149,12 +169,16 @@ export default function GlobalBlacklistPanel() {
           <Table>
             <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
               <TableRow>
-                <TableHead>Identitas</TableHead>
-                <TableHead>Nama</TableHead>
-                <TableHead>Kategori</TableHead>
-                <TableHead>Didaftarkan oleh</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Aksi</TableHead>
+                <TableHead>{t("blacklist.col_identity", "Identitas")}</TableHead>
+                <TableHead>{t("blacklist.col_name", "Nama")}</TableHead>
+                <TableHead>{t("blacklist.col_category", "Kategori")}</TableHead>
+                <TableHead>
+                  {t("blacklist.col_registered_by", "Didaftarkan oleh")}
+                </TableHead>
+                <TableHead>{t("blacklist.col_status", "Status")}</TableHead>
+                <TableHead className="text-center">
+                  {t("blacklist.col_action", "Aksi")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -170,7 +194,10 @@ export default function GlobalBlacklistPanel() {
                     colSpan={6}
                     className="h-24 text-center text-zinc-500"
                   >
-                    Tidak ada entri blacklist global.
+                    {t(
+                      "blacklist.no_global_entries",
+                      "Tidak ada entri blacklist global."
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -190,7 +217,9 @@ export default function GlobalBlacklistPanel() {
                     <TableCell>{entry.reason_label}</TableCell>
                     <TableCell>{entry.registered_by_yard}</TableCell>
                     <TableCell>
-                      {entry.is_active ? "Aktif" : "Dicabut"}
+                      {entry.is_active
+                        ? t("blacklist.global_status_active", "Aktif")
+                        : t("blacklist.global_status_revoked", "Dicabut")}
                     </TableCell>
                     <TableCell className="text-center">
                       {entry.can_revoke ? (
@@ -199,13 +228,17 @@ export default function GlobalBlacklistPanel() {
                           size="sm"
                           onClick={() => setRevoking(entry)}
                         >
-                          <ShieldCheck className="mr-1.5 h-4 w-4" /> Cabut
-                          global
+                          <ShieldCheck className="mr-1.5 h-4 w-4" />{" "}
+                          {t("blacklist.btn_revoke_global", "Cabut global")}
                         </Button>
                       ) : (
                         <span className="text-xs text-zinc-500">
                           {entry.is_active
-                            ? `Hanya ${entry.registered_by_yard} yang bisa mencabut`
+                            ? t(
+                                "blacklist.only_yard_can_revoke",
+                                `Hanya ${entry.registered_by_yard} yang bisa mencabut`,
+                                { yard: entry.registered_by_yard }
+                              )
                             : "-"}
                         </span>
                       )}
@@ -221,17 +254,23 @@ export default function GlobalBlacklistPanel() {
       {outbox.length > 0 && (
         <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="mb-3 text-sm font-semibold">
-            Antrean kirim ke Cloud Hub
+            {t("blacklist.outbox_title", "Antrean kirim ke Cloud Hub")}
           </h2>
           <div className="overflow-x-auto rounded-md border">
             <Table>
               <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
                 <TableRow>
-                  <TableHead>Permintaan</TableHead>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Catatan lokal</TableHead>
-                  <TableHead>Oleh</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>
+                    {t("blacklist.outbox_col_request", "Permintaan")}
+                  </TableHead>
+                  <TableHead>{t("blacklist.outbox_col_name", "Nama")}</TableHead>
+                  <TableHead>
+                    {t("blacklist.outbox_col_note", "Catatan lokal")}
+                  </TableHead>
+                  <TableHead>{t("blacklist.outbox_col_by", "Oleh")}</TableHead>
+                  <TableHead>
+                    {t("blacklist.outbox_col_status", "Status")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -239,8 +278,12 @@ export default function GlobalBlacklistPanel() {
                   <TableRow key={row.id}>
                     <TableCell>
                       {row.action === "add"
-                        ? `Naikkan (${row.reason_label ?? "-"})`
-                        : "Cabut"}
+                        ? t(
+                            "blacklist.outbox_action_promote",
+                            `Naikkan (${row.reason_label ?? "-"})`,
+                            { reason: row.reason_label ?? "-" }
+                          )
+                        : t("blacklist.outbox_action_revoke", "Cabut")}
                     </TableCell>
                     <TableCell>
                       {row.name}{" "}
@@ -255,7 +298,7 @@ export default function GlobalBlacklistPanel() {
                       {row.requested_by ?? "-"}
                     </TableCell>
                     <TableCell className="text-xs">
-                      {STATUS_LABEL[row.status]}
+                      {statusLabels[row.status]}
                       {row.last_error && (
                         <div className="text-red-600 dark:text-red-400">
                           {row.last_error}
@@ -276,15 +319,24 @@ export default function GlobalBlacklistPanel() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cabut dari blacklist global</DialogTitle>
+            <DialogTitle>
+              {t("blacklist.revoke_dialog_title", "Cabut dari blacklist global")}
+            </DialogTitle>
             <DialogDescription>
-              {revoking?.name} ({revoking?.id_number}). Pencabutan dikirim ke
-              Cloud Hub dan berlaku di semua yard setelah sinkron. Alasan di
-              bawah hanya tersimpan di yard ini.
+              {t(
+                "blacklist.revoke_dialog_desc",
+                `${revoking?.name} (${revoking?.id_number}). Pencabutan dikirim ke Cloud Hub dan berlaku di semua yard setelah sinkron. Alasan di bawah hanya tersimpan di yard ini.`,
+                {
+                  name: revoking?.name || "",
+                  id: revoking?.id_number || "",
+                }
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="revoke-note">Alasan pencabutan (lokal)</Label>
+            <Label htmlFor="revoke-note">
+              {t("blacklist.revoke_note_label", "Alasan pencabutan (lokal)")}
+            </Label>
             <Textarea
               id="revoke-note"
               value={note}
@@ -298,14 +350,14 @@ export default function GlobalBlacklistPanel() {
               onClick={() => setRevoking(null)}
               disabled={submitting}
             >
-              Batal
+              {t("common.cancel", "Batal")}
             </Button>
             <Button
               onClick={submitRevoke}
               disabled={submitting || !note.trim()}
             >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Cabut global
+              {t("blacklist.btn_revoke_global", "Cabut global")}
             </Button>
           </DialogFooter>
         </DialogContent>

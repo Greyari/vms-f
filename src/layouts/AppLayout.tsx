@@ -56,9 +56,11 @@ export default function AppLayout() {
   const menuItems = [
     {
       title: t("nav.overview"),
+      enTitle: "Overview",
       items: [
         {
           name: t("nav.dashboard"),
+          enName: "Dashboard",
           path: "/",
           icon: LayoutDashboard,
           show: hasPermission("view_visits"),
@@ -67,27 +69,32 @@ export default function AppLayout() {
     },
     {
       title: t("nav.visitor_management"),
+      enTitle: "Visitor Management",
       items: [
         {
           name: t("nav.add_visit"),
+          enName: "Add Visit",
           path: "/visits/create",
           icon: ClipboardList,
           show: can("/visits/create"),
         },
         {
           name: t("nav.active_visitors"),
+          enName: "Active Visitors",
           path: "/visits/activate",
           icon: Users,
           show: can("/visits/activate"),
         },
         {
           name: t("nav.reprint_pass"),
+          enName: "Reprint Pass",
           path: "/visits/reprint",
           icon: Printer,
           show: can("/visits/reprint"),
         },
         {
           name: t("nav.crew_arrivals"),
+          enName: "Crew Arrivals",
           path: "/vessel-arrivals",
           icon: Ship,
           show: can("/vessel-arrivals"),
@@ -96,39 +103,46 @@ export default function AppLayout() {
     },
     {
       title: t("nav.master_data"),
+      enTitle: "Master Data",
       items: [
         {
           name: t("nav.locations_vessels"),
+          enName: "Locations & Vessels",
           path: "/master/locations",
           icon: Building2,
           show: can("/master/locations"),
         },
         {
           name: t("nav.staffs"),
+          enName: "Staffs",
           path: "/master/staffs",
           icon: Users,
           show: can("/master/staffs"),
         },
         {
           name: t("nav.cards"),
+          enName: "Cards",
           path: "/master/cards",
           icon: CreditCard,
           show: can("/master/cards"),
         },
         {
           name: t("nav.card_vehicles"),
+          enName: "Card Vehicles",
           path: "/master/vehicle-cards",
           icon: CreditCard,
           show: can("/master/vehicle-cards"),
         },
         {
           name: t("nav.visitors"),
+          enName: "Visitors",
           path: "/master/visitors",
           icon: Users,
           show: can("/master/visitors"),
         },
         {
           name: t("nav.blacklist"),
+          enName: "Blacklist",
           path: "/master/visitors/blacklist",
           icon: ShieldOff,
           show: can("/master/visitors/blacklist"),
@@ -137,21 +151,25 @@ export default function AppLayout() {
     },
     {
       title: t("nav.reports"),
+      enTitle: "Reports",
       items: [
         {
           name: t("nav.visitor_report"),
+          enName: "Visitor Report",
           path: "/reports/visits",
           icon: FileText,
           show: can("/reports/visits"),
         },
         {
           name: t("nav.vessel_report"),
+          enName: "Vessel Report",
           path: "/reports/vessels",
           icon: Ship,
           show: can("/reports/vessels"),
         },
         {
           name: t("nav.crew_report", "Laporan Kru Kapal"),
+          enName: "Crew Report",
           path: "/reports/crew",
           icon: Users,
           show: can("/reports/crew"),
@@ -160,27 +178,32 @@ export default function AppLayout() {
     },
     {
       title: t("nav.system_settings"),
+      enTitle: "System Settings",
       items: [
         {
           name: t("nav.system_users"),
+          enName: "System Users",
           path: "/settings/users",
           icon: Settings,
           show: can("/settings/users"),
         },
         {
           name: t("nav.activity_logs"),
+          enName: "Activity Logs",
           path: "/settings/logs",
           icon: History,
           show: can("/settings/logs"),
         },
         {
           name: t("nav.roles"),
+          enName: "Role Management",
           path: "/settings/roles",
           icon: KeyRound,
           show: can("/settings/roles"),
         },
         {
           name: t("nav.my_profile"),
+          enName: "My Profile",
           path: "/settings/profile",
           icon: UserCircle,
           show: true,
@@ -223,6 +246,9 @@ export default function AppLayout() {
               <div key={i} className="mb-6 px-4">
                 <h3 className="mb-2 px-2 text-xs font-semibold tracking-wider text-zinc-500 uppercase">
                   {group.title}
+                  {group.enTitle && group.title !== group.enTitle && (
+                    <span className="sr-only">{group.enTitle}</span>
+                  )}
                 </h3>
                 <div className="space-y-1">
                   {visibleItems.map((item, j) => {
@@ -240,7 +266,10 @@ export default function AppLayout() {
                         }`}
                       >
                         <Icon className="h-4 w-4" />
-                        {item.name}
+                        <span>{item.name}</span>
+                        {item.enName && item.name !== item.enName && (
+                          <span className="sr-only">{item.enName}</span>
+                        )}
                       </Link>
                     )
                   })}
@@ -264,7 +293,7 @@ export default function AppLayout() {
                 className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
               >
                 <LogOut className="h-4 w-4" />
-                {t("nav.logout")}
+                {t("layout.logout", "Keluar")}
               </button>
             </div>
           )}
@@ -287,7 +316,7 @@ export default function AppLayout() {
             <button
               onClick={() => setProfileOpen(!profileOpen)}
               className={`rounded-md p-1.5 text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 ${profileOpen ? "bg-zinc-100 dark:bg-zinc-800" : ""}`}
-              aria-label="User Options"
+              aria-label={t("layout.user_options", "Pilihan Pengguna")}
             >
               <MoreVertical className="h-4 w-4" />
             </button>
@@ -300,7 +329,7 @@ export default function AppLayout() {
         {/* Top Header bar with Theme Toggle and Cloud hub sync indicator */}
         <div className="flex h-14 items-center justify-between border-b border-zinc-200 bg-white px-6 dark:border-zinc-800 dark:bg-zinc-950">
           <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-            Visitor Management System
+            {t("layout.app_name", "Visitor Management System")}
           </div>
           <div className="flex items-center gap-3">
             {/* Language Switcher */}
@@ -337,8 +366,8 @@ export default function AppLayout() {
             <button
               onClick={toggleTheme}
               className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-              title={isDark ? "Beralih ke mode terang" : "Beralih ke mode gelap"}
-              aria-label={isDark ? "Beralih ke mode terang" : "Beralih ke mode gelap"}
+              title={isDark ? t("layout.switch_light", "Beralih ke mode terang") : t("layout.switch_dark", "Beralih ke mode gelap")}
+              aria-label={isDark ? t("layout.switch_light", "Beralih ke mode terang") : t("layout.switch_dark", "Beralih ke mode gelap")}
             >
               {isDark ? (
                 <Sun className="h-4 w-4 text-amber-400" />

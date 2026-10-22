@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react"
+import { useTranslation } from "@/context/I18nContext"
 import {
   Popover,
   PopoverContent,
@@ -66,6 +67,7 @@ const getTypeBadgeLabel = (opt: SearchableLocationOption): string => {
 }
 
 export default function SearchableLocationSelect({
+
   id,
   name,
   ariaLabel,
@@ -82,6 +84,7 @@ export default function SearchableLocationSelect({
   clearLabel = "-- Tidak Dipilih --",
   className,
 }: SearchableLocationSelectProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
 
@@ -317,7 +320,7 @@ export default function SearchableLocationSelect({
               </CommandGroup>
               {filteredOptions.length > 80 && (
                 <div className="border-t border-zinc-100 px-3 py-1.5 text-center text-[11px] text-zinc-500 dark:border-zinc-800">
-                  Menampilkan 80 dari {filteredOptions.length} lokasi/kapal — ketik di kotak pencarian untuk menyaring.
+                  {t("common.showing_limit", "Menampilkan 80 dari {{total}} lokasi/kapal — ketik di kotak pencarian untuk menyaring.", { total: filteredOptions.length })}
                 </div>
               )}
             </CommandList>

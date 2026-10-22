@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -80,9 +81,31 @@ const ACTION_VARIANT: Record<
 const ALL = "__all__"
 
 export default function ActivityLogs() {
+  const { t } = useTranslation()
   const [logs, setLogs] = useState<LogRow[]>([])
   const [loading, setLoading] = useState(false)
   const [subjectTypes, setSubjectTypes] = useState<string[]>([])
+
+  const getActionLabel = (action: string) => {
+    switch (action) {
+      case "created":
+        return t("logs.action_created", "Created")
+      case "updated":
+        return t("logs.action_updated", "Updated")
+      case "deleted":
+        return t("logs.action_deleted", "Deleted")
+      case "restored":
+        return t("logs.action_restored", "Restored")
+      case "login":
+        return t("logs.action_login", "Login")
+      case "logout":
+        return t("logs.action_logout", "Logout")
+      case "login_failed":
+        return t("logs.action_login_failed", "Login Failed")
+      default:
+        return action
+    }
+  }
 
   // Filters
   const [search, setSearch] = useState("")
@@ -137,12 +160,12 @@ export default function ActivityLogs() {
         }
       } catch (err) {
         console.error(err)
-        toast.error("Gagal memuat log aktivitas.")
+        toast.error(t("logs.toast_load_failed", "Gagal memuat log aktivitas."))
       } finally {
         setLoading(false)
       }
     },
-    [perPage]
+    [perPage, t]
   )
 
   useEffect(() => {
@@ -181,11 +204,11 @@ export default function ActivityLogs() {
           <div className="flex items-center gap-2">
             <History className="h-6 w-6 text-zinc-700 dark:text-zinc-300" />
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Log Aktivitas Sistem (Activity Logs)
+              {t("logs.title", "Log Aktivitas Sistem (Activity Logs)")}
             </h1>
           </div>
           <p className="text-sm text-zinc-500">
-            Jejak audit seluruh perubahan data, pencatatan check-in/out, dan sesi login pengguna sistem.
+            {t("logs.description", "Jejak audit seluruh perubahan data, pencatatan check-in/out, dan sesi login pengguna sistem.")}
           </p>
         </div>
       </div>
@@ -196,7 +219,7 @@ export default function ActivityLogs() {
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
             <Input
-              placeholder="Cari pelaku atau subjek..."
+              placeholder={t("logs.search_placeholder", "Cari pelaku atau subjek...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 h-9 text-sm"
@@ -205,13 +228,13 @@ export default function ActivityLogs() {
 
           <Select value={actionFilter} onValueChange={setActionFilter}>
             <SelectTrigger className="h-9 w-full md:w-44 text-sm">
-              <SelectValue placeholder="Semua Aksi" />
+              <SelectValue placeholder={t("logs.filter_all_actions", "Semua Aksi")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>Semua Aksi</SelectItem>
-              {Object.entries(ACTION_LABEL).map(([val, label]) => (
+              <SelectItem value={ALL}>{t("logs.filter_all_actions", "Semua Aksi")}</SelectItem>
+              {Object.keys(ACTION_LABEL).map((val) => (
                 <SelectItem key={val} value={val}>
-                  {label}
+                  {getActionLabel(val)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -220,13 +243,13 @@ export default function ActivityLogs() {
           {subjectTypes.length > 0 && (
             <Select value={subjectFilter} onValueChange={setSubjectFilter}>
               <SelectTrigger className="h-9 w-full md:w-44 text-sm">
-                <SelectValue placeholder="Semua Subjek" />
+                <SelectValue placeholder={t("logs.filter_all_subjects", "Semua Subjek")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>Semua Subjek</SelectItem>
-                {subjectTypes.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
+                <SelectItem value={ALL}>{t("logs.filter_all_subjects", "Semua Subjek")}</SelectItem>
+                {subjectTypes.map((tVal) => (
+                  <SelectItem key={tVal} value={tVal}>
+                    {tVal}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -242,7 +265,7 @@ export default function ActivityLogs() {
               className="gap-1.5"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              Reset
+              {t("common.reset", "Reset")}
             </Button>
             <Button type="submit" size="sm" className="gap-1.5" disabled={loading}>
               {loading ? (
@@ -250,7 +273,7 @@ export default function ActivityLogs() {
               ) : (
                 <Search className="h-3.5 w-3.5" />
               )}
-              Cari
+              {t("common.search", "Cari")}
             </Button>
           </div>
         </form>
@@ -262,13 +285,13 @@ export default function ActivityLogs() {
           <Table>
             <TableHeader className="bg-zinc-50 dark:bg-zinc-900/50">
               <TableRow>
-                <TableHead className="w-12 text-center">No</TableHead>
-                <TableHead>Waktu</TableHead>
-                <TableHead>Pelaku</TableHead>
-                <TableHead>Event</TableHead>
-                <TableHead>Subjek</TableHead>
-                <TableHead>IP Address</TableHead>
-                <TableHead className="w-20 text-right">Detail</TableHead>
+                <TableHead className="w-12 text-center">{t("common.no", "No")}</TableHead>
+                <TableHead>{t("logs.col_timestamp", "Waktu")}</TableHead>
+                <TableHead>{t("logs.col_user", "Pelaku")}</TableHead>
+                <TableHead>{t("logs.col_event", "Event")}</TableHead>
+                <TableHead>{t("logs.col_subject", "Subjek")}</TableHead>
+                <TableHead>{t("logs.col_ip", "IP Address")}</TableHead>
+                <TableHead className="w-20 text-right">{t("common.detail", "Detail")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -276,20 +299,20 @@ export default function ActivityLogs() {
                 <TableRow>
                   <TableCell colSpan={7} className="h-32 text-center text-zinc-500">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
-                    <span className="mt-2 block text-xs">Memuat log aktivitas...</span>
+                    <span className="mt-2 block text-xs">{t("logs.loading_logs", "Memuat log aktivitas...")}</span>
                   </TableCell>
                 </TableRow>
               ) : logs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-32 text-center text-zinc-500 text-xs">
-                    Tidak ada aktivitas yang tercatat sesuai filter.
+                    {t("logs.empty_logs", "Tidak ada aktivitas yang tercatat sesuai filter.")}
                   </TableCell>
                 </TableRow>
               ) : (
                 logs.map((log, index) => {
                   const actorDisplay = log.causer_username
                     ? `@${log.causer_username}`
-                    : log.causer_email || log.causer_name || "Sistem"
+                    : log.causer_email || log.causer_name || t("logs.actor_system", "Sistem")
 
                   return (
                     <TableRow key={log.id || index} className="text-xs">
@@ -314,7 +337,7 @@ export default function ActivityLogs() {
                           variant={ACTION_VARIANT[log.action] ?? "secondary"}
                           className="capitalize text-[11px]"
                         >
-                          {ACTION_LABEL[log.action] ?? log.action}
+                          {getActionLabel(log.action)}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -334,7 +357,7 @@ export default function ActivityLogs() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          aria-label="Lihat Detail Log"
+                          aria-label={t("logs.view_detail_aria", "Lihat Detail Log")}
                           onClick={() => {
                             setSelectedLog(log)
                             setDetailOpen(true)
@@ -355,11 +378,11 @@ export default function ActivityLogs() {
         {/* Pagination Footer */}
         <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800">
           <div>
-            Total <strong className="text-zinc-900 dark:text-zinc-100">{total}</strong> entri aktivitas
+            Total <strong className="text-zinc-900 dark:text-zinc-100">{total}</strong> {t("logs.entries_suffix", "entri aktivitas")}
           </div>
           <div className="flex items-center gap-2">
             <span>
-              Halaman {currentPage} dari {lastPage || 1}
+              {t("logs.page_info", { current: currentPage, total: lastPage || 1 })}
             </span>
             <Button
               variant="outline"
@@ -367,7 +390,7 @@ export default function ActivityLogs() {
               disabled={currentPage <= 1 || loading}
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               className="h-7 w-7 p-0"
-              aria-label="Previous Page"
+              aria-label={t("common.previous", "Previous Page")}
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
@@ -377,7 +400,7 @@ export default function ActivityLogs() {
               disabled={currentPage >= lastPage || loading}
               onClick={() => setCurrentPage((prev) => prev + 1)}
               className="h-7 w-7 p-0"
-              aria-label="Next Page"
+              aria-label={t("common.next", "Next Page")}
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
@@ -391,10 +414,10 @@ export default function ActivityLogs() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <ShieldAlert className="h-5 w-5 text-blue-600" />
-              Detail Log Aktivitas
+              {t("logs.detail_title", "Detail Log Aktivitas")}
             </DialogTitle>
             <DialogDescription>
-              Rincian perubahan atribut data dan konteks audit pergerakan sistem.
+              {t("logs.detail_desc", "Rincian perubahan atribut data dan konteks audit pergerakan sistem.")}
             </DialogDescription>
           </DialogHeader>
 
@@ -402,29 +425,29 @@ export default function ActivityLogs() {
             <div className="space-y-4 pt-2 text-xs">
               <div className="grid grid-cols-2 gap-3 bg-zinc-50 p-3 rounded-md dark:bg-zinc-900">
                 <div>
-                  <span className="text-zinc-500">Waktu Kejadian:</span>
+                  <span className="text-zinc-500">{t("logs.time_occurred", "Waktu Kejadian:")}</span>
                   <div className="font-mono font-medium">{selectedLog.created_at}</div>
                 </div>
                 <div>
-                  <span className="text-zinc-500">Pelaku (Causer):</span>
+                  <span className="text-zinc-500">{t("logs.causer_label", "Pelaku (Causer):")}</span>
                   <div className="font-medium">
-                    {selectedLog.causer_username ? `@${selectedLog.causer_username}` : selectedLog.causer_name || selectedLog.causer_email || "Sistem"}
+                    {selectedLog.causer_username ? `@${selectedLog.causer_username}` : selectedLog.causer_name || selectedLog.causer_email || t("logs.actor_system", "Sistem")}
                   </div>
                 </div>
                 <div>
-                  <span className="text-zinc-500">Aksi / Event:</span>
+                  <span className="text-zinc-500">{t("logs.action_event", "Aksi / Event:")}</span>
                   <div>
                     <Badge variant={ACTION_VARIANT[selectedLog.action] ?? "secondary"} className="text-[10px]">
-                      {ACTION_LABEL[selectedLog.action] ?? selectedLog.action}
+                      {getActionLabel(selectedLog.action)}
                     </Badge>
                   </div>
                 </div>
                 <div>
-                  <span className="text-zinc-500">IP Address:</span>
+                  <span className="text-zinc-500">{t("logs.ip_address", "IP Address:")}</span>
                   <div className="font-mono">{selectedLog.ip_address || "-"}</div>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-zinc-500">Subjek:</span>
+                  <span className="text-zinc-500">{t("logs.subject_label", "Subjek:")}</span>
                   <div className="font-medium">
                     {selectedLog.subject_type}: {selectedLog.subject_label || selectedLog.subject_id || "-"}
                   </div>
@@ -435,7 +458,7 @@ export default function ActivityLogs() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
                   <div className="font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
-                    Nilai Sebelumnya (Old Values)
+                    {t("logs.payload_before", "Nilai Sebelumnya (Old Values)")}
                   </div>
                   {selectedLog.old_values && Object.keys(selectedLog.old_values).length > 0 ? (
                     <div className="space-y-1.5 font-mono text-[11px]">
@@ -447,13 +470,13 @@ export default function ActivityLogs() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-zinc-400 italic">Tidak ada nilai sebelumnya.</div>
+                    <div className="text-zinc-400 italic">{t("logs.no_old_values", "Tidak ada nilai sebelumnya.")}</div>
                   )}
                 </div>
 
                 <div className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
                   <div className="font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
-                    Nilai Baru (New Values)
+                    {t("logs.payload_after", "Nilai Baru (New Values)")}
                   </div>
                   {selectedLog.new_values && Object.keys(selectedLog.new_values).length > 0 ? (
                     <div className="space-y-1.5 font-mono text-[11px]">
@@ -465,14 +488,14 @@ export default function ActivityLogs() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-zinc-400 italic">Tidak ada nilai baru.</div>
+                    <div className="text-zinc-400 italic">{t("logs.no_new_values", "Tidak ada nilai baru.")}</div>
                   )}
                 </div>
               </div>
 
               <div className="flex justify-end pt-2">
                 <Button size="sm" onClick={() => setDetailOpen(false)}>
-                  Tutup
+                  {t("common.close", "Tutup")}
                 </Button>
               </div>
             </div>

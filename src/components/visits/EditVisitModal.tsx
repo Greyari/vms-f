@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useTranslation } from "@/context/I18nContext"
 import { toast } from "sonner"
 import api from "@/lib/axios"
 import {
@@ -52,11 +53,13 @@ export interface EditVisitModalProps {
 }
 
 export default function EditVisitModal({
+
   visit,
   isOpen,
   onClose,
   onSuccess,
 }: EditVisitModalProps) {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -217,14 +220,14 @@ export default function EditVisitModal({
       }
 
       await api.put(`/visits/${visit.id}`, payload)
-      toast.success("Data kunjungan berhasil diperbarui")
+      toast.success(t("reprint.modal_toast_success", "Data kunjungan berhasil diperbarui"))
       onSuccess()
       onClose()
     } catch (err: any) {
       console.error("Failed to update open visit", err)
       const status = err.response?.status
       const msg =
-        err.response?.data?.message || "Gagal memperbarui kunjungan terbuka"
+        err.response?.data?.message || t("reprint.modal_toast_failed", "Gagal memperbarui kunjungan terbuka")
 
       toast.error(msg)
       if (status === 422) {
@@ -247,7 +250,7 @@ export default function EditVisitModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Kunjungan Terbuka</DialogTitle>
+          <DialogTitle>{t("reprint.modal_edit_title", "Edit Kunjungan Terbuka")}</DialogTitle>
           <DialogDescription>
             Tiket #{visit.ticket_number || visit.legacy_registration_no || visit.id} —{" "}
             {visit.visitor?.name}
@@ -262,7 +265,7 @@ export default function EditVisitModal({
           <form onSubmit={handleSubmit} className="space-y-4 py-2">
             {/* Location */}
             <div className="space-y-1.5">
-              <Label htmlFor="location_id">Lokasi / Kapal</Label>
+              <Label htmlFor="location_id">{t("reprint.modal_location_label", "Lokasi / Kapal")}</Label>
               <SearchableLocationSelect
                 id="location_id"
                 name="location_id"
@@ -374,7 +377,7 @@ export default function EditVisitModal({
                     onChange={handleChange}
                     className="flex h-9 w-full min-w-0 max-w-full truncate rounded-md border border-zinc-200 bg-transparent px-3 py-1.5 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
                   >
-                    <option value="">-- Pilih Staf --</option>
+                    <option value="">{t("reprint.modal_select_staff", "-- Pilih Staf --")}</option>
                     {staffList.map((s) => {
                       const rawDetails = [s.staff_id, s.company, s.address || s.department].filter(Boolean).join(" - ")
                       const details = rawDetails.length > 45 ? `${rawDetails.slice(0, 45)}...` : rawDetails
@@ -396,7 +399,7 @@ export default function EditVisitModal({
                     name="host_name"
                     value={form.host_name}
                     onChange={handleChange}
-                    placeholder="Nama personil / departemen..."
+                    placeholder={t("reprint.modal_custom_host_placeholder", "Nama personil / departemen...")}
                   />
                 </div>
               )}
@@ -404,33 +407,33 @@ export default function EditVisitModal({
 
             {/* Company */}
             <div className="space-y-1.5">
-              <Label htmlFor="visitor_company">Perusahaan / Instansi</Label>
+              <Label htmlFor="visitor_company">{t("reprint.modal_company_label", "Perusahaan / Instansi (Company)")}</Label>
               <Input
                 id="visitor_company"
                 name="visitor_company"
                 value={form.visitor_company}
                 onChange={handleChange}
-                placeholder="Perusahaan tamu..."
+                placeholder={t("reprint.modal_company_placeholder", "Perusahaan tamu...")}
               />
             </div>
 
             {/* Purpose */}
             <div className="space-y-1.5">
-              <Label htmlFor="purpose">Keperluan / Purpose of Visit</Label>
+              <Label htmlFor="purpose">{t("reprint.modal_purpose_label", "Keperluan / Purpose of Visit")}</Label>
               <Input
                 id="purpose"
                 name="purpose"
                 value={form.purpose}
                 onChange={handleChange}
                 required
-                placeholder="Keperluan kunjungan..."
+                placeholder={t("reprint.modal_purpose_placeholder", "Keperluan kunjungan...")}
               />
             </div>
 
             {/* Card Swap / Assignment */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="card_select">Kartu Visitor (Opsional)</Label>
+                <Label htmlFor="card_select">{t("reprint.modal_visitor_card_label", "Kartu Visitor (Opsional)")}</Label>
                 <select
                   id="card_select"
                   value={form.card_ids[0] || ""}
@@ -442,7 +445,7 @@ export default function EditVisitModal({
                   }
                   className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1.5 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
                 >
-                  <option value="">Tidak Ada / Pilih Kartu</option>
+                  <option value="">{t("reprint.modal_no_card", "Tidak Ada / Pilih Kartu")}</option>
                   {cardList.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.card_no} {c.status === "available" ? "(Tersedia)" : "(Sedang Dipakai)"}
@@ -452,7 +455,7 @@ export default function EditVisitModal({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="vehicle_card_id">Kartu Kendaraan</Label>
+                <Label htmlFor="vehicle_card_id">{t("reprint.modal_vehicle_card_label", "Kartu Kendaraan")}</Label>
                 <select
                   id="vehicle_card_id"
                   name="vehicle_card_id"
@@ -472,7 +475,7 @@ export default function EditVisitModal({
 
             {/* Vehicle Plate */}
             <div className="space-y-1.5">
-              <Label htmlFor="vehicle_plate">Plat Nomor Kendaraan</Label>
+              <Label htmlFor="vehicle_plate">{t("reprint.modal_vehicle_plate_label", "Plat Nomor Kendaraan")}</Label>
               <Input
                 id="vehicle_plate"
                 name="vehicle_plate"
@@ -493,7 +496,7 @@ export default function EditVisitModal({
               </Button>
               <Button type="submit" disabled={submitting}>
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {submitting ? "Menyimpan..." : "Simpan Perubahan"}
+                {submitting ? t("reprint.modal_saving", "Menyimpan...") : t("reprint.modal_save_changes", "Simpan Perubahan")}
               </Button>
             </DialogFooter>
           </form>

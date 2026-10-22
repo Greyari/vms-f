@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
 import { useAuth } from "@/context/AuthContext"
+import { useTranslation } from "@/context/I18nContext"
 
 import {
   Table,
@@ -35,6 +36,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2 } from "lucide-react"
 
 export default function Roles() {
+  const { t } = useTranslation()
   // Decision FE-3-ROLE: built-in roles (is_builtin from the API) are re-synced by the seeder,
   // so they open read-only; changing any role also needs manage_roles.
   const { hasPermission } = useAuth()
@@ -115,16 +117,16 @@ export default function Roles() {
     try {
       if (form.id) {
         await api.put(`/roles/${form.id}`, form)
-        toast.success("Perubahan role berhasil disimpan.")
+        toast.success(t("roles.toast_updated", "Perubahan role berhasil disimpan."))
       } else {
         await api.post("/roles", form)
-        toast.success("Role baru berhasil ditambahkan.")
+        toast.success(t("roles.toast_created", "Role baru berhasil ditambahkan."))
       }
       setModalOpen(false)
       fetchRoles()
     } catch (error: any) {
       console.error(error)
-      toast.error(error.response?.data?.message || "Gagal menyimpan role.")
+      toast.error(error.response?.data?.message || t("roles.toast_save_failed", "Gagal menyimpan role."))
     } finally {
       setLoading(false)
     }
@@ -139,11 +141,11 @@ export default function Roles() {
     if (!selectedRoleId) return
     try {
       await api.delete(`/roles/${selectedRoleId}`)
-      toast.success("Role deleted")
+      toast.success(t("roles.toast_deleted", "Role deleted"))
       fetchRoles()
     } catch (error: any) {
       console.error(error)
-      toast.error(error.response?.data?.message || "Failed to delete role")
+      toast.error(error.response?.data?.message || t("roles.toast_delete_failed", "Failed to delete role"))
     } finally {
       setAlertOpen(false)
       setSelectedRoleId(null)
@@ -153,8 +155,12 @@ export default function Roles() {
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Role Management</h1>
-        {canManage && <Button onClick={() => openForm()}>Add Role</Button>}
+        <h1 className="text-2xl font-bold">{t("roles.title", "Role Management")}</h1>
+        {canManage && (
+          <Button onClick={() => openForm()} aria-label="Add Role">
+            {t("roles.add_role", "Add Role")}
+          </Button>
+        )}
       </div>
 
       <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
@@ -162,9 +168,9 @@ export default function Roles() {
           <Table>
             <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
               <TableRow>
-                <TableHead>Role Name</TableHead>
-                <TableHead>Permissions Count</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t("roles.col_name", "Role Name")}</TableHead>
+                <TableHead>{t("roles.col_permissions_count", "Permissions Count")}</TableHead>
+                <TableHead className="text-right">{t("roles.col_actions", "Actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -180,7 +186,7 @@ export default function Roles() {
                     colSpan={3}
                     className="h-24 text-center text-zinc-500"
                   >
-                    No roles found.
+                    {t("roles.no_roles", "No roles found.")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -190,13 +196,13 @@ export default function Roles() {
                       {role.name}
                       {role.is_builtin && (
                         <span className="ml-2 rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 normal-case dark:bg-amber-900/40 dark:text-amber-200">
-                          Bawaan
+                          {t("roles.system_role", "Bawaan")}
                         </span>
                       )}
                     </TableCell>
                     <TableCell>
                       <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium dark:bg-zinc-800">
-                        {role.permissions?.length || 0} Permissions
+                        {t("roles.permissions_badge", { count: role.permissions?.length || 0 })}
                       </span>
                     </TableCell>
                     <TableCell className="space-x-2 text-right">
@@ -206,7 +212,7 @@ export default function Roles() {
                           size="sm"
                           onClick={() => openForm(role, true)}
                         >
-                          Lihat
+                          {t("roles.btn_view", "Lihat")}
                         </Button>
                       ) : (
                         <>
@@ -215,15 +221,16 @@ export default function Roles() {
                             size="sm"
                             onClick={() => openForm(role, false)}
                           >
-                            Edit
+                            {t("roles.btn_edit", "Edit")}
                           </Button>
                           {!role.is_builtin && (
                             <Button
                               variant="destructive"
                               size="sm"
                               onClick={() => confirmDelete(role.id)}
+                              aria-label="Delete"
                             >
-                              Delete
+                              {t("roles.btn_delete", "Delete")}
                             </Button>
                           )}
                         </>
@@ -241,23 +248,33 @@ export default function Roles() {
         <DialogContent className="max-h-[85vh] sm:max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {readOnly ? "Lihat Role" : form.id ? "Edit Role" : "Add Role"}
+              {readOnly
+                ? t("roles.view_role", "Lihat Role")
+                : form.id
+                  ? t("roles.edit_role", "Edit Role")
+                  : t("roles.add_role", "Add Role")}
             </DialogTitle>
             <DialogDescription>
               {readOnly
-                ? "Melihat detail hak akses role."
+                ? t("roles.desc_view", "Melihat detail hak akses role.")
                 : isBuiltinRole
-                  ? "Role bawaan sistem: nama role dikunci agar integritas sistem terjaga, namun izin/hak akses (permissions) dapat disesuaikan."
-                  : "Atur nama role dan pilih izin/hak akses (permissions) yang dimiliki role ini."}
+                  ? t(
+                      "roles.desc_builtin",
+                      "Role bawaan sistem: nama role dikunci agar integritas sistem terjaga, namun izin/hak akses (permissions) dapat disesuaikan."
+                    )
+                  : t(
+                      "roles.desc_custom",
+                      "Atur nama role dan pilih izin/hak akses (permissions) yang dimiliki role ini."
+                    )}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label htmlFor="role_name">Nama Role</Label>
+                <Label htmlFor="role_name">{t("roles.field_name_plain", "Nama Role")}</Label>
                 {isBuiltinRole && (
                   <span className="text-xs text-amber-600 dark:text-amber-400">
-                    (Role Sistem — nama tidak dapat diubah)
+                    {t("roles.builtin_locked_note", "(Role Sistem — nama tidak dapat diubah)")}
                   </span>
                 )}
               </div>
@@ -266,7 +283,7 @@ export default function Roles() {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
-                placeholder="cth. supervisor_lapangan"
+                placeholder={t("roles.role_name_placeholder", "cth. supervisor_lapangan")}
                 disabled={readOnly || isBuiltinRole}
               />
             </div>
@@ -274,7 +291,7 @@ export default function Roles() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-semibold">
-                  Daftar Hak Akses (Permissions) — ({form.permissions.length} dipilih)
+                  {t("roles.permissions_list_title", { count: form.permissions.length })}
                 </Label>
                 {!readOnly && permissions.length > 0 && (
                   <div className="flex gap-2">
@@ -290,7 +307,7 @@ export default function Roles() {
                         })
                       }
                     >
-                      Pilih Semua
+                      {t("roles.select_all", "Pilih Semua")}
                     </Button>
                     <Button
                       type="button"
@@ -299,7 +316,7 @@ export default function Roles() {
                       className="h-7 text-xs"
                       onClick={() => setForm({ ...form, permissions: [] })}
                     >
-                      Batal Semua
+                      {t("roles.deselect_all", "Batal Semua")}
                     </Button>
                   </div>
                 )}
@@ -309,12 +326,12 @@ export default function Roles() {
               <div className="space-y-4">
                 {[
                   {
-                    title: "1. Kunjungan & Tamu (Visits)",
+                    title: t("roles.category_1", "1. Kunjungan & Tamu (Visits)"),
                     filter: (p: any) =>
                       p.name.includes("visit") && !p.name.includes("report") && !p.name.includes("export"),
                   },
                   {
-                    title: "2. Master Data (Cards, Staff, Location, Visitor)",
+                    title: t("roles.category_2", "2. Master Data (Cards, Staff, Location, Visitor)"),
                     filter: (p: any) =>
                       p.name.includes("card") ||
                       p.name.includes("staff") ||
@@ -323,16 +340,16 @@ export default function Roles() {
                       p.name.includes("blacklist"),
                   },
                   {
-                    title: "3. Kedatangan Kapal (Vessels)",
+                    title: t("roles.category_3", "3. Kedatangan Kapal (Vessels)"),
                     filter: (p: any) => p.name.includes("vessel"),
                   },
                   {
-                    title: "4. Laporan & Ekspor (Reports)",
+                    title: t("roles.category_4", "4. Laporan & Ekspor (Reports)"),
                     filter: (p: any) =>
                       p.name.includes("report") || p.name.includes("export"),
                   },
                   {
-                    title: "5. Pengaturan Sistem & Audit Log",
+                    title: t("roles.category_5", "5. Pengaturan Sistem & Audit Log"),
                     filter: (p: any) =>
                       p.name.includes("user") ||
                       p.name.includes("role") ||
@@ -380,7 +397,9 @@ export default function Roles() {
                               }
                             }}
                           >
-                            {allCatSelected ? "Batal Kategori Ini" : "Pilih Semua Kategori Ini"}
+                            {allCatSelected
+                              ? t("roles.btn_deselect_cat", "Batal Kategori Ini")
+                              : t("roles.btn_select_cat", "Pilih Semua Kategori Ini")}
                           </Button>
                         )}
                       </div>
@@ -439,7 +458,7 @@ export default function Roles() {
                   return (
                     <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-3.5 dark:border-zinc-800 dark:bg-zinc-900/40">
                       <div className="mb-2 text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-                        Lainnya
+                        {t("roles.category_other", "Lainnya")}
                       </div>
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
                         {otherPerms.map((perm) => (
@@ -468,7 +487,7 @@ export default function Roles() {
 
                 {permissions.length === 0 && (
                   <div className="text-center py-6 text-sm text-zinc-500">
-                    Memuat permissions...
+                    {t("roles.loading_perms", "Memuat permissions...")}
                   </div>
                 )}
               </div>
@@ -487,11 +506,14 @@ export default function Roles() {
                       permissions: [...form.permissions],
                     })
                     toast.info(
-                      "Role disalin sebagai template kustom baru. Anda dapat mengubah nama dan hak aksesnya lalu menyimpannya."
+                      t(
+                        "roles.toast_copied",
+                        "Role disalin sebagai template kustom baru. Anda dapat mengubah nama dan hak aksesnya lalu menyimpannya."
+                      )
                     )
                   }}
                 >
-                  Salin ke Role Kustom Baru
+                  {t("roles.btn_copy_template", "Salin ke Role Kustom Baru")}
                 </Button>
               ) : (
                 <div />
@@ -503,11 +525,11 @@ export default function Roles() {
                   variant="outline"
                   onClick={() => setModalOpen(false)}
                 >
-                  {readOnly ? "Tutup" : "Cancel"}
+                  {readOnly ? t("common.close", "Tutup") : t("common.cancel", "Cancel")}
                 </Button>
                 {!readOnly && (
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "Saving..." : "Save Role"}
+                  <Button type="submit" disabled={loading} aria-label="Save Role">
+                    {loading ? t("roles.saving", "Saving...") : t("roles.btn_save", "Save Role")}
                   </Button>
                 )}
               </div>
@@ -519,19 +541,22 @@ export default function Roles() {
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Role?</AlertDialogTitle>
+            <AlertDialogTitle>{t("roles.confirm_delete_title", "Delete Role?")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. Users with this role might lose
-              their access.
+              {t(
+                "roles.confirm_delete_desc",
+                "This action cannot be undone. Users with this role might lose their access."
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel", "Cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={executeDelete}
               className="bg-red-600 hover:bg-red-700"
+              aria-label="Delete"
             >
-              Delete
+              {t("roles.btn_delete", "Delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -428,7 +428,7 @@ export default function VesselReport() {
                         <TableCell>
                           {isInPort ? (
                             <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400">
-                              IN PORT
+                              {t("vessel_report.in_port_badge", "IN PORT")}
                             </Badge>
                           ) : (
                             <div>
@@ -510,7 +510,7 @@ export default function VesselReport() {
                           {t("vessel_arrivals.col_sign_out", "Keluar")}:{" "}
                           {isInPort ? (
                             <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 text-[10px]">
-                              IN PORT
+                              {t("vessel_report.in_port_badge", "IN PORT")}
                             </Badge>
                           ) : (
                             <strong className="text-zinc-800 dark:text-zinc-200">{item.sign_out_date}</strong>

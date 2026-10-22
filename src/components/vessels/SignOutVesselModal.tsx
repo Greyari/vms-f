@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import {
   Dialog,
@@ -29,6 +30,7 @@ export default function SignOutVesselModal({
   onSuccess,
   arrival,
 }: SignOutVesselModalProps) {
+  const { t } = useTranslation()
   const [signOutDate, setSignOutDate] = useState("")
   const [signOutPort, setSignOutPort] = useState("")
   const [error, setError] = useState("")
@@ -52,12 +54,12 @@ export default function SignOutVesselModal({
     e.preventDefault()
 
     if (!signOutDate) {
-      setError("Tanggal keberangkatan wajib diisi.")
+      setError(t("vesselArrivals.err_sign_out_date_required", "Tanggal keberangkatan wajib diisi."))
       return
     }
 
     if (arrival.sign_in_date && signOutDate < arrival.sign_in_date) {
-      setError("Tanggal keberangkatan tidak boleh mendahului tanggal kedatangan.")
+      setError(t("vesselArrivals.err_sign_out_before_sign_in", "Tanggal keberangkatan tidak boleh mendahului tanggal kedatangan."))
       return
     }
 
@@ -70,11 +72,11 @@ export default function SignOutVesselModal({
         sign_out_port: signOutPort.trim() || null,
       })
 
-      toast.success(`Kapal ${arrival.vessel_name} berhasil dicatat sign-out`)
+      toast.success(t("vesselArrivals.toast_vessel_signed_out", "Kapal {{name}} berhasil dicatat sign-out", { name: arrival.vessel_name }))
       onSuccess()
       onClose()
     } catch {
-      toast.error("Gagal mencatat keberangkatan kapal")
+      toast.error(t("vesselArrivals.toast_sign_out_failed", "Gagal mencatat keberangkatan kapal"))
     } finally {
       setSubmitting(false)
     }
@@ -86,10 +88,10 @@ export default function SignOutVesselModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <LogOut className="h-5 w-5 text-amber-600" />
-            Sign-Out Keberangkatan Kapal
+            {t("vesselArrivals.sign_out_modal_title", "Sign-Out Keberangkatan Kapal")}
           </DialogTitle>
           <DialogDescription>
-            Catat tanggal dan pelabuhan tujuan keberangkatan kapal yang telah selesai berlabuh di galangan.
+            {t("vesselArrivals.sign_out_modal_desc", "Catat tanggal dan pelabuhan tujuan keberangkatan kapal yang telah selesai berlabuh di galangan.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -101,23 +103,23 @@ export default function SignOutVesselModal({
           </div>
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            Tanggal Masuk: <span className="font-medium text-zinc-800 dark:text-zinc-200">{arrival.sign_in_date}</span>
+            {t("vesselArrivals.sign_in_time", "Tanggal Masuk")}: <span className="font-medium text-zinc-800 dark:text-zinc-200">{arrival.sign_in_date}</span>
           </div>
           <div className="flex items-center gap-1">
             <MapPin className="h-3 w-3" />
-            Pelabuhan Asal: <span className="font-medium text-zinc-800 dark:text-zinc-200">{arrival.sign_in_port || "-"}</span>
+            {t("vesselArrivals.sign_in_port_label", "Pelabuhan Asal")}: <span className="font-medium text-zinc-800 dark:text-zinc-200">{arrival.sign_in_port || "-"}</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
           <div>
             <Label htmlFor="quick-sign-out-date">
-              Tanggal Keberangkatan <span className="text-red-500">*</span>
+              {t("vesselArrivals.sign_out_date_label", "Tanggal Keberangkatan")} <span className="text-red-500">*</span>
             </Label>
             <Input
               id="quick-sign-out-date"
               type="date"
-              aria-label="Tanggal Keberangkatan"
+              aria-label={t("vesselArrivals.sign_out_date_aria", "Tanggal Keberangkatan")}
               value={signOutDate}
               onChange={(e) => setSignOutDate(e.target.value)}
               disabled={submitting}
@@ -126,13 +128,13 @@ export default function SignOutVesselModal({
           </div>
 
           <div>
-            <Label htmlFor="quick-sign-out-port">Pelabuhan Tujuan</Label>
+            <Label htmlFor="quick-sign-out-port">{t("vesselArrivals.sign_out_port_label", "Pelabuhan Tujuan")}</Label>
             <Input
               id="quick-sign-out-port"
-              aria-label="Pelabuhan Tujuan"
+              aria-label={t("vesselArrivals.sign_out_port_aria", "Pelabuhan Tujuan")}
               value={signOutPort}
               onChange={(e) => setSignOutPort(e.target.value)}
-              placeholder="Misal: SINGAPORE, JAKARTA..."
+              placeholder={t("vesselArrivals.sign_out_port_placeholder", "Misal: SINGAPORE, JAKARTA...")}
               disabled={submitting}
               className="mt-1"
             />
@@ -147,7 +149,7 @@ export default function SignOutVesselModal({
               onClick={onClose}
               disabled={submitting}
             >
-              Batal
+              {t("common.cancel", "Batal")}
             </Button>
             <Button
               type="submit"
@@ -157,10 +159,10 @@ export default function SignOutVesselModal({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Memproses...
+                  {t("common.processing", "Memproses...")}
                 </>
               ) : (
-                "Konfirmasi Keberangkatan"
+                t("vesselArrivals.btn_confirm_departure", "Konfirmasi Keberangkatan")
               )}
             </Button>
           </DialogFooter>

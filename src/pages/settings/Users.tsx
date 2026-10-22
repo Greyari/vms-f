@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import {
   Table,
@@ -64,6 +65,7 @@ export interface UserItem {
 }
 
 export default function Users() {
+  const { t } = useTranslation()
   const [users, setUsers] = useState<UserItem[]>([])
   const [rolesOptions, setRolesOptions] = useState<UserRole[]>([])
   const [loading, setLoading] = useState(false)
@@ -180,22 +182,37 @@ export default function Users() {
     setValidationError("")
 
     if (!form.name.trim()) {
-      setValidationError("Nama pengguna tidak boleh kosong.")
+      setValidationError(t("validation.required", "Nama pengguna tidak boleh kosong."))
       return
     }
 
     if (!form.username.trim() && !form.email.trim()) {
-      setValidationError("Minimal satu dari Username atau Email wajib diisi.")
+      setValidationError(
+        t(
+          "users.validation_user_or_email",
+          "Minimal satu dari Username atau Email wajib diisi."
+        )
+      )
       return
     }
 
     if (!form.id && (!form.password || form.password.length < 8)) {
-      setValidationError("Password wajib diisi minimal 8 karakter untuk pengguna baru.")
+      setValidationError(
+        t(
+          "validation.password_min",
+          "Password wajib diisi minimal 8 karakter untuk pengguna baru."
+        )
+      )
       return
     }
 
     if (form.id && form.password && form.password.length < 8) {
-      setValidationError("Password baru minimal 8 karakter jika ingin diubah.")
+      setValidationError(
+        t(
+          "validation.password_min_edit",
+          "Password baru minimal 8 karakter jika ingin diubah."
+        )
+      )
       return
     }
 
@@ -216,17 +233,17 @@ export default function Users() {
 
       if (form.id) {
         await api.put(`/users/${form.id}`, payload)
-        toast.success("Pengguna berhasil diperbarui.")
+        toast.success(t("users.toast_updated", "Pengguna berhasil diperbarui."))
       } else {
         await api.post("/users", payload)
-        toast.success("Pengguna baru berhasil ditambahkan.")
+        toast.success(t("users.toast_created", "Pengguna baru berhasil ditambahkan."))
       }
 
       setModalOpen(false)
       fetchUsers()
     } catch (err: any) {
       console.error(err)
-      const msg = err.response?.data?.message || "Gagal menyimpan pengguna."
+      const msg = err.response?.data?.message || t("users.toast_save_failed", "Gagal menyimpan pengguna.")
       setValidationError(msg)
       toast.error(msg)
     } finally {
@@ -238,13 +255,13 @@ export default function Users() {
     if (!selectedUserId) return
     try {
       await api.delete(`/users/${selectedUserId}`)
-      toast.success("Pengguna berhasil dihapus.")
+      toast.success(t("users.toast_deleted", "Pengguna berhasil dihapus."))
       setAlertOpen(false)
       setSelectedUserId(null)
       fetchUsers()
     } catch (err: any) {
       console.error(err)
-      toast.error(err.response?.data?.message || "Gagal menghapus pengguna.")
+      toast.error(err.response?.data?.message || t("users.toast_delete_failed", "Gagal menghapus pengguna."))
     }
   }
 
@@ -254,16 +271,19 @@ export default function Users() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Manajemen Pengguna (System Users)
+            {t("users.title_with_system", "Manajemen Pengguna (System Users)")}
           </h1>
           <p className="text-sm text-zinc-500">
-            Kelola akun petugas pos keamanan, supervisor gerbang, dan administrator sistem.
+            {t(
+              "users.subtitle",
+              "Kelola akun petugas pos keamanan, supervisor gerbang, dan administrator sistem."
+            )}
           </p>
         </div>
 
         <Button onClick={handleOpenCreate} className="gap-2">
           <UserPlus className="h-4 w-4" />
-          Tambah Pengguna
+          {t("users.btn_add_user", "Tambah Pengguna")}
         </Button>
       </div>
 
@@ -272,7 +292,7 @@ export default function Users() {
         <div className="relative max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
           <Input
-            placeholder="Cari nama, username, atau email..."
+            placeholder={t("users.search_placeholder_full", "Cari nama, username, atau email...")}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value)
@@ -289,13 +309,13 @@ export default function Users() {
           <Table>
             <TableHeader className="bg-zinc-50 dark:bg-zinc-900/50">
               <TableRow>
-                <TableHead className="w-12 text-center">No</TableHead>
-                <TableHead>Nama Pengguna</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role Hak Akses</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-28 text-right">Aksi</TableHead>
+                <TableHead className="w-12 text-center">{t("common.no", "No")}</TableHead>
+                <TableHead>{t("users.col_user_name", "Nama Pengguna")}</TableHead>
+                <TableHead>{t("users.col_username", "Username")}</TableHead>
+                <TableHead>{t("users.col_email", "Email")}</TableHead>
+                <TableHead>{t("users.col_role_rbac", "Role Hak Akses")}</TableHead>
+                <TableHead>{t("users.col_status", "Status")}</TableHead>
+                <TableHead className="w-28 text-right">{t("common.actions", "Aksi")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -303,13 +323,13 @@ export default function Users() {
                 <TableRow>
                   <TableCell colSpan={7} className="h-32 text-center text-zinc-500">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
-                    <span className="mt-2 block text-xs">Memuat daftar pengguna...</span>
+                    <span className="mt-2 block text-xs">{t("users.loading_users", "Memuat daftar pengguna...")}</span>
                   </TableCell>
                 </TableRow>
               ) : displayedUsers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-32 text-center text-zinc-500 text-xs">
-                    Tidak ada pengguna yang cocok dengan pencarian.
+                    {t("users.no_users_found", "Tidak ada pengguna yang cocok dengan pencarian.")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -347,11 +367,11 @@ export default function Users() {
                       <TableCell>
                         {u.is_active ? (
                           <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
-                            Aktif
+                            {t("common.active", "Aktif")}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="border-zinc-200 bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                            Nonaktif
+                            {t("common.inactive", "Nonaktif")}
                           </Badge>
                         )}
                       </TableCell>
@@ -391,11 +411,11 @@ export default function Users() {
         {/* Pagination Footer */}
         <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800">
           <div>
-            Total <strong className="text-zinc-900 dark:text-zinc-100">{filteredUsers.length}</strong> pengguna
+            {t("common.total", "Total")} <strong className="text-zinc-900 dark:text-zinc-100">{filteredUsers.length}</strong> {t("users.total_users_count", "pengguna")}
           </div>
           <div className="flex items-center gap-2">
             <span>
-              Halaman {page} dari {totalPages}
+              {t("common.page", "Halaman")} {page} {t("common.of", "dari")} {totalPages}
             </span>
             <Button
               variant="outline"
@@ -426,10 +446,10 @@ export default function Users() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {form.id ? "Edit Pengguna" : "Tambah Pengguna Baru"}
+              {form.id ? t("users.edit_user", "Edit Pengguna") : t("users.add_user_title", "Tambah Pengguna Baru")}
             </DialogTitle>
             <DialogDescription>
-              Kelola kredensial login, username, email, dan peran RBAC pengguna sistem.
+              {t("users.form_description", "Kelola kredensial login, username, email, dan peran RBAC pengguna sistem.")}
             </DialogDescription>
           </DialogHeader>
 
@@ -441,7 +461,9 @@ export default function Users() {
             )}
 
             <div className="space-y-1.5">
-              <Label htmlFor="user-name-input" className="text-xs">Nama Lengkap</Label>
+              <Label htmlFor="user-name-input" className="text-xs">
+                {t("users.field_name", "Nama Lengkap")}
+              </Label>
               <Input
                 id="user-name-input"
                 placeholder="cth. Ahmad Dahlan"
@@ -455,7 +477,7 @@ export default function Users() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="user-username-input" className="text-xs">
-                  Username Login
+                  {t("users.field_username_login", "Username Login")}
                 </Label>
                 <Input
                   id="user-username-input"
@@ -468,7 +490,7 @@ export default function Users() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="user-email-input" className="text-xs">
-                  Alamat Email
+                  {t("users.field_email", "Alamat Email")}
                 </Label>
                 <Input
                   id="user-email-input"
@@ -483,12 +505,12 @@ export default function Users() {
 
             <div className="space-y-1.5">
               <Label htmlFor="user-password-input" className="text-xs">
-                Password {form.id && <span className="text-zinc-400 font-normal">(kosongkan jika tidak diubah)</span>}
+                Password {form.id && <span className="text-zinc-400 font-normal">{t("users.field_password_empty_hint", "(kosongkan jika tidak diubah)")}</span>}
               </Label>
               <Input
                 id="user-password-input"
                 type="password"
-                placeholder="Minimal 8 karakter..."
+                placeholder={t("users.field_password_placeholder", "Minimal 8 karakter...")}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className="h-9 text-sm"
@@ -496,13 +518,13 @@ export default function Users() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Role Hak Akses (RBAC)</Label>
+              <Label className="text-xs">{t("users.field_role_rbac", "Role Hak Akses (RBAC)")}</Label>
               <Select
                 value={form.role}
                 onValueChange={(val) => setForm({ ...form, role: val })}
               >
                 <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Pilih Role" />
+                  <SelectValue placeholder={t("users.select_role_placeholder", "Pilih Role")} />
                 </SelectTrigger>
                 <SelectContent>
                   {rolesOptions.length > 0 ? (
@@ -531,7 +553,7 @@ export default function Users() {
                 className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-700"
               />
               <Label htmlFor="user-active-checkbox" className="text-sm font-medium cursor-pointer">
-                Akun Pengguna Aktif
+                {t("users.account_active_label", "Akun Pengguna Aktif")}
               </Label>
             </div>
 
@@ -542,11 +564,11 @@ export default function Users() {
                 size="sm"
                 onClick={() => setModalOpen(false)}
               >
-                Batal
+                {t("common.cancel", "Batal")}
               </Button>
               <Button type="submit" size="sm" disabled={submitting}>
                 {submitting && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                {form.id ? "Simpan Perubahan" : "Simpan Pengguna"}
+                {form.id ? t("users.btn_save_changes", "Simpan Perubahan") : t("users.btn_save_user", "Simpan Pengguna")}
               </Button>
             </div>
           </form>
@@ -557,20 +579,20 @@ export default function Users() {
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Hapus Pengguna</AlertDialogTitle>
+            <AlertDialogTitle>{t("users.confirm_delete_title", "Konfirmasi Hapus Pengguna")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus akun pengguna ini? Tindakan ini tidak dapat dibatalkan.
+              {t("users.delete_dialog_desc", "Apakah Anda yakin ingin menghapus akun pengguna ini? Tindakan ini tidak dapat dibatalkan.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setAlertOpen(false)}>
-              Batal
+              {t("common.cancel", "Batal")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700"
             >
-              Hapus Akun
+              {t("users.delete_account_btn", "Hapus Akun")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

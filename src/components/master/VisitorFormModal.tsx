@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ export default function VisitorFormModal({
   visitor,
   onSuccess,
 }: VisitorFormModalProps) {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [fetchingDetail, setFetchingDetail] = useState(false)
   const [vessels, setVessels] = useState<
@@ -203,16 +205,16 @@ export default function VisitorFormModal({
     try {
       if (visitor?.id) {
         await api.put(`/visitors/${visitor.id}`, payload)
-        toast.success("Data pengunjung berhasil diperbarui")
+        toast.success(t("visitors.toast_update_success", "Data pengunjung berhasil diperbarui"))
       } else {
         await api.post("/visitors", payload)
-        toast.success("Pengunjung baru berhasil didaftarkan")
+        toast.success(t("visitors.toast_create_success", "Pengunjung baru berhasil didaftarkan"))
       }
       onSuccess()
       onOpenChange(false)
     } catch (error: any) {
       console.error(error)
-      toast.error(error.response?.data?.message || "Gagal menyimpan data pengunjung")
+      toast.error(error.response?.data?.message || t("visitors.toast_save_failed", "Gagal menyimpan data pengunjung"))
     } finally {
       setLoading(false)
     }
@@ -225,10 +227,10 @@ export default function VisitorFormModal({
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl md:max-w-5xl w-[94vw]">
         <DialogHeader>
           <DialogTitle>
-            {visitor?.id ? "Edit Data Pengunjung" : "Pendaftaran Pengunjung Baru"}
+            {visitor?.id ? t("visitors.edit_modal_title", "Edit Data Pengunjung") : t("visitors.create_modal_title", "Pendaftaran Pengunjung Baru")}
           </DialogTitle>
           <DialogDescription>
-            Lengkapi data diri dan identitas pengunjung untuk registrasi ke sistem VMS.
+            {t("visitors.form_desc", "Lengkapi data diri dan identitas pengunjung untuk registrasi ke sistem VMS.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -236,7 +238,7 @@ export default function VisitorFormModal({
           <div className="flex items-start gap-2.5 rounded-md border border-amber-500/40 bg-amber-50 p-3 text-amber-900 text-xs dark:bg-amber-950/30 dark:text-amber-300">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <span>
-              Nomor identitas pengunjung blacklist dikunci demi integritas keamanan.
+              {t("visitors.blacklist_security_warning", "Nomor identitas pengunjung blacklist dikunci demi integritas keamanan.")}
             </span>
           </div>
         )}
@@ -244,7 +246,7 @@ export default function VisitorFormModal({
         {fetchingDetail && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            <span>Memuat rincian data lengkap pengunjung...</span>
+            <span>{t("visitors.loading_detail", "Memuat rincian data lengkap pengunjung...")}</span>
           </div>
         )}
 
@@ -252,18 +254,18 @@ export default function VisitorFormModal({
           {/* Section: Identitas Utama */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="vfm_name">Nama Lengkap *</Label>
+              <Label htmlFor="vfm_name">{t("visitors.field_name", "Nama Lengkap *")}</Label>
               <Input
                 id="vfm_name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Contoh: Ahmad Dahlan"
+                placeholder={t("visitors.field_name_placeholder", "Contoh: Ahmad Dahlan")}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="vfm_id_type">Tipe Identitas *</Label>
+              <Label htmlFor="vfm_id_type">{t("visitors.field_id_type", "Tipe Identitas *")}</Label>
               <select
                 id="vfm_id_type"
                 value={form.id_type}
@@ -279,13 +281,13 @@ export default function VisitorFormModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="vfm_id_number">Nomor Identitas *</Label>
+              <Label htmlFor="vfm_id_number">{t("visitors.field_id_number", "Nomor Identitas *")}</Label>
               <Input
                 id="vfm_id_number"
                 value={form.id_number}
                 disabled={isBlacklisted}
                 onChange={(e) => setForm({ ...form, id_number: e.target.value })}
-                placeholder="Nomor KTP / SIM / Paspor"
+                placeholder={t("visitors.field_id_number_placeholder", "Nomor KTP / SIM / Paspor")}
                 required
               />
             </div>
@@ -294,7 +296,7 @@ export default function VisitorFormModal({
           {/* Section: Instansi & Tipe Visitor */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="vfm_company">Perusahaan / Instansi</Label>
+              <Label htmlFor="vfm_company">{t("visitors.field_company", "Perusahaan / Instansi")}</Label>
               <Input
                 id="vfm_company"
                 value={form.company}
@@ -304,38 +306,38 @@ export default function VisitorFormModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="vfm_occupation">Jabatan / Profesi</Label>
+              <Label htmlFor="vfm_occupation">{t("visitors.field_occupation", "Jabatan / Profesi")}</Label>
               <Input
                 id="vfm_occupation"
                 value={form.occupation}
                 onChange={(e) => setForm({ ...form, occupation: e.target.value })}
-                placeholder="Contoh: Teknisi, Marine Inspector"
+                placeholder={t("visitors.field_occupation_placeholder", "Contoh: Teknisi, Marine Inspector")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="vfm_visitor_type">Tipe Pengunjung</Label>
+              <Label htmlFor="vfm_visitor_type">{t("visitors.field_visitor_type", "Tipe Pengunjung")}</Label>
               <select
                 id="vfm_visitor_type"
                 value={form.visitor_type}
                 onChange={(e) => setForm({ ...form, visitor_type: e.target.value })}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <option value="visitor">Pengunjung Umum (Regular)</option>
-                <option value="crew">Crew (Kru Kapal)</option>
-                <option value="temporary_worker">Tenaga Kerja Sementara / Kontraktor</option>
-                <option value="supplier">Supplier / Vendor</option>
-                <option value="others">Lainnya</option>
+                <option value="visitor">{t("visitors.opt_type_regular", "Pengunjung Umum (Regular)")}</option>
+                <option value="crew">{t("visitors.opt_type_crew", "Crew (Kru Kapal)")}</option>
+                <option value="temporary_worker">{t("visitors.opt_type_contractor", "Tenaga Kerja Sementara / Kontraktor")}</option>
+                <option value="supplier">{t("visitors.opt_type_supplier", "Supplier / Vendor")}</option>
+                <option value="others">{t("visitors.opt_type_others", "Lainnya")}</option>
               </select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="vfm_phone">Nomor Telepon</Label>
+              <Label htmlFor="vfm_phone">{t("visitors.field_phone", "Nomor Telepon")}</Label>
               <Input
                 id="vfm_phone"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="Contoh: 081234567890"
+                placeholder={t("visitors.field_phone_placeholder", "Contoh: 081234567890")}
               />
             </div>
           </div>
@@ -343,44 +345,44 @@ export default function VisitorFormModal({
           {/* Section: Kontak & Biodata Tambahan */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="vfm_email">Email</Label>
+              <Label htmlFor="vfm_email">{t("visitors.field_email", "Email")}</Label>
               <Input
                 id="vfm_email"
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="nama@email.com"
+                placeholder={t("visitors.field_email_placeholder", "nama@email.com")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="vfm_gender">Jenis Kelamin</Label>
+              <Label htmlFor="vfm_gender">{t("visitors.field_gender", "Jenis Kelamin")}</Label>
               <select
                 id="vfm_gender"
                 value={form.gender}
                 onChange={(e) => setForm({ ...form, gender: e.target.value })}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <option value="">Pilih Jenis Kelamin</option>
-                <option value="M">Laki-laki (M)</option>
-                <option value="F">Perempuan (F)</option>
+                <option value="">{t("visitors.opt_select_gender", "Pilih Jenis Kelamin")}</option>
+                <option value="M">{t("common.male", "Laki-laki (M)")}</option>
+                <option value="F">{t("common.female", "Perempuan (F)")}</option>
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="vfm_pob">Tempat Lahir</Label>
+              <Label htmlFor="vfm_pob">{t("visitors.field_pob", "Tempat Lahir")}</Label>
               <Input
                 id="vfm_pob"
                 value={form.birth_place}
                 onChange={(e) => setForm({ ...form, birth_place: e.target.value })}
-                placeholder="Kota Kelahiran"
+                placeholder={t("visitors.field_pob_placeholder", "Kota Kelahiran")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="vfm_dob">Tanggal Lahir</Label>
+              <Label htmlFor="vfm_dob">{t("visitors.field_dob", "Tanggal Lahir")}</Label>
               <Input
                 id="vfm_dob"
                 type="date"
@@ -390,23 +392,23 @@ export default function VisitorFormModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="vfm_nationality">Kewarganegaraan</Label>
+              <Label htmlFor="vfm_nationality">{t("visitors.field_nationality", "Kewarganegaraan")}</Label>
               <Input
                 id="vfm_nationality"
                 value={form.nationality}
                 onChange={(e) => setForm({ ...form, nationality: e.target.value })}
-                placeholder="Indonesia"
+                placeholder={t("visitors.field_nationality_placeholder", "Indonesia")}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="vfm_address">Alamat Domisili</Label>
+            <Label htmlFor="vfm_address">{t("visitors.field_address", "Alamat Domisili")}</Label>
             <Textarea
               id="vfm_address"
               value={form.address}
               onChange={(e) => setForm({ ...form, address: e.target.value })}
-              placeholder="Alamat tempat tinggal lengkap..."
+              placeholder={t("visitors.field_address_placeholder", "Alamat tempat tinggal lengkap...")}
               rows={2}
             />
           </div>
@@ -415,18 +417,18 @@ export default function VisitorFormModal({
           {form.visitor_type === "crew" && (
             <div className="rounded-lg border border-sky-200 bg-sky-50/40 p-4 space-y-4 dark:border-sky-900/50 dark:bg-sky-950/20">
               <h4 className="font-semibold text-sky-950 text-sm dark:text-sky-300">
-                Dokumen Kelautan Kru Kapal
+                {t("visitors.crew_docs_title", "Dokumen Kelautan Kru Kapal")}
               </h4>
               <div className="space-y-2">
-                <Label htmlFor="vfm_vessel_id">Kapal Tugas (Vessel)</Label>
+                <Label htmlFor="vfm_vessel_id">{t("visitors.field_vessel", "Kapal Tugas (Vessel)")}</Label>
                 <SearchableLocationSelect
                   id="vfm_vessel_id"
-                  ariaLabel="Kapal Tugas (Vessel)"
+                  ariaLabel={t("visitors.field_vessel", "Kapal Tugas (Vessel)")}
                   options={vessels}
                   value={form.vessel_id}
                   onChange={(val) => setForm({ ...form, vessel_id: val })}
-                  placeholder="-- Cari & Pilih Kapal Tugas (Opsional) --"
-                  searchPlaceholder="Cari nama kapal, IMO No, Captain, atau PIC..."
+                  placeholder={t("visitors.vessel_placeholder", "-- Cari & Pilih Kapal Tugas (Opsional) --")}
+                  searchPlaceholder={t("visitors.vessel_search_placeholder", "Cari nama kapal, IMO No, Captain, atau PIC...")}
                   className="h-9 bg-white dark:bg-zinc-900"
                 />
                 {selectedVessel && (
@@ -448,21 +450,21 @@ export default function VisitorFormModal({
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="vfm_cert">Nomor Sertifikat</Label>
+                  <Label htmlFor="vfm_cert">{t("visitors.field_certificate_no", "Nomor Sertifikat")}</Label>
                   <Input
                     id="vfm_cert"
                     value={form.certificate_no}
                     onChange={(e) => setForm({ ...form, certificate_no: e.target.value })}
-                    placeholder="Contoh: CERT-MAR-1234"
+                    placeholder={t("visitors.field_certificate_no_placeholder", "Contoh: CERT-MAR-1234")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="vfm_seaman">Buku Pelaut (Seaman Book)</Label>
+                  <Label htmlFor="vfm_seaman">{t("visitors.field_seaman_book", "Buku Pelaut (Seaman Book)")}</Label>
                   <Input
                     id="vfm_seaman"
                     value={form.seaman_book_no}
                     onChange={(e) => setForm({ ...form, seaman_book_no: e.target.value })}
-                    placeholder="Nomor Buku Pelaut"
+                    placeholder={t("visitors.field_seaman_book_placeholder", "Nomor Buku Pelaut")}
                   />
                 </div>
               </div>
@@ -476,18 +478,18 @@ export default function VisitorFormModal({
               onClick={() => onOpenChange(false)}
               disabled={loading}
             >
-              Batal
+              {t("common.cancel", "Batal")}
             </Button>
             <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menyimpan...
+                  {t("common.processing", "Menyimpan...")}
                 </>
               ) : visitor?.id ? (
-                "Perbarui Pengunjung"
+                t("visitors.btn_submit_update", "Perbarui Pengunjung")
               ) : (
-                "Daftar Pengunjung"
+                t("visitors.btn_submit_create", "Daftar Pengunjung")
               )}
             </Button>
           </div>

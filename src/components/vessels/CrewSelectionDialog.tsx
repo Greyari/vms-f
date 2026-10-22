@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import {
   Dialog,
@@ -85,6 +86,7 @@ export default function CrewSelectionDialog({
   selectedCrewIds,
   onSave,
 }: CrewSelectionDialogProps) {
+  const { t } = useTranslation()
   const [candidates, setCandidates] = useState<CrewCandidate[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState("")
@@ -381,10 +383,10 @@ export default function CrewSelectionDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
               <Users className="h-5 w-5 text-blue-600" />
-              Pilih Manifest Kru Kapal
+              {t("vesselArrivals.crew_dialog_title", "Pilih Manifest Kru Kapal")}
             </DialogTitle>
             <DialogDescription>
-              Pilih anggota kru pelaut yang bertugas pada transaksi sandar kapal ini. Kru dengan status blacklist dilarang dipilih.
+              {t("vesselArrivals.crew_dialog_desc", "Pilih anggota kru pelaut yang bertugas pada transaksi sandar kapal ini. Kru dengan status blacklist dilarang dipilih.")}
             </DialogDescription>
           </DialogHeader>
 
@@ -395,7 +397,7 @@ export default function CrewSelectionDialog({
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari nama, ID, perusahaan, buku pelaut..."
+                placeholder={t("vesselArrivals.search_crew_placeholder", "Cari nama, ID, perusahaan, buku pelaut...")}
                 className="pl-9 h-9"
               />
             </div>
@@ -409,7 +411,7 @@ export default function CrewSelectionDialog({
                 className="text-xs"
               >
                 <CheckSquare className="h-3.5 w-3.5 mr-1 text-blue-600" />
-                Pilih Semua
+                {t("vesselArrivals.btn_select_all", "Pilih Semua")}
               </Button>
               <Button
                 type="button"
@@ -419,7 +421,7 @@ export default function CrewSelectionDialog({
                 className="text-xs"
               >
                 <Square className="h-3.5 w-3.5 mr-1 text-zinc-500" />
-                Hapus Pilihan
+                {t("vesselArrivals.btn_deselect_all", "Hapus Pilihan")}
               </Button>
               <Button
                 type="button"
@@ -428,10 +430,10 @@ export default function CrewSelectionDialog({
                 className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 <UserPlus className="h-3.5 w-3.5 mr-1" />
-                Tambah Kru Baru
+                {t("vesselArrivals.btn_add_new_crew", "Tambah Kru Baru")}
               </Button>
               <Badge variant="secondary" className="px-2.5 py-1 text-xs font-semibold">
-                {selectedIds.size} Terpilih
+                {selectedIds.size} {t("vesselArrivals.selected_badge", "Terpilih")}
               </Badge>
             </div>
           </div>
@@ -443,7 +445,7 @@ export default function CrewSelectionDialog({
                 <div className="flex items-center gap-2">
                   <UserPlus className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   <span className="text-sm font-bold text-emerald-950 dark:text-emerald-200">
-                    Tambah Kru Baru Langsung
+                    {t("vesselArrivals.quick_add_crew_title", "Tambah Kru Baru Langsung")}
                   </span>
                 </div>
                 <Button
@@ -461,13 +463,13 @@ export default function CrewSelectionDialog({
               <form onSubmit={handleCreateCrewSubmit} className="space-y-3">
                 <div>
                   <Label htmlFor="inline_name">
-                    Nama Lengkap Kru <span className="text-red-500">*</span>
+                    {t("vesselArrivals.crew_full_name", "Nama Lengkap Kru")} <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="inline_name"
                     value={newCrewForm.name}
                     onChange={(e) => setNewCrewForm({ ...newCrewForm, name: e.target.value })}
-                    placeholder="Contoh: Muhammad Santoso"
+                    placeholder={t("vesselArrivals.crew_name_placeholder", "Contoh: Muhammad Santoso")}
                     className="mt-1 bg-white dark:bg-zinc-800"
                     autoFocus
                   />
@@ -479,7 +481,7 @@ export default function CrewSelectionDialog({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
                     <Label htmlFor="inline_id_type">
-                      Tipe ID <span className="text-red-500">*</span>
+                      {t("vesselArrivals.id_type", "Tipe ID")} <span className="text-red-500">*</span>
                     </Label>
                     <select
                       id="inline_id_type"
@@ -495,13 +497,13 @@ export default function CrewSelectionDialog({
 
                   <div>
                     <Label htmlFor="inline_id_number">
-                      Nomor Identitas <span className="text-red-500">*</span>
+                      {t("vesselArrivals.id_number", "Nomor Identitas")} <span className="text-red-500">*</span>
                     </Label>
                     <Input
                       id="inline_id_number"
                       value={newCrewForm.id_number}
                       onChange={(e) => setNewCrewForm({ ...newCrewForm, id_number: e.target.value })}
-                      placeholder="Nomor identitas..."
+                      placeholder={t("vesselArrivals.id_number_placeholder", "Nomor identitas...")}
                       className="mt-1 bg-white dark:bg-zinc-800"
                     />
                     {newCrewErrors.id_number && (
@@ -511,35 +513,35 @@ export default function CrewSelectionDialog({
                 </div>
 
                 <div>
-                  <Label htmlFor="inline_company">Perusahaan Pelayaran / Instansi</Label>
+                  <Label htmlFor="inline_company">{t("vesselArrivals.shipping_company", "Perusahaan Pelayaran / Instansi")}</Label>
                   <Input
                     id="inline_company"
                     value={newCrewForm.company}
                     onChange={(e) => setNewCrewForm({ ...newCrewForm, company: e.target.value })}
-                    placeholder="Contoh: PT. Pelayaran Nasional"
+                    placeholder={t("vesselArrivals.company_placeholder", "Contoh: PT. Pelayaran Nasional")}
                     className="mt-1 bg-white dark:bg-zinc-800"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
-                    <Label htmlFor="inline_occupation">Jabatan / Pangkat</Label>
+                    <Label htmlFor="inline_occupation">{t("vesselArrivals.rank_occupation", "Jabatan / Pangkat")}</Label>
                     <Input
                       id="inline_occupation"
                       value={newCrewForm.occupation}
                       onChange={(e) => setNewCrewForm({ ...newCrewForm, occupation: e.target.value })}
-                      placeholder="Contoh: Oiler, AB, Bosun"
+                      placeholder={t("vesselArrivals.rank_placeholder", "Contoh: Oiler, AB, Bosun")}
                       className="mt-1 bg-white dark:bg-zinc-800"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="inline_seaman">Buku Pelaut (Seaman Book)</Label>
+                    <Label htmlFor="inline_seaman">{t("vesselArrivals.seaman_book", "Buku Pelaut (Seaman Book)")}</Label>
                     <Input
                       id="inline_seaman"
                       value={newCrewForm.seaman_book_no}
                       onChange={(e) => setNewCrewForm({ ...newCrewForm, seaman_book_no: e.target.value })}
-                      placeholder="Contoh: SB-12345"
+                      placeholder={t("vesselArrivals.seaman_book_placeholder", "Contoh: SB-12345")}
                       className="mt-1 bg-white dark:bg-zinc-800"
                     />
                   </div>
@@ -553,7 +555,7 @@ export default function CrewSelectionDialog({
                     onClick={() => setNewCrewOpen(false)}
                     disabled={creatingCrew}
                   >
-                    Batal
+                    {t("common.cancel", "Batal")}
                   </Button>
                   <Button
                     type="submit"
@@ -565,12 +567,12 @@ export default function CrewSelectionDialog({
                     {creatingCrew ? (
                       <>
                         <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                        Menyimpan...
+                        {t("common.processing", "Menyimpan...")}
                       </>
                     ) : (
                       <>
                         <UserPlus className="h-3.5 w-3.5 mr-1" />
-                        Simpan & Pilih Kru
+                        {t("vesselArrivals.save_select_crew", "Simpan & Pilih Kru")}
                       </>
                     )}
                   </Button>
@@ -584,11 +586,11 @@ export default function CrewSelectionDialog({
             <Table>
               <TableHeader className="bg-zinc-50 dark:bg-zinc-800/80 sticky top-0 z-10">
                 <TableRow>
-                  <TableHead className="w-12 text-center">Pilih</TableHead>
-                  <TableHead>Nama Kru & No. Visitor</TableHead>
-                  <TableHead>Jabatan & Kebangsaan</TableHead>
-                  <TableHead>Perusahaan & Buku Pelaut</TableHead>
-                  <TableHead>Status / Penanda</TableHead>
+                  <TableHead className="w-12 text-center">{t("common.select", "Pilih")}</TableHead>
+                  <TableHead>{t("vesselArrivals.col_crew_name_visitor_no", "Nama Kru & No. Visitor")}</TableHead>
+                  <TableHead>{t("vesselArrivals.col_occupation_nationality", "Jabatan & Kebangsaan")}</TableHead>
+                  <TableHead>{t("vesselArrivals.col_company_seaman_book", "Perusahaan & Buku Pelaut")}</TableHead>
+                  <TableHead>{t("vesselArrivals.col_status_marker", "Status / Penanda")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -597,7 +599,7 @@ export default function CrewSelectionDialog({
                     <TableCell colSpan={5} className="h-40 text-center">
                       <div className="flex items-center justify-center gap-2 text-zinc-500">
                         <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                        Memuat kandidat kru kapal...
+                        {t("vesselArrivals.loading_crew_candidates", "Memuat kandidat kru kapal...")}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -608,11 +610,11 @@ export default function CrewSelectionDialog({
                         <Ship className="h-8 w-8 text-zinc-400 stroke-[1.5]" />
                         <p className="font-medium text-zinc-700 dark:text-zinc-300">
                           {search.trim()
-                            ? `Tidak ada kru yang cocok dengan kata kunci "${search}".`
-                            : "Belum ada kandidat kru yang terdaftar untuk kapal ini."}
+                            ? t("vesselArrivals.no_matching_crew", "Tidak ada kru yang cocok dengan kata kunci \"{{search}}\".", { search })
+                            : t("vesselArrivals.no_crew_candidates", "Belum ada kandidat kru yang terdaftar untuk kapal ini.")}
                         </p>
                         <p className="text-xs text-zinc-400 max-w-sm">
-                          Anda dapat menambahkan kru baru secara langsung tanpa perlu meninggalkan formulir ini.
+                          {t("vesselArrivals.can_add_crew_inline", "Anda dapat menambahkan kru baru secara langsung tanpa perlu meninggalkan formulir ini.")}
                         </p>
                       </div>
                     </TableCell>
@@ -684,27 +686,27 @@ export default function CrewSelectionDialog({
                                 BLACKLIST
                               </Badge>
                               <p className="text-xs text-red-600 dark:text-red-400 font-medium">
-                                {candidate.blacklist_reason || "Dilarang bertugas di kapal"}
+                                {candidate.blacklist_reason || t("vesselArrivals.forbidden_on_vessel", "Dilarang bertugas di kapal")}
                               </p>
                             </div>
                           ) : isSelected ? (
                             <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-300 flex items-center gap-1 w-fit text-xs font-medium">
                               <CheckCircle2 className="h-3 w-3 text-blue-600" />
-                              Terpilih
+                              {t("vesselArrivals.selected_badge", "Terpilih")}
                             </Badge>
                           ) : candidate.active_placement && candidate.active_placement.vessel_arrival_id !== arrivalId ? (
                             <div className="space-y-1">
                               <Badge variant="outline" className="text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-300 flex items-center gap-1 w-fit text-xs font-medium">
                                 <Ship className="h-3 w-3" />
-                                Aktif: {candidate.active_placement.vessel_name}
+                                {t("vesselArrivals.active_on_vessel", "Aktif: {{name}}", { name: candidate.active_placement.vessel_name })}
                               </Badge>
                               <span className="text-[10px] text-muted-foreground block">
-                                Klik untuk pindah kapal
+                                {t("vesselArrivals.click_to_transfer", "Klik untuk pindah kapal")}
                               </span>
                             </div>
                           ) : (
                             <Badge variant="outline" className="text-emerald-700 dark:text-emerald-400 border-emerald-200 text-xs">
-                              Siap Ditugaskan
+                              {t("vesselArrivals.ready_to_assign", "Siap Ditugaskan")}
                             </Badge>
                           )}
                         </TableCell>
@@ -718,14 +720,14 @@ export default function CrewSelectionDialog({
 
           <DialogFooter className="pt-3 border-t border-zinc-200 dark:border-zinc-700 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={onClose}>
-              Batal
+              {t("common.cancel", "Batal")}
             </Button>
             <Button
               type="button"
               onClick={handleApply}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              Terapkan Kru ({selectedIds.size} Terpilih)
+              {t("vesselArrivals.btn_apply_crew", "Terapkan Kru ({{count}} Terpilih)", { count: selectedIds.size })}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -735,23 +737,29 @@ export default function CrewSelectionDialog({
       <AlertDialog open={transferConfirmOpen} onOpenChange={setTransferConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Pindah Kapal</AlertDialogTitle>
+            <AlertDialogTitle>{t("vesselArrivals.transfer_dialog_title", "Konfirmasi Pindah Kapal")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Kru <strong>{transferCandidate?.name}</strong> saat ini masih aktif di kapal{" "}
-              <strong>{transferCandidate?.active_placement?.vessel_name}</strong>.
-              <br className="my-1" />
-              Apakah Anda ingin melakukan <strong>Check-Out</strong> dari kapal lama dan memindahkannya ke kapal ini? Data riwayat di kapal lama tetap tersimpan.
+              {t(
+                "vesselArrivals.transfer_dialog_desc",
+                "Kru {{name}} saat ini masih aktif di kapal {{vessel}}. Apakah Anda ingin memindahkan penempatannya ke {{newVessel}}?",
+                {
+                  name: transferCandidate?.name || "",
+                  vessel: transferCandidate?.active_placement?.vessel_name || "",
+                  oldVessel: transferCandidate?.active_placement?.vessel_name || "",
+                  newVessel: "kapal ini",
+                }
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={transferring}>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={transferring}>{t("common.cancel", "Batal")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmTransfer}
               disabled={transferring}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {transferring ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              Pindahkan Kru
+              {t("vesselArrivals.transfer_btn", "Pindahkan Kru")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

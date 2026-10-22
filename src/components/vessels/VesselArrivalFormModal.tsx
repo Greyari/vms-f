@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import {
   Dialog,
@@ -60,6 +61,7 @@ export default function VesselArrivalFormModal({
   onSuccess,
   arrivalToEdit,
 }: VesselArrivalFormModalProps) {
+  const { t } = useTranslation()
   const isEdit = Boolean(arrivalToEdit)
 
   // Vessel locations
@@ -233,7 +235,7 @@ export default function VesselArrivalFormModal({
 
   const handleCreateVessel = async () => {
     if (!newVesselForm.name.trim()) {
-      toast.error("Nama kapal wajib diisi.")
+      toast.error(t("vesselArrivals.err_vessel_name_required", "Nama kapal wajib diisi."))
       return
     }
     const rawCode = newVesselForm.code.trim()
@@ -278,10 +280,10 @@ export default function VesselArrivalFormModal({
           captain: "",
           pic: "",
         })
-        toast.success(`Kapal "${created.name}" berhasil ditambahkan dan dipilih.`)
+        toast.success(t("vesselArrivals.toast_vessel_created", "Kapal \"{{name}}\" berhasil ditambahkan dan dipilih.", { name: created.name }))
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Gagal menambahkan data kapal baru.")
+      toast.error(err?.response?.data?.message || t("vesselArrivals.toast_vessel_create_failed", "Gagal menambahkan data kapal baru."))
     } finally {
       setCreatingVessel(false)
     }
@@ -290,23 +292,25 @@ export default function VesselArrivalFormModal({
   const handleRemoveCrew = (crewId: string, crewName?: string) => {
     setSelectedCrewIds((prev) => prev.filter((id) => id !== crewId))
     setSelectedCrewList((prev) => prev.filter((c) => c.id !== crewId))
-    toast.info(`Kru ${crewName ? `"${crewName}" ` : ""}dihapus dari manifest`)
+    toast.info(t("vesselArrivals.toast_crew_removed", "Kru {{name}}dihapus dari manifest", { name: crewName ? `"${crewName}" ` : "" }))
   }
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
 
     if (!locationId) {
-      newErrors.location_id = "Kapal wajib dipilih."
+      newErrors.location_id = t("vesselArrivals.err_vessel_required", "Kapal wajib dipilih.")
     }
 
     if (!signInDate) {
-      newErrors.sign_in_date = "Tanggal kedatangan wajib diisi."
+      newErrors.sign_in_date = t("vesselArrivals.err_sign_in_required", "Tanggal kedatangan wajib diisi.")
     }
 
     if (signOutDate && signInDate && signOutDate < signInDate) {
-      newErrors.sign_out_date =
+      newErrors.sign_out_date = t(
+        "vesselArrivals.err_sign_out_before_sign_in",
         "Tanggal keberangkatan tidak boleh mendahului tanggal kedatangan."
+      )
     }
 
     setErrors(newErrors)
@@ -346,10 +350,10 @@ export default function VesselArrivalFormModal({
 
       if (isEdit && arrivalToEdit) {
         await api.put(`/vessel-arrivals/${arrivalToEdit.id}`, payload)
-        toast.success("Data kedatangan kapal berhasil diperbarui")
+        toast.success(t("vesselArrivals.toast_arrival_updated", "Data kedatangan kapal berhasil diperbarui"))
       } else {
         await api.post("/vessel-arrivals", payload)
-        toast.success("Kedatangan kapal baru berhasil dicatat")
+        toast.success(t("vesselArrivals.toast_arrival_saved", "Kedatangan kapal baru berhasil dicatat"))
       }
 
       onSuccess()
@@ -357,8 +361,8 @@ export default function VesselArrivalFormModal({
     } catch {
       toast.error(
         isEdit
-          ? "Gagal memperbarui kedatangan kapal"
-          : "Gagal mencatat kedatangan kapal baru"
+          ? t("vesselArrivals.toast_arrival_update_failed", "Gagal memperbarui kedatangan kapal")
+          : t("vesselArrivals.toast_arrival_save_failed", "Gagal mencatat kedatangan kapal baru")
       )
     } finally {
       setSubmitting(false)
@@ -367,7 +371,7 @@ export default function VesselArrivalFormModal({
   
   const renderPortChips = (current: string, onPick: (value: string) => void) => (
     <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
-      <span className="text-[11px] font-medium text-zinc-500">Saran Cepat:</span>
+      <span className="text-[11px] font-medium text-zinc-500">{t("vesselArrivals.quick_suggestions", "Saran Cepat:")}</span>
       {POPULAR_PORTS.map((port) => (
         <button
           key={port}
@@ -393,11 +397,11 @@ export default function VesselArrivalFormModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold">
             {isEdit
-              ? "Edit Kedatangan Kapal"
-              : "Catat Kedatangan Kapal Baru"}
+              ? t("vesselArrivals.form_edit_title", "Edit Kedatangan Kapal")
+              : t("vesselArrivals.form_create_title", "Catat Kedatangan Kapal Baru")}
           </DialogTitle>
           <DialogDescription>
-            Masukkan informasi kapal, tanggal dan pelabuhan sandar, nakhoda, keagenan, serta manifest kru.
+            {t("vesselArrivals.form_desc", "Masukkan informasi kapal, tanggal dan pelabuhan sandar, nakhoda, keagenan, serta manifest kru.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -406,7 +410,7 @@ export default function VesselArrivalFormModal({
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b pb-1">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                Informasi Kapal & Jadwal Sandar
+                {t("vesselArrivals.section_vessel_schedule", "Informasi Kapal & Jadwal Sandar")}
               </h3>
               <Button
                 type="button"
@@ -416,49 +420,49 @@ export default function VesselArrivalFormModal({
                 className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
               >
                 <Plus className="h-3.5 w-3.5 mr-1" />
-                {newVesselOpen ? "Tutup Form Kapal" : "Tambah Kapal Baru"}
+                {newVesselOpen ? t("vesselArrivals.btn_close_vessel_form", "Tutup Form Kapal") : t("vesselArrivals.btn_add_vessel", "Tambah Kapal Baru")}
               </Button>
             </div>
 
             {newVesselOpen && (
               <div
                 role="region"
-                aria-label="Form Tambah Kapal Baru"
+                aria-label={t("vesselArrivals.form_add_vessel_aria", "Form Tambah Kapal Baru")}
                 className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50/60 dark:border-emerald-800 dark:bg-emerald-950/30 space-y-3"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-                    Tambah Master Kapal Baru
+                    {t("vesselArrivals.quick_vessel_title", "Tambah Master Kapal Baru")}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
                     <Label htmlFor="quick-vessel-name" className="text-xs">
-                      Description / Nama Kapal <span className="text-red-500">*</span>
+                      {t("vesselArrivals.quick_vessel_name", "Description / Nama Kapal")} <span className="text-red-500">*</span>
                     </Label>
                     <Input
                       id="quick-vessel-name"
                       value={newVesselForm.name}
                       onChange={(e) => setNewVesselForm((p) => ({ ...p, name: e.target.value }))}
-                      placeholder="Contoh: GAS WIDURI"
+                      placeholder={t("vesselArrivals.quick_vessel_name_placeholder", "Contoh: GAS WIDURI")}
                       className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
                     />
                   </div>
                   <div>
                     <Label htmlFor="quick-vessel-code" className="text-xs">
-                      IMO No / Kode
+                      {t("vesselArrivals.quick_vessel_code", "IMO No / Kode")}
                     </Label>
                     <Input
                       id="quick-vessel-code"
                       value={newVesselForm.code}
                       onChange={(e) => setNewVesselForm((p) => ({ ...p, code: e.target.value }))}
-                      placeholder='Nomor IMO atau "-"'
+                      placeholder={t("vesselArrivals.quick_vessel_code_placeholder", 'Nomor IMO atau "-"')}
                       className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
                     />
                   </div>
                   <div>
                     <Label htmlFor="quick-vessel-category" className="text-xs">
-                      Kategori Kapal
+                      {t("vesselArrivals.quick_vessel_category", "Kategori Kapal")}
                     </Label>
                     <select
                       id="quick-vessel-category"
@@ -473,61 +477,61 @@ export default function VesselArrivalFormModal({
                   </div>
                   <div>
                     <Label htmlFor="quick-vessel-type" className="text-xs">
-                      Type (Spesifikasi)
+                      {t("vesselArrivals.quick_vessel_type", "Type (Spesifikasi)")}
                     </Label>
                     <Input
                       id="quick-vessel-type"
                       value={newVesselForm.vessel_type}
                       onChange={(e) => setNewVesselForm((p) => ({ ...p, vessel_type: e.target.value }))}
-                      placeholder="Contoh: LPG TANKER"
+                      placeholder={t("vesselArrivals.quick_vessel_type_placeholder", "Contoh: LPG TANKER")}
                       className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
                     />
                   </div>
                   <div>
                     <Label htmlFor="quick-vessel-callsign" className="text-xs">
-                      Call Sign
+                      {t("vesselArrivals.quick_vessel_callsign", "Call Sign")}
                     </Label>
                     <Input
                       id="quick-vessel-callsign"
                       value={newVesselForm.call_sign}
                       onChange={(e) => setNewVesselForm((p) => ({ ...p, call_sign: e.target.value }))}
-                      placeholder="Contoh: POJR"
+                      placeholder={t("vesselArrivals.quick_vessel_callsign_placeholder", "Contoh: POJR")}
                       className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
                     />
                   </div>
                   <div>
                     <Label htmlFor="quick-vessel-flag" className="text-xs">
-                      Nationality Flag
+                      {t("vesselArrivals.quick_vessel_flag", "Nationality Flag")}
                     </Label>
                     <Input
                       id="quick-vessel-flag"
                       value={newVesselForm.flag}
                       onChange={(e) => setNewVesselForm((p) => ({ ...p, flag: e.target.value }))}
-                      placeholder="Contoh: INDONESIA"
+                      placeholder={t("vesselArrivals.quick_vessel_flag_placeholder", "Contoh: INDONESIA")}
                       className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
                     />
                   </div>
                   <div>
                     <Label htmlFor="quick-vessel-captain" className="text-xs">
-                      Captain
+                      {t("vesselArrivals.quick_vessel_captain", "Captain")}
                     </Label>
                     <Input
                       id="quick-vessel-captain"
                       value={newVesselForm.captain}
                       onChange={(e) => setNewVesselForm((p) => ({ ...p, captain: e.target.value }))}
-                      placeholder="Contoh: CAPT. SUTRISNO"
+                      placeholder={t("vesselArrivals.quick_vessel_captain_placeholder", "Contoh: CAPT. SUTRISNO")}
                       className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
                     />
                   </div>
                   <div className="sm:col-span-2">
                     <Label htmlFor="quick-vessel-pic" className="text-xs">
-                      Note / PIC
+                      {t("vesselArrivals.quick_vessel_pic", "Note / PIC")}
                     </Label>
                     <Input
                       id="quick-vessel-pic"
                       value={newVesselForm.pic}
                       onChange={(e) => setNewVesselForm((p) => ({ ...p, pic: e.target.value }))}
-                      placeholder="Contoh: ALVI"
+                      placeholder={t("vesselArrivals.quick_vessel_pic_placeholder", "Contoh: ALVI")}
                       className="mt-1 h-8 text-xs bg-white dark:bg-zinc-900"
                     />
                   </div>
@@ -541,7 +545,7 @@ export default function VesselArrivalFormModal({
                     disabled={creatingVessel}
                     className="h-7 text-xs"
                   >
-                    Batal
+                    {t("common.cancel", "Batal")}
                   </Button>
                   <Button
                     type="button"
@@ -553,10 +557,10 @@ export default function VesselArrivalFormModal({
                     {creatingVessel ? (
                       <>
                         <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        Menyimpan...
+                        {t("common.processing", "Menyimpan...")}
                       </>
                     ) : (
-                      "Simpan & Pilih Kapal"
+                      t("vesselArrivals.btn_save_select_vessel", "Simpan & Pilih Kapal")
                     )}
                   </Button>
                 </div>
@@ -566,16 +570,16 @@ export default function VesselArrivalFormModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="vessel-select">
-                  Pilih Kapal <span className="text-red-500">*</span>
+                  {t("vesselArrivals.select_vessel_label", "Pilih Kapal")} <span className="text-red-500">*</span>
                 </Label>
                 <SearchableLocationSelect
                   id="vessel-select"
-                  ariaLabel="Pilih Kapal"
+                  ariaLabel={t("vesselArrivals.select_vessel_label", "Pilih Kapal")}
                   options={vessels}
                   value={locationId}
                   onChange={(val) => handleSelectVessel(val)}
-                  placeholder="-- Cari & Pilih Kapal (Nama, IMO, Captain, PIC) --"
-                  searchPlaceholder="Cari nama kapal, IMO No, Captain, PIC, atau Tipe..."
+                  placeholder={t("vesselArrivals.select_vessel_placeholder", "-- Cari & Pilih Kapal (Nama, IMO, Captain, PIC) --")}
+                  searchPlaceholder={t("vesselArrivals.search_vessel_input_placeholder", "Cari nama kapal, IMO No, Captain, PIC, atau Tipe...")}
                   disabled={loadingVessels || submitting}
                   className="mt-1 h-10"
                 />
@@ -585,13 +589,13 @@ export default function VesselArrivalFormModal({
               </div>
 
               <div>
-                <Label htmlFor="captain-input">Nakhoda / Captain</Label>
+                <Label htmlFor="captain-input">{t("vesselArrivals.label_captain", "Nakhoda / Captain")}</Label>
                 <Input
                   id="captain-input"
-                  aria-label="Nakhoda"
+                  aria-label={t("vesselArrivals.label_captain_aria", "Nakhoda")}
                   value={captain}
                   onChange={(e) => setCaptain(e.target.value)}
-                  placeholder="Nama kapten kapal..."
+                  placeholder={t("vesselArrivals.captain_placeholder", "Nama kapten kapal...")}
                   disabled={submitting}
                   className="mt-1"
                 />
@@ -634,12 +638,12 @@ export default function VesselArrivalFormModal({
 
               <div>
                 <Label htmlFor="sign-in-date">
-                  Tanggal Kedatangan (Sign-In) <span className="text-red-500">*</span>
+                  {t("vesselArrivals.sign_in_date_label", "Tanggal Kedatangan (Sign-In)")} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="sign-in-date"
                   type="date"
-                  aria-label="Tanggal Kedatangan"
+                  aria-label={t("vesselArrivals.sign_in_date_aria", "Tanggal Kedatangan")}
                   value={signInDate}
                   onChange={(e) => setSignInDate(e.target.value)}
                   disabled={submitting}
@@ -651,13 +655,13 @@ export default function VesselArrivalFormModal({
               </div>
 
               <div>
-                <Label htmlFor="sign-in-port">Pelabuhan Asal</Label>
+                <Label htmlFor="sign-in-port">{t("vesselArrivals.sign_in_port_label", "Pelabuhan Asal")}</Label>
                 <Input
                   id="sign-in-port"
-                  aria-label="Pelabuhan Asal"
+                  aria-label={t("vesselArrivals.sign_in_port_aria", "Pelabuhan Asal")}
                   value={signInPort}
                   onChange={(e) => setSignInPort(e.target.value)}
-                  placeholder="Misal: SINGAPORE / BATAM"
+                  placeholder={t("vesselArrivals.port_placeholder_in", "Misal: SINGAPORE / BATAM")}
                   disabled={submitting}
                   className="mt-1"
                 />
@@ -665,11 +669,11 @@ export default function VesselArrivalFormModal({
               </div>
 
               <div>
-                <Label htmlFor="sign-out-date">Tanggal Keberangkatan (Sign-Out)</Label>
+                <Label htmlFor="sign-out-date">{t("vesselArrivals.sign_out_date_label", "Tanggal Keberangkatan (Sign-Out)")}</Label>
                 <Input
                   id="sign-out-date"
                   type="date"
-                  aria-label="Tanggal Keberangkatan"
+                  aria-label={t("vesselArrivals.sign_out_date_aria", "Tanggal Keberangkatan")}
                   value={signOutDate}
                   onChange={(e) => setSignOutDate(e.target.value)}
                   disabled={submitting}
@@ -681,13 +685,13 @@ export default function VesselArrivalFormModal({
               </div>
 
               <div>
-                <Label htmlFor="sign-out-port">Pelabuhan Tujuan</Label>
+                <Label htmlFor="sign-out-port">{t("vesselArrivals.sign_out_port_label", "Pelabuhan Tujuan")}</Label>
                 <Input
                   id="sign-out-port"
-                  aria-label="Pelabuhan Tujuan"
+                  aria-label={t("vesselArrivals.sign_out_port_aria", "Pelabuhan Tujuan")}
                   value={signOutPort}
                   onChange={(e) => setSignOutPort(e.target.value)}
-                  placeholder="Misal: JAKARTA / JURONG"
+                  placeholder={t("vesselArrivals.port_placeholder_out", "Misal: JAKARTA / JURONG")}
                   disabled={submitting}
                   className="mt-1"
                 />
@@ -699,40 +703,40 @@ export default function VesselArrivalFormModal({
           {/* Bagian 2: Informasi Keagenan Lokal & Asing */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 border-b pb-1">
-              Informasi Keagenan
+              {t("vesselArrivals.section_agency", "Informasi Keagenan")}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Agen Lokal */}
               <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border">
                 <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                  Agen Lokal (Indonesia)
+                  {t("vesselArrivals.local_agent_title", "Agen Lokal (Indonesia)")}
                 </span>
                 <div>
-                  <Label htmlFor="local-agent-company">Perusahaan Agen Lokal</Label>
+                  <Label htmlFor="local-agent-company">{t("vesselArrivals.local_agent_company_label", "Perusahaan Agen Lokal")}</Label>
                   <Input
                     id="local-agent-company"
-                    aria-label="Perusahaan Agen Lokal"
+                    aria-label={t("vesselArrivals.local_agent_company_aria", "Perusahaan Agen Lokal")}
                     value={localAgentCompany}
                     onChange={(e) => setLocalAgentCompany(e.target.value)}
-                    placeholder="Nama PT / Agen lokal..."
+                    placeholder={t("vesselArrivals.local_agent_company_placeholder", "Nama PT / Agen lokal...")}
                     disabled={submitting}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="local-agent-name">Nama Petugas Agen</Label>
+                  <Label htmlFor="local-agent-name">{t("vesselArrivals.local_agent_name_label", "Nama Petugas Agen")}</Label>
                   <Input
                     id="local-agent-name"
                     value={localAgentName}
                     onChange={(e) => setLocalAgentName(e.target.value)}
-                    placeholder="Nama PIC agen lokal..."
+                    placeholder={t("vesselArrivals.local_agent_name_placeholder", "Nama PIC agen lokal...")}
                     disabled={submitting}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="local-agent-phone">Nomor Telepon</Label>
+                  <Label htmlFor="local-agent-phone">{t("vesselArrivals.local_agent_phone_label", "Nomor Telepon")}</Label>
                   <Input
                     id="local-agent-phone"
                     value={localAgentPhone}
@@ -747,32 +751,32 @@ export default function VesselArrivalFormModal({
               {/* Agen Asing */}
               <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border">
                 <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                  Agen Luar Negeri (Foreign Agent)
+                  {t("vesselArrivals.foreign_agent_title", "Agen Luar Negeri (Foreign Agent)")}
                 </span>
                 <div>
-                  <Label htmlFor="foreign-agent-company">Perusahaan Agen Asing</Label>
+                  <Label htmlFor="foreign-agent-company">{t("vesselArrivals.foreign_agent_company_label", "Perusahaan Agen Asing")}</Label>
                   <Input
                     id="foreign-agent-company"
                     value={foreignAgentCompany}
                     onChange={(e) => setForeignAgentCompany(e.target.value)}
-                    placeholder="Nama agen asing..."
+                    placeholder={t("vesselArrivals.foreign_agent_company_placeholder", "Nama agen asing...")}
                     disabled={submitting}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="foreign-agent-name">Nama Petugas Agen</Label>
+                  <Label htmlFor="foreign-agent-name">{t("vesselArrivals.foreign_agent_name_label", "Nama Petugas Agen")}</Label>
                   <Input
                     id="foreign-agent-name"
                     value={foreignAgentName}
                     onChange={(e) => setForeignAgentName(e.target.value)}
-                    placeholder="PIC agen asing..."
+                    placeholder={t("vesselArrivals.foreign_agent_name_placeholder", "PIC agen asing...")}
                     disabled={submitting}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="foreign-agent-phone">Nomor Telepon</Label>
+                  <Label htmlFor="foreign-agent-phone">{t("vesselArrivals.foreign_agent_phone_label", "Nomor Telepon")}</Label>
                   <Input
                     id="foreign-agent-phone"
                     value={foreignAgentPhone}
@@ -792,7 +796,8 @@ export default function VesselArrivalFormModal({
               <div className="flex items-center gap-2 text-sm text-blue-900 dark:text-blue-200">
                 <Users className="h-4 w-4 text-blue-600" />
                 <span>
-                  Manifest Kru Kapal: <strong>{selectedCrewIds.length} Kru Terpilih</strong>
+                  {t("vesselArrivals.manifest_title", "Manifest Kru Kapal:")}{" "}
+                  <strong>{t("vesselArrivals.selected_crew_count", "{{count}} Kru Terpilih", { count: selectedCrewIds.length })}</strong>
                 </span>
               </div>
               <Button
@@ -803,14 +808,14 @@ export default function VesselArrivalFormModal({
                 onClick={() => setCrewDialogOpen(true)}
                 className="bg-white dark:bg-zinc-800 text-xs font-medium"
               >
-                Kelola Kru Kapal
+                {t("vesselArrivals.btn_manage_crew", "Kelola Kru Kapal")}
               </Button>
             </div>
 
             {selectedCrewIds.length > 0 ? (
               <div className="space-y-1.5 pt-2 border-t border-blue-200/60 dark:border-blue-800/60">
                 <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-                  Daftar Kru yang Ditugaskan:
+                  {t("vesselArrivals.assigned_crew_list", "Daftar Kru yang Ditugaskan:")}
                 </span>
                 <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
                   {selectedCrewList.length > 0 ? (
@@ -830,8 +835,8 @@ export default function VesselArrivalFormModal({
                           type="button"
                           onClick={() => handleRemoveCrew(crew.id, crew.name)}
                           className="ml-1 text-zinc-400 hover:text-red-600 transition-colors cursor-pointer"
-                          title="Hapus dari manifest"
-                          aria-label={`Hapus ${crew.name}`}
+                          title={t("vesselArrivals.remove_from_manifest", "Hapus dari manifest")}
+                          aria-label={`${t("vesselArrivals.remove_crew_aria", "Hapus")} ${crew.name}`}
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -844,12 +849,12 @@ export default function VesselArrivalFormModal({
                         variant="secondary"
                         className="flex items-center gap-1.5 py-1 px-2.5 bg-white dark:bg-zinc-800 border text-xs shadow-sm"
                       >
-                        <span>Kru #{id.slice(0, 8)}</span>
+                        <span>{t("vesselArrivals.crew_tag", "Kru")} #{id.slice(0, 8)}</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveCrew(id)}
                           className="ml-1 text-zinc-400 hover:text-red-600 transition-colors cursor-pointer"
-                          title="Hapus dari manifest"
+                          title={t("vesselArrivals.remove_from_manifest", "Hapus dari manifest")}
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -860,7 +865,7 @@ export default function VesselArrivalFormModal({
               </div>
             ) : (
               <p className="text-xs text-zinc-500 italic">
-                Belum ada kru yang dipilih. Klik "Kelola Kru Kapal" untuk memilih atau menambahkan kru pelaut.
+                {t("vesselArrivals.no_crew_selected", "Belum ada kru yang dipilih. Klik \"Kelola Kru Kapal\" untuk memilih atau menambahkan kru pelaut.")}
               </p>
             )}
           </div>
@@ -872,7 +877,7 @@ export default function VesselArrivalFormModal({
               onClick={onClose}
               disabled={submitting}
             >
-              Batal
+              {t("common.cancel", "Batal")}
             </Button>
             <Button
               type="submit"
@@ -882,10 +887,10 @@ export default function VesselArrivalFormModal({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menyimpan...
+                  {t("common.processing", "Menyimpan...")}
                 </>
               ) : (
-                "Simpan Kedatangan"
+                t("vesselArrivals.btn_save_arrival", "Simpan Kedatangan")
               )}
             </Button>
           </DialogFooter>

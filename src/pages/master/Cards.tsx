@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import {
   Table,
@@ -72,6 +73,7 @@ function formatDateIssued(dateStr?: string | null) {
 }
 
 export default function Cards() {
+  const { t } = useTranslation()
   const [cards, setCards] = useState<CardItem[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -121,11 +123,11 @@ export default function Cards() {
       setTotalCount(res.data?.total || resData.length)
     } catch (error) {
       console.error("Gagal memuat kartu visitor", error)
-      toast.error("Gagal memuat daftar kartu visitor.")
+      toast.error(t("cards.toast_load_failed", "Gagal memuat daftar kartu visitor."))
     } finally {
       setLoading(false)
     }
-  }, [currentPage, search, statusFilter, cardNoFrom, cardNoTo])
+  }, [currentPage, search, statusFilter, cardNoFrom, cardNoTo, t])
 
   useEffect(() => {
     fetchCards()
@@ -162,7 +164,7 @@ export default function Cards() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formCardNo.trim()) {
-      toast.error("Nomor kartu wajib diisi.")
+      toast.error(t("cards.toast_card_no_required", "Nomor kartu wajib diisi."))
       return
     }
 
@@ -192,18 +194,18 @@ export default function Cards() {
           payload.status = formStatus
         }
         await api.put(`/cards/${editingCard.id}`, payload)
-        toast.success("Kartu visitor berhasil diperbarui.")
+        toast.success(t("cards.toast_updated", "Kartu visitor berhasil diperbarui."))
       } else {
         payload.status = formStatus
         await api.post("/cards", payload)
-        toast.success("Kartu visitor baru berhasil ditambahkan.")
+        toast.success(t("cards.toast_created", "Kartu visitor baru berhasil ditambahkan."))
       }
       setModalOpen(false)
       fetchCards()
     } catch (error: unknown) {
       console.error("Gagal menyimpan kartu", error)
       const maybeAxios = error as { response?: { data?: { message?: string } } }
-      toast.error(maybeAxios.response?.data?.message || "Gagal menyimpan kartu.")
+      toast.error(maybeAxios.response?.data?.message || t("cards.toast_save_failed", "Gagal menyimpan kartu."))
     } finally {
       setSubmitting(false)
     }
@@ -212,7 +214,7 @@ export default function Cards() {
   const handleDelete = async () => {
     if (!deleteTarget) return
     if (deleteTarget.status === "in_use") {
-      toast.error("Kartu sedang digunakan dan tidak dapat dihapus.")
+      toast.error(t("cards.toast_delete_in_use", "Kartu sedang digunakan dan tidak dapat dihapus."))
       setDeleteTarget(null)
       return
     }
@@ -220,44 +222,42 @@ export default function Cards() {
     setDeleting(true)
     try {
       await api.delete(`/cards/${deleteTarget.id}`)
-      toast.success("Kartu visitor berhasil dihapus.")
+      toast.success(t("cards.toast_deleted", "Kartu visitor berhasil dihapus."))
       setDeleteTarget(null)
       fetchCards()
     } catch (error: unknown) {
       console.error("Gagal menghapus kartu", error)
       const maybeAxios = error as { response?: { data?: { message?: string } } }
-      toast.error(maybeAxios.response?.data?.message || "Gagal menghapus kartu.")
+      toast.error(maybeAxios.response?.data?.message || t("cards.toast_delete_failed", "Gagal menghapus kartu."))
     } finally {
       setDeleting(false)
     }
   }
-
-
 
   const getStatusBadge = (status: CardItem["status"]) => {
     switch (status) {
       case "available":
         return (
           <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
-            Available
+            {t("cards.status_available", "Available")}
           </Badge>
         )
       case "in_use":
         return (
           <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-300 dark:border-blue-800">
-            In Use
+            {t("cards.status_in_use", "In Use")}
           </Badge>
         )
       case "lost":
         return (
           <Badge variant="destructive" className="bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-300 dark:border-red-800">
-            Lost
+            {t("cards.status_lost", "Lost")}
           </Badge>
         )
       case "damaged":
         return (
           <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-300 dark:border-amber-800">
-            Damaged
+            {t("cards.status_damaged", "Damaged")}
           </Badge>
         )
       default:
@@ -270,10 +270,9 @@ export default function Cards() {
       {/* Header */}
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Master Kartu Visitor</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("cards.title", "Master Kartu Visitor")}</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Kelola inventaris kartu fisik tamu. Status kartu dikelola otomatis oleh sistem saat
-            check-in dan check-out.
+            {t("cards.subtitle", "Kelola inventaris kartu fisik tamu. Status kartu dikelola otomatis oleh sistem saat check-in dan check-out.")}
           </p>
         </div>
 
@@ -284,7 +283,7 @@ export default function Cards() {
             className="cursor-pointer"
           >
             <Upload className="h-4 w-4 mr-1.5" />
-            Import Excel
+            {t("common.import_excel", "Import Excel")}
           </Button>
 
           <Button
@@ -293,12 +292,12 @@ export default function Cards() {
             className="cursor-pointer"
           >
             <FileDown className="h-4 w-4 mr-1.5" />
-            Export Excel
+            {t("common.export_excel", "Export Excel")}
           </Button>
 
           <Button onClick={openCreateModal} className="cursor-pointer">
             <Plus className="h-4 w-4 mr-1.5" />
-            Tambah Kartu
+            {t("cards.add_card", "Tambah Kartu")}
           </Button>
         </div>
       </div>
@@ -312,13 +311,13 @@ export default function Cards() {
                 htmlFor="cards-search-input"
                 className="block text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 mb-1"
               >
-                Pencarian
+                {t("common.search", "Pencarian")}
               </label>
               <div className="relative">
                 <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-400" />
                 <Input
                   id="cards-search-input"
-                  placeholder="Cari nomor kartu, ID card, atau nama..."
+                  placeholder={t("cards.search_placeholder", "Cari nomor kartu, ID card, atau nama...")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-8"
@@ -331,7 +330,7 @@ export default function Cards() {
                 htmlFor="cards-status-filter"
                 className="block text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 mb-1"
               >
-                Status Kartu
+                {t("cards.field_status", "Status Kartu")}
               </label>
               <select
                 id="cards-status-filter"
@@ -339,11 +338,11 @@ export default function Cards() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
               >
-                <option value="">Semua Status</option>
-                <option value="available">Available</option>
-                <option value="in_use">In Use</option>
-                <option value="lost">Lost</option>
-                <option value="damaged">Damaged</option>
+                <option value="">{t("common.all_status", "Semua Status")}</option>
+                <option value="available">{t("cards.status_available", "Available")}</option>
+                <option value="in_use">{t("cards.status_in_use", "In Use")}</option>
+                <option value="lost">{t("cards.status_lost", "Lost")}</option>
+                <option value="damaged">{t("cards.status_damaged", "Damaged")}</option>
               </select>
             </div>
 
@@ -352,11 +351,11 @@ export default function Cards() {
                 htmlFor="cards-from-filter"
                 className="block text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 mb-1"
               >
-                Nomor Awal
+                {t("cards.number_from", "Nomor Awal")}
               </label>
               <Input
                 id="cards-from-filter"
-                placeholder="Misal: VIS-001"
+                placeholder={t("cards.number_from_placeholder", "Misal: VIS-001")}
                 value={cardNoFrom}
                 onChange={(e) => setCardNoFrom(e.target.value)}
               />
@@ -367,18 +366,18 @@ export default function Cards() {
                 htmlFor="cards-to-filter"
                 className="block text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 mb-1"
               >
-                Nomor Akhir
+                {t("cards.number_to", "Nomor Akhir")}
               </label>
               <Input
                 id="cards-to-filter"
-                placeholder="Misal: VIS-100"
+                placeholder={t("cards.number_to_placeholder", "Misal: VIS-100")}
                 value={cardNoTo}
                 onChange={(e) => setCardNoTo(e.target.value)}
               />
             </div>
 
             <Button type="submit" variant="secondary" className="cursor-pointer">
-              Terapkan Filter
+              {t("common.apply_filter", "Terapkan Filter")}
             </Button>
 
             <Button
@@ -387,7 +386,7 @@ export default function Cards() {
               size="icon"
               onClick={fetchCards}
               disabled={loading}
-              title="Muat Ulang"
+              title={t("common.refresh", "Muat Ulang")}
               className="cursor-pointer"
             >
               <RotateCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -400,14 +399,14 @@ export default function Cards() {
           <Table>
             <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
               <TableRow>
-                <TableHead className="w-12 text-center">NO</TableHead>
-                <TableHead>CARD NO</TableHead>
-                <TableHead>ID CARD NO</TableHead>
-                <TableHead>NAME</TableHead>
-                <TableHead>DATE ISSUED (TK)</TableHead>
-                <TableHead>STATUS</TableHead>
-                <TableHead>CATATAN</TableHead>
-                <TableHead className="text-right">AKSI</TableHead>
+                <TableHead className="w-12 text-center">{t("cards.col_no", "NO")}</TableHead>
+                <TableHead>{t("cards.col_card_no", "CARD NO")}</TableHead>
+                <TableHead>{t("cards.col_id_card_no", "ID CARD NO")}</TableHead>
+                <TableHead>{t("cards.col_name", "NAME")}</TableHead>
+                <TableHead>{t("cards.col_date_issued", "DATE ISSUED (TK)")}</TableHead>
+                <TableHead>{t("cards.col_status", "STATUS")}</TableHead>
+                <TableHead>{t("cards.col_notes", "CATATAN")}</TableHead>
+                <TableHead className="text-right">{t("cards.col_actions", "AKSI")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -415,13 +414,13 @@ export default function Cards() {
                 <TableRow>
                   <TableCell colSpan={8} className="h-28 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
-                    <span className="mt-2 block text-xs text-zinc-500">Memuat data kartu...</span>
+                    <span className="mt-2 block text-xs text-zinc-500">{t("cards.loading_cards", "Memuat data kartu...")}</span>
                   </TableCell>
                 </TableRow>
               ) : cards.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="h-24 text-center text-zinc-500">
-                    Tidak ada kartu visitor ditemukan.
+                    {t("cards.empty_text", "Tidak ada kartu visitor ditemukan.")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -464,12 +463,12 @@ export default function Cards() {
                           variant="outline"
                           size="sm"
                           onClick={() => openEditModal(card)}
-                          title="Edit Kartu"
+                          title={t("cards.edit_card", "Edit Kartu")}
                           aria-label="Edit"
                           className="cursor-pointer"
                         >
                           <Pencil className="h-3.5 w-3.5 mr-1" />
-                          Edit
+                          {t("common.edit", "Edit")}
                         </Button>
                         <Button
                           variant="outline"
@@ -478,8 +477,8 @@ export default function Cards() {
                           disabled={isInUse}
                           title={
                             isInUse
-                              ? "Kartu sedang digunakan dan tidak dapat dihapus."
-                              : "Hapus Kartu"
+                              ? t("cards.delete_disabled_in_use", "Kartu sedang digunakan dan tidak dapat dihapus.")
+                              : t("cards.delete_card_title", "Hapus Kartu")
                           }
                           aria-label="Hapus"
                           className={`cursor-pointer ${
@@ -489,7 +488,7 @@ export default function Cards() {
                           }`}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1" />
-                          Hapus
+                          {t("common.delete", "Hapus")}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -503,8 +502,11 @@ export default function Cards() {
         {/* Pagination */}
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-zinc-500 dark:text-zinc-400">
-            Menampilkan {cards.length > 0 ? (currentPage - 1) * perPage + 1 : 0} hingga{" "}
-            {Math.min(currentPage * perPage, totalCount)} dari {totalCount} kartu
+            {t("cards.pagination_showing", {
+              from: cards.length > 0 ? (currentPage - 1) * perPage + 1 : 0,
+              to: Math.min(currentPage * perPage, totalCount),
+              total: totalCount,
+            })}
           </div>
           <div className="flex gap-2">
             <Button
@@ -533,12 +535,12 @@ export default function Cards() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>
-                {editingCard ? "Edit Kartu Visitor" : "Tambah Kartu Visitor"}
+                {editingCard ? t("cards.edit_card", "Edit Kartu Visitor") : t("cards.add_card_modal_title", "Tambah Kartu Visitor")}
               </DialogTitle>
               <DialogDescription>
                 {editingCard
-                  ? "Perbarui informasi, catatan, dan status fisik kartu visitor."
-                  : "Masukkan rincian kartu fisik visitor baru."}
+                  ? t("cards.edit_desc", "Perbarui informasi, catatan, dan status fisik kartu visitor.")
+                  : t("cards.add_desc", "Masukkan rincian kartu fisik visitor baru.")}
               </DialogDescription>
             </DialogHeader>
 
@@ -548,13 +550,13 @@ export default function Cards() {
                   htmlFor="cards-cardno-input"
                   className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                 >
-                  CARD NO (Nomor Kartu) <span className="text-red-500">*</span>
+                  {t("cards.field_card_no_label", "CARD NO (Nomor Kartu)")} <span className="text-red-500">*</span>
                 </label>
                 <Input
                   id="cards-cardno-input"
                   value={formCardNo}
                   onChange={(e) => setFormCardNo(e.target.value)}
-                  placeholder="Misal: ASL-2301"
+                  placeholder={t("cards.number_from_placeholder", "Misal: ASL-2301")}
                   required
                 />
               </div>
@@ -564,7 +566,7 @@ export default function Cards() {
                   htmlFor="cards-idcardno-input"
                   className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                 >
-                  ID CARD NO
+                  {t("cards.field_id_card_no", "ID CARD NO")}
                 </label>
                 <Input
                   id="cards-idcardno-input"
@@ -579,7 +581,7 @@ export default function Cards() {
                   htmlFor="cards-name-input"
                   className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                 >
-                  NAME (Nama Kartu)
+                  {t("cards.field_name_label", "NAME (Nama Kartu)")}
                 </label>
                 <Input
                   id="cards-name-input"
@@ -602,7 +604,7 @@ export default function Cards() {
                   htmlFor="cards-dateissued-input"
                   className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                 >
-                  DATE ISSUED (TK)
+                  {t("cards.field_date_issued_label", "DATE ISSUED (TK)")}
                 </label>
                 <Input
                   id="cards-dateissued-input"
@@ -617,18 +619,18 @@ export default function Cards() {
                   htmlFor="cards-status-input"
                   className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                 >
-                  STATUS
+                  {t("cards.col_status", "STATUS")}
                 </label>
                 {editingCard && editingCard.status === "in_use" ? (
                   <div className="space-y-1">
                     <Input
                       id="cards-status-input"
-                      value="In Use (Sedang Digunakan)"
+                      value={t("cards.status_in_use_text", "In Use (Sedang Digunakan)")}
                       disabled
                       className="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 cursor-not-allowed"
                     />
                     <p className="text-[11px] text-zinc-500">
-                      Status In Use dikelola otomatis oleh check-in / check-out kunjungan.
+                      {t("cards.status_in_use_note", "Status In Use dikelola otomatis oleh check-in / check-out kunjungan.")}
                     </p>
                   </div>
                 ) : (
@@ -638,9 +640,9 @@ export default function Cards() {
                     onChange={(e) => setFormStatus(e.target.value as "available" | "lost" | "damaged")}
                     className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
                   >
-                    <option value="available">Available (Tersedia)</option>
-                    <option value="lost">Lost (Hilang)</option>
-                    <option value="damaged">Damaged (Rusak)</option>
+                    <option value="available">{t("cards.opt_available", "Available (Tersedia)")}</option>
+                    <option value="lost">{t("cards.opt_lost", "Lost (Hilang)")}</option>
+                    <option value="damaged">{t("cards.opt_damaged", "Damaged (Rusak)")}</option>
                   </select>
                 )}
               </div>
@@ -650,15 +652,15 @@ export default function Cards() {
                   htmlFor="cards-note-input"
                   className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                 >
-                  CATATAN / KETERANGAN
+                  {t("cards.field_notes", "CATATAN / KETERANGAN")}
                   {formStatus === "lost" && (
                     <span className="ml-1 text-amber-600 font-normal">
-                      (Disarankan: catat siapa yang menghilangkan, tanggal, atau kronologi)
+                      {t("cards.lost_hint", "(Disarankan: catat siapa yang menghilangkan, tanggal, atau kronologi)")}
                     </span>
                   )}
                   {formStatus === "damaged" && (
                     <span className="ml-1 text-rose-600 font-normal">
-                      (Disarankan: catat rincian kerusakan kartu fisik)
+                      {t("cards.damaged_hint", "(Disarankan: catat rincian kerusakan kartu fisik)")}
                     </span>
                   )}
                 </label>
@@ -668,10 +670,10 @@ export default function Cards() {
                   onChange={(e) => setFormNote(e.target.value)}
                   placeholder={
                     formStatus === "lost"
-                      ? "Contoh: Hilang oleh tamu PT ABC di Dermaga 2 pada 19/10/2026..."
+                      ? t("cards.note_lost_placeholder", "Contoh: Hilang oleh tamu PT ABC di Dermaga 2 pada 19/10/2026...")
                       : formStatus === "damaged"
-                      ? "Contoh: Chip RFID patah / kartu retak tidak terbaca reader..."
-                      : "Catatan atau keterangan kartu (opsional)..."
+                      ? t("cards.note_damaged_placeholder", "Contoh: Chip RFID patah / kartu retak tidak terbaca reader...")
+                      : t("cards.note_default_placeholder", "Catatan atau keterangan kartu (opsional)...")
                   }
                 />
               </div>
@@ -684,16 +686,16 @@ export default function Cards() {
                 onClick={() => setModalOpen(false)}
                 disabled={submitting}
               >
-                Batal
+                {t("common.cancel", "Batal")}
               </Button>
               <Button type="submit" disabled={submitting}>
                 {submitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                    Menyimpan...
+                    {t("common.processing", "Menyimpan...")}
                   </>
                 ) : (
-                  "Simpan"
+                  t("common.save", "Simpan")
                 )}
               </Button>
             </DialogFooter>
@@ -705,21 +707,19 @@ export default function Cards() {
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Hapus Kartu</AlertDialogTitle>
+            <AlertDialogTitle>{t("cards.confirm_delete_title", "Konfirmasi Hapus Kartu")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus kartu visitor{" "}
-              <strong>{deleteTarget?.card_no}</strong>? Kartu yang telah dihapus tidak dapat
-              digunakan lagi untuk check-in.
+              {t("cards.confirm_delete_desc_full", { card_no: deleteTarget?.card_no || "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t("common.cancel", "Batal")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
               className="bg-red-600 text-white hover:bg-red-700"
             >
-              {deleting ? "Menghapus..." : "Ya, Hapus"}
+              {deleting ? t("common.deleting", "Menghapus...") : t("common.yes_delete", "Ya, Hapus")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -729,8 +729,8 @@ export default function Cards() {
       <MasterImportDialog
         open={importOpen}
         onOpenChange={setImportOpen}
-        title="Import Kartu Visitor"
-        description="Unggah berkas Excel (.xlsx / .xls / .csv) berisi daftar nomor kartu fisik visitor."
+        title={t("cards.import_title", "Import Kartu Visitor")}
+        description={t("cards.import_desc", "Unggah berkas Excel (.xlsx / .xls / .csv) berisi daftar nomor kartu fisik visitor.")}
         templateEndpoint="/cards/template"
         templateFileName="template_cards.xlsx"
         previewEndpoint="/cards/import-preview"

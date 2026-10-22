@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import {
   Dialog,
@@ -124,17 +125,17 @@ interface VesselArrivalDetailModalProps {
   onUpdated?: () => void
 }
 
-const getSourceLabel = (source?: string | null): string => {
+const getSourceLabel = (source?: string | null, t?: (key: string, fallback: string) => string): string => {
   switch (source) {
     case "visit_checkin":
-      return "Tambah Kunjungan (Gate)"
+      return t ? t("vesselArrivals.source_visit_checkin", "Tambah Kunjungan (Gate)") : "Tambah Kunjungan (Gate)"
     case "vessel_signon":
-      return "Manifest Kedatangan"
+      return t ? t("vesselArrivals.source_vessel_signon", "Manifest Kedatangan") : "Manifest Kedatangan"
     case "vessel_signout":
-      return "Kapal Berangkat (Sign-Out)"
+      return t ? t("vesselArrivals.source_vessel_signout", "Kapal Berangkat (Sign-Out)") : "Kapal Berangkat (Sign-Out)"
     case "manual":
     default:
-      return "Check-In/Out Manual"
+      return t ? t("vesselArrivals.source_manual", "Check-In/Out Manual") : "Check-In/Out Manual"
   }
 }
 
@@ -144,6 +145,7 @@ export default function VesselArrivalDetailModal({
   arrivalId,
   onUpdated,
 }: VesselArrivalDetailModalProps) {
+  const { t } = useTranslation()
   const [detail, setDetail] = useState<ArrivalDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [processingCrewId, setProcessingCrewId] = useState<string | null>(null)
@@ -406,33 +408,33 @@ export default function VesselArrivalDetailModal({
         <DialogHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pr-6">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-              Detail Kedatangan Kapal: {detail?.vessel_name || "Memuat..."}
+              {t("vesselArrivals.detail_title", "Detail Kedatangan Kapal")}: {detail?.vessel_name || t("common.loading", "Memuat...")}
             </DialogTitle>
             {detail && (
               <div>
                 {isInPort ? (
                   <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300">
-                    Sedang Sandar (In Port)
+                    {t("vesselArrivals.status_in_port", "Sedang Sandar")}
                   </Badge>
                 ) : (
-                  <Badge variant="secondary">Sudah Berangkat (Departed)</Badge>
+                  <Badge variant="secondary">{t("vesselArrivals.status_departed", "Sudah Berangkat")}</Badge>
                 )}
               </div>
             )}
           </div>
           <DialogDescription>
-            Rincian informasi kapal, jadwal sandar pelabuhan, keagenan, serta check-in, check-out & riwayat log kru pelaut.
+            {t("vesselArrivals.detail_desc", "Rincian informasi kapal, jadwal sandar pelabuhan, keagenan, serta check-in, check-out & riwayat log kru pelaut.")}
           </DialogDescription>
         </DialogHeader>
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center py-16 text-zinc-500">
             <Loader2 className="h-6 w-6 animate-spin mr-2" />
-            Memuat detail transaksi kapal...
+            {t("vesselArrivals.loading_details", "Memuat detail transaksi kapal...")}
           </div>
         ) : !detail ? (
           <div className="flex-1 flex items-center justify-center py-16 text-zinc-500">
-            Data kedatangan kapal tidak ditemukan.
+            {t("vesselArrivals.not_found", "Data kedatangan kapal tidak ditemukan.")}
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto space-y-5 pt-2 pr-1">
@@ -461,12 +463,12 @@ export default function VesselArrivalDetailModal({
                   )}
                   {detail.vessel?.flag && (
                     <span>
-                      Bendera: <strong>{detail.vessel.flag}</strong>
+                      {t("vesselArrivals.quick_vessel_flag", "Bendera")}: <strong>{detail.vessel.flag}</strong>
                     </span>
                   )}
                   {detail.vessel?.pic && (
                     <span>
-                      Note / PIC: <strong>{detail.vessel.pic}</strong>
+                      {t("vesselArrivals.quick_vessel_pic", "Note / PIC")}: <strong>{detail.vessel.pic}</strong>
                     </span>
                   )}
                 </div>
@@ -476,33 +478,33 @@ export default function VesselArrivalDetailModal({
                 <div>
                   <div className="text-xs text-zinc-500 flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
-                    Waktu Masuk (Sign-In)
+                    {t("vesselArrivals.sign_in_time", "Waktu Masuk (Sign-In)")}
                   </div>
                   <div className="font-medium mt-0.5">{detail.sign_in_date}</div>
                   <div className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5">
                     <MapPin className="h-3 w-3" />
-                    Dari: {detail.sign_in_port || "-"}
+                    {t("vesselArrivals.from_port", "Dari: {{port}}", { port: detail.sign_in_port || "-" })}
                   </div>
                 </div>
 
                 <div>
                   <div className="text-xs text-zinc-500 flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
-                    Waktu Keluar (Sign-Out)
+                    {t("vesselArrivals.sign_out_time", "Waktu Keluar (Sign-Out)")}
                   </div>
                   <div className="font-medium mt-0.5">
-                    {detail.sign_out_date || "Belum Berangkat"}
+                    {detail.sign_out_date || t("vesselArrivals.not_departed", "Belum Berangkat")}
                   </div>
                   <div className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5">
                     <MapPin className="h-3 w-3" />
-                    Ke: {detail.sign_out_port || "-"}
+                    {t("vesselArrivals.to_port", "Ke: {{port}}", { port: detail.sign_out_port || "-" })}
                   </div>
                 </div>
 
                 <div>
                   <div className="text-xs text-zinc-500 flex items-center gap-1">
                     <User className="h-3.5 w-3.5" />
-                    Nakhoda / Captain
+                    {t("vesselArrivals.label_captain", "Nakhoda / Captain")}
                   </div>
                   <div className="font-medium mt-0.5">
                     {detail.captain || detail.vessel?.captain || "-"}
@@ -516,7 +518,7 @@ export default function VesselArrivalDetailModal({
               <div className="p-3 bg-zinc-50 dark:bg-zinc-850 rounded-lg border border-zinc-200 dark:border-zinc-700/80 space-y-2">
                 <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                   <Building className="h-3.5 w-3.5 text-blue-500" />
-                  Agen Lokal (Indonesia)
+                  {t("vesselArrivals.local_agent_title", "Agen Lokal (Indonesia)")}
                 </div>
                 <div className="text-sm font-medium">
                   {detail.local_agent_company || "-"}
@@ -527,7 +529,7 @@ export default function VesselArrivalDetailModal({
                 </div>
                 {detail.local_agent_location && (
                   <div className="text-xs text-zinc-400">
-                    Lokasi: {detail.local_agent_location}
+                    {t("common.location", "Lokasi")}: {detail.local_agent_location}
                   </div>
                 )}
               </div>
@@ -535,7 +537,7 @@ export default function VesselArrivalDetailModal({
               <div className="p-3 bg-zinc-50 dark:bg-zinc-850 rounded-lg border border-zinc-200 dark:border-zinc-700/80 space-y-2">
                 <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                   <Building className="h-3.5 w-3.5 text-blue-500" />
-                  Agen Luar Negeri (Foreign)
+                  {t("vesselArrivals.foreign_agent_title", "Agen Luar Negeri (Foreign)")}
                 </div>
                 <div className="text-sm font-medium">
                   {detail.foreign_agent_company || "-"}
@@ -546,7 +548,7 @@ export default function VesselArrivalDetailModal({
                 </div>
                 {detail.foreign_agent_location && (
                   <div className="text-xs text-zinc-400">
-                    Lokasi: {detail.foreign_agent_location}
+                    {t("common.location", "Lokasi")}: {detail.foreign_agent_location}
                   </div>
                 )}
               </div>
@@ -566,7 +568,7 @@ export default function VesselArrivalDetailModal({
                     }`}
                   >
                     <Users className="h-3.5 w-3.5" />
-                    Manifest Kru On-Board
+                    {t("vesselArrivals.tab_manifest", "Manifest Kru On-Board")}
                     <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.2 text-[10px]">
                       {detail.crew?.length || 0}
                     </span>
@@ -582,18 +584,18 @@ export default function VesselArrivalDetailModal({
                     }`}
                   >
                     <History className="h-3.5 w-3.5" />
-                    Riwayat Log Keluar-Masuk Kru
+                    {t("vesselArrivals.tab_movement_logs", "Riwayat Log Keluar-Masuk Kru")}
                     <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.2 text-[10px]">
                       {allCrewLogs.length}
                     </span>
                   </button>
 
                   <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 text-xs">
-                    {checkedInCrew.length} Check-In
+                    {checkedInCrew.length} {t("vesselArrivals.status_checked_in", "Check-In")}
                   </Badge>
                   {checkedOutCrew.length > 0 && (
                     <Badge variant="secondary" className="text-xs">
-                      {checkedOutCrew.length} Check-Out
+                      {checkedOutCrew.length} {t("vesselArrivals.status_checked_out", "Check-Out")}
                     </Badge>
                   )}
                 </div>
@@ -602,7 +604,7 @@ export default function VesselArrivalDetailModal({
                   <Input
                     value={actionNote}
                     onChange={(e) => setActionNote(e.target.value)}
-                    placeholder="Catatan Check-In/Out (opsional)..."
+                    placeholder={t("vesselArrivals.action_note_placeholder", "Catatan Check-In/Out (opsional)...")}
                     className="h-8 w-52 text-xs"
                   />
                   {checkedInCrew.length > 0 && (
@@ -617,7 +619,7 @@ export default function VesselArrivalDetailModal({
                       className="h-8 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 dark:text-amber-300 dark:border-amber-800"
                     >
                       <LogOut className="h-3.5 w-3.5 mr-1" />
-                      Check-Out Semua Kru
+                      {t("vesselArrivals.btn_checkout_all", "Check-Out Semua Kru")}
                     </Button>
                   )}
                   <Button
@@ -627,7 +629,7 @@ export default function VesselArrivalDetailModal({
                     className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <UserPlus className="h-3.5 w-3.5 mr-1" />
-                    Check-In / Tambah Kru
+                    {t("vesselArrivals.btn_checkin_add_crew", "Check-In / Tambah Kru")}
                   </Button>
                 </div>
               </div>
@@ -636,7 +638,7 @@ export default function VesselArrivalDetailModal({
               {selectedCrewIds.size > 0 && (
                 <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-lg text-xs">
                   <div className="font-medium text-blue-900 dark:text-blue-200">
-                    Terpilih <strong>{selectedCrewIds.size}</strong> kru
+                    {t("vesselArrivals.selected_crew_bar", "Terpilih {{count}} kru", { count: selectedCrewIds.size })}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -647,7 +649,7 @@ export default function VesselArrivalDetailModal({
                       className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300"
                     >
                       <LogIn className="h-3 w-3 mr-1" />
-                      Check-In Terpilih
+                      {t("vesselArrivals.bulk_checkin", "Check-In Terpilih")}
                     </Button>
                     <Button
                       type="button"
@@ -657,7 +659,7 @@ export default function VesselArrivalDetailModal({
                       className="h-7 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 dark:text-amber-300"
                     >
                       <LogOut className="h-3 w-3 mr-1" />
-                      Check-Out Terpilih
+                      {t("vesselArrivals.bulk_checkout", "Check-Out Terpilih")}
                     </Button>
                     <Button
                       type="button"
@@ -666,7 +668,7 @@ export default function VesselArrivalDetailModal({
                       onClick={() => setSelectedCrewIds(new Set())}
                       className="h-7 text-xs text-zinc-500"
                     >
-                      Batal
+                      {t("common.cancel", "Batal")}
                     </Button>
                   </div>
                 </div>
@@ -682,7 +684,7 @@ export default function VesselArrivalDetailModal({
                             type="button"
                             onClick={toggleSelectAll}
                             className="p-1 hover:text-blue-600 transition-colors"
-                            title="Pilih semua"
+                            title={t("vesselArrivals.select_all_title", "Pilih semua")}
                           >
                             {detail.crew &&
                             detail.crew.length > 0 &&
@@ -693,13 +695,13 @@ export default function VesselArrivalDetailModal({
                             )}
                           </button>
                         </TableHead>
-                        <TableHead className="w-10 text-center">No</TableHead>
-                        <TableHead>Nama Kru & ID</TableHead>
-                        <TableHead>Jabatan</TableHead>
-                        <TableHead>Kebangsaan</TableHead>
-                        <TableHead>Buku Pelaut & Sertifikat</TableHead>
-                        <TableHead>Status Check-In / Out</TableHead>
-                        <TableHead className="text-right">Aksi Kru</TableHead>
+                        <TableHead className="w-10 text-center">{t("vesselArrivals.col_no", "No")}</TableHead>
+                        <TableHead>{t("vesselArrivals.col_crew_name_id", "Nama Kru & ID")}</TableHead>
+                        <TableHead>{t("vesselArrivals.col_occupation", "Jabatan")}</TableHead>
+                        <TableHead>{t("vesselArrivals.col_nationality", "Kebangsaan")}</TableHead>
+                        <TableHead>{t("vesselArrivals.col_seaman_cert", "Buku Pelaut & Sertifikat")}</TableHead>
+                        <TableHead>{t("vesselArrivals.col_status_checkin_out", "Status Check-In / Out")}</TableHead>
+                        <TableHead className="text-right">{t("vesselArrivals.col_crew_actions", "Aksi Kru")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -709,7 +711,7 @@ export default function VesselArrivalDetailModal({
                             colSpan={8}
                             className="h-24 text-center text-zinc-500 text-sm"
                           >
-                            Belum ada kru yang tercatat pada transaksi kedatangan ini.
+                            {t("vesselArrivals.no_crew_recorded", "Belum ada kru yang tercatat pada transaksi kedatangan ini.")}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -797,11 +799,11 @@ export default function VesselArrivalDetailModal({
                                       variant="secondary"
                                       className="text-xs opacity-80"
                                     >
-                                      Check-Out (Turun)
+                                      {t("vesselArrivals.status_checked_out", "Check-Out (Turun)")}
                                     </Badge>
                                     {member.pivot?.checked_out_at && (
                                       <div className="text-[11px] text-zinc-500">
-                                        Keluar:{" "}
+                                        {t("vesselArrivals.out_label", "Keluar")}:{" "}
                                         {formatTimestamp(
                                           member.pivot.checked_out_at
                                         )}
@@ -819,7 +821,7 @@ export default function VesselArrivalDetailModal({
                                       variant="outline"
                                       className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-300 text-xs"
                                     >
-                                      Belum Check-In (Expected)
+                                      {t("vesselArrivals.status_expected", "Belum Check-In (Expected)")}
                                     </Badge>
                                     {member.pivot?.notes && (
                                       <div className="text-[11px] text-zinc-400 italic">
@@ -830,11 +832,11 @@ export default function VesselArrivalDetailModal({
                                 ) : (
                                   <div className="space-y-0.5">
                                     <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs">
-                                      Check-In (Di Kapal)
+                                      {t("vesselArrivals.status_checked_in", "Check-In (Di Kapal)")}
                                     </Badge>
                                     {member.pivot?.checked_in_at && (
                                       <div className="text-[11px] text-zinc-500">
-                                        Masuk:{" "}
+                                        {t("vesselArrivals.in_label", "Masuk")}:{" "}
                                         {formatTimestamp(
                                           member.pivot.checked_in_at
                                         )}
@@ -854,11 +856,11 @@ export default function VesselArrivalDetailModal({
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleOpenCrewLog(member.id)}
-                                  title={`Lihat Riwayat Log ${member.name}`}
+                                  title={`${t("vesselArrivals.view_crew_log_title", "Lihat Riwayat Log")} ${member.name}`}
                                   className="h-7 px-2 text-xs text-zinc-600 hover:text-blue-600 dark:text-zinc-400"
                                 >
                                   <History className="h-3 w-3 mr-1" />
-                                  Log ({memberLogCount})
+                                  {t("vesselArrivals.btn_log", "Log")} ({memberLogCount})
                                 </Button>
 
                                 {isCheckedOut ? (
@@ -877,7 +879,7 @@ export default function VesselArrivalDetailModal({
                                     ) : (
                                       <>
                                         <RotateCcw className="h-3 w-3 mr-1" />
-                                        Aktifkan Kembali
+                                        {t("vesselArrivals.reactivate_btn", "Aktifkan Kembali")}
                                       </>
                                     )}
                                   </Button>
@@ -897,7 +899,7 @@ export default function VesselArrivalDetailModal({
                                     ) : (
                                       <>
                                         <LogIn className="h-3 w-3 mr-1" />
-                                        Check-In Kru
+                                        {t("vesselArrivals.btn_checkin_crew", "Check-In Kru")}
                                       </>
                                     )}
                                   </Button>
@@ -917,7 +919,7 @@ export default function VesselArrivalDetailModal({
                                     ) : (
                                       <>
                                         <LogOut className="h-3 w-3 mr-1" />
-                                        Check-Out Kru
+                                        {t("vesselArrivals.btn_checkout_crew", "Check-Out Kru")}
                                       </>
                                     )}
                                   </Button>
@@ -936,7 +938,7 @@ export default function VesselArrivalDetailModal({
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 dark:border-zinc-700 dark:bg-zinc-850">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
-                        Filter Kru:
+                        {t("vesselArrivals.filter_crew_label", "Filter Kru")}:
                       </span>
                       <select
                         aria-label="Filter Kru"
@@ -944,7 +946,7 @@ export default function VesselArrivalDetailModal({
                         onChange={(e) => setSelectedCrewFilter(e.target.value)}
                         className="h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs dark:border-zinc-700 dark:bg-zinc-900"
                       >
-                        <option value="">Semua Kru ({detail.crew?.length || 0})</option>
+                        <option value="">{t("vesselArrivals.filter_all_crew", "Semua Kru")} ({detail.crew?.length || 0})</option>
                         {(detail.crew || []).map((c) => (
                           <option key={c.id} value={c.id}>
                             {c.name} ({c.id_number})
@@ -953,7 +955,7 @@ export default function VesselArrivalDetailModal({
                       </select>
 
                       <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 ml-2">
-                        Aksi:
+                        {t("vesselArrivals.filter_action_label", "Aksi:")}
                       </span>
                       <select
                         aria-label="Filter Aksi Log"
@@ -961,9 +963,9 @@ export default function VesselArrivalDetailModal({
                         onChange={(e) => setSelectedActionFilter(e.target.value)}
                         className="h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs dark:border-zinc-700 dark:bg-zinc-900"
                       >
-                        <option value="">Semua Aksi</option>
-                        <option value="check_in">Check-In (Masuk)</option>
-                        <option value="check_out">Check-Out (Keluar)</option>
+                        <option value="">{t("vesselArrivals.filter_all_actions", "Semua Aksi")}</option>
+                        <option value="check_in">{t("vesselArrivals.log_type_check_in", "Check-In (Masuk)")}</option>
+                        <option value="check_out">{t("vesselArrivals.log_type_check_out", "Check-Out (Turun)")}</option>
                       </select>
 
                       {(selectedCrewFilter || selectedActionFilter) && (
@@ -978,13 +980,13 @@ export default function VesselArrivalDetailModal({
                           className="h-7 text-xs text-zinc-500"
                         >
                           <X className="h-3 w-3 mr-1" />
-                          Reset Filter
+                          {t("common.reset", "Reset Filter")}
                         </Button>
                       )}
                     </div>
 
                     <div className="text-xs text-zinc-500">
-                      Menampilkan <strong>{filteredCrewLogs.length}</strong> aktivitas log
+                      {t("vesselArrivals.showing_logs_count", "Menampilkan {{count}} aktivitas log", { count: filteredCrewLogs.length })}
                     </div>
                   </div>
 
@@ -993,13 +995,13 @@ export default function VesselArrivalDetailModal({
                     <Table>
                       <TableHeader className="bg-zinc-50 dark:bg-zinc-800">
                         <TableRow>
-                          <TableHead className="w-12 text-center">No</TableHead>
-                          <TableHead>Waktu Aktivitas</TableHead>
-                          <TableHead>Nama Kru & Identitas</TableHead>
-                          <TableHead>Status / Aksi</TableHead>
-                          <TableHead>Sumber Aktivitas</TableHead>
-                          <TableHead>Petugas</TableHead>
-                          <TableHead>Keterangan / Catatan</TableHead>
+                          <TableHead className="w-12 text-center">{t("vesselArrivals.col_no", "No")}</TableHead>
+                          <TableHead>{t("vesselArrivals.col_activity_time", "Waktu Aktivitas")}</TableHead>
+                          <TableHead>{t("vesselArrivals.col_crew_name_identity", "Nama Kru & Identitas")}</TableHead>
+                          <TableHead>{t("vesselArrivals.col_status_action", "Status / Aksi")}</TableHead>
+                          <TableHead>{t("vesselArrivals.col_activity_source", "Sumber Aktivitas")}</TableHead>
+                          <TableHead>{t("vesselArrivals.col_officer", "Petugas")}</TableHead>
+                          <TableHead>{t("vesselArrivals.col_notes", "Keterangan / Catatan")}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1009,7 +1011,7 @@ export default function VesselArrivalDetailModal({
                               colSpan={7}
                               className="h-24 text-center text-zinc-500 text-sm"
                             >
-                              Belum ada riwayat log keluar-masuk kru untuk filter ini.
+                              {t("vesselArrivals.no_logs_found", "Belum ada riwayat log keluar-masuk kru untuk filter ini.")}
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -1035,7 +1037,7 @@ export default function VesselArrivalDetailModal({
                                 </TableCell>
                                 <TableCell>
                                   <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
-                                    {crewInfo?.name || "Kru Kapal"}
+                                    {crewInfo?.name || t("vesselArrivals.crew_tag", "Kru Kapal")}
                                   </div>
                                   <div className="text-xs text-zinc-500">
                                     {crewInfo?.occupation
@@ -1048,7 +1050,7 @@ export default function VesselArrivalDetailModal({
                                   {isCheckIn ? (
                                     <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs">
                                       <LogIn className="h-3 w-3 mr-1" />
-                                      Check-In (Masuk)
+                                      {t("vesselArrivals.log_type_check_in", "Check-In (Masuk)")}
                                     </Badge>
                                   ) : (
                                     <Badge
@@ -1056,15 +1058,15 @@ export default function VesselArrivalDetailModal({
                                       className="text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 text-xs"
                                     >
                                       <LogOut className="h-3 w-3 mr-1" />
-                                      Check-Out (Turun)
+                                      {t("vesselArrivals.log_type_check_out", "Check-Out (Turun)")}
                                     </Badge>
                                   )}
                                 </TableCell>
                                 <TableCell className="text-xs text-zinc-600 dark:text-zinc-300">
-                                  {getSourceLabel(log.source)}
+                                  {getSourceLabel(log.source, t)}
                                 </TableCell>
                                 <TableCell className="text-xs text-zinc-600 dark:text-zinc-300">
-                                  {log.performed_by_name || "Petugas Security"}
+                                  {log.performed_by_name || t("vesselArrivals.default_officer", "Petugas Security")}
                                 </TableCell>
                                 <TableCell className="text-xs text-zinc-600 dark:text-zinc-300">
                                   {log.notes || "-"}
@@ -1084,7 +1086,7 @@ export default function VesselArrivalDetailModal({
 
         <DialogFooter className="pt-3 border-t border-zinc-200 dark:border-zinc-700">
           <Button type="button" variant="outline" onClick={onClose}>
-            Tutup
+            {t("common.close", "Tutup")}
           </Button>
         </DialogFooter>
 

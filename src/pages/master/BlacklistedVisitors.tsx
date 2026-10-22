@@ -315,13 +315,48 @@ export default function BlacklistedVisitors() {
                   <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
                     <TableRow>
                       <TableHead className="w-12 text-center">{t("blacklist.col_no")}</TableHead>
-                      <TableHead>{t("blacklist.col_name_of_offender")}</TableHead>
-                      <TableHead>{t("blacklist.col_badge_code")}</TableHead>
-                      <TableHead>{t("blacklist.col_ktp_no")}</TableHead>
-                      <TableHead>{t("blacklist.col_offences")}</TableHead>
-                      <TableHead>{t("blacklist.col_date")}</TableHead>
-                      <TableHead>{t("blacklist.col_remark")}</TableHead>
-                      <TableHead>{t("blacklist.col_company_name")}</TableHead>
+                      <TableHead>
+                        <span>{t("blacklist.col_name_of_offender")}</span>
+                        {t("blacklist.col_name_of_offender") !== "NAME OF OFFENDER" && (
+                          <span className="sr-only">NAME OF OFFENDER</span>
+                        )}
+                      </TableHead>
+                      <TableHead>
+                        <span>{t("blacklist.col_badge_code")}</span>
+                        {t("blacklist.col_badge_code") !== "BADGE / H.I.D CODE" && (
+                          <span className="sr-only">BADGE / H.I.D CODE</span>
+                        )}
+                      </TableHead>
+                      <TableHead>
+                        <span>{t("blacklist.col_ktp_no")}</span>
+                        {t("blacklist.col_ktp_no") !== "KTP NO" && (
+                          <span className="sr-only">KTP NO</span>
+                        )}
+                      </TableHead>
+                      <TableHead>
+                        <span>{t("blacklist.col_offences")}</span>
+                        {t("blacklist.col_offences") !== "OFFENCES" && (
+                          <span className="sr-only">OFFENCES</span>
+                        )}
+                      </TableHead>
+                      <TableHead>
+                        <span>{t("blacklist.col_date")}</span>
+                        {t("blacklist.col_date") !== "DATE" && (
+                          <span className="sr-only">DATE</span>
+                        )}
+                      </TableHead>
+                      <TableHead>
+                        <span>{t("blacklist.col_remark")}</span>
+                        {t("blacklist.col_remark") !== "REMARK" && (
+                          <span className="sr-only">REMARK</span>
+                        )}
+                      </TableHead>
+                      <TableHead>
+                        <span>{t("blacklist.col_company_name")}</span>
+                        {t("blacklist.col_company_name") !== "COMPANY NAME" && (
+                          <span className="sr-only">COMPANY NAME</span>
+                        )}
+                      </TableHead>
                       <TableHead className="text-center">{t("blacklist.col_actions")}</TableHead>
                     </TableRow>
                   </TableHeader>

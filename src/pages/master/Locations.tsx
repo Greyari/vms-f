@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import {
   Table,
@@ -64,6 +65,7 @@ export interface LocationItem {
 }
 
 export default function Locations() {
+  const { t } = useTranslation()
   const [locations, setLocations] = useState<LocationItem[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -204,17 +206,17 @@ export default function Locations() {
 
       if (editingItem) {
         await api.put(`/locations/${editingItem.id}`, payload)
-        toast.success("Lokasi / kapal berhasil diperbarui.")
+        toast.success(t("locations.toast_updated", "Lokasi / kapal berhasil diperbarui."))
       } else {
         await api.post("/locations", payload)
-        toast.success("Lokasi / kapal berhasil ditambahkan.")
+        toast.success(t("locations.toast_created", "Lokasi / kapal berhasil ditambahkan."))
       }
       setModalOpen(false)
       fetchLocations()
     } catch (error: unknown) {
       console.error("Submit lokasi gagal", error)
       const maybeAxios = error as { response?: { data?: { message?: string } } }
-      toast.error(maybeAxios.response?.data?.message || "Gagal menyimpan data lokasi.")
+      toast.error(maybeAxios.response?.data?.message || t("locations.toast_save_failed", "Gagal menyimpan data lokasi."))
     } finally {
       setSubmitting(false)
     }
@@ -225,13 +227,13 @@ export default function Locations() {
     setDeleting(true)
     try {
       await api.delete(`/locations/${deleteTarget.id}`)
-      toast.success("Lokasi / kapal berhasil dihapus.")
+      toast.success(t("locations.toast_deleted", "Lokasi / kapal berhasil dihapus."))
       setDeleteTarget(null)
       fetchLocations()
     } catch (error: unknown) {
       console.error("Hapus lokasi gagal", error)
       const maybeAxios = error as { response?: { data?: { message?: string } } }
-      toast.error(maybeAxios.response?.data?.message || "Gagal menghapus lokasi.")
+      toast.error(maybeAxios.response?.data?.message || t("locations.toast_delete_failed", "Gagal menghapus lokasi."))
     } finally {
       setDeleting(false)
     }
@@ -240,7 +242,7 @@ export default function Locations() {
   const getTypeLabel = (type: LocationItem["type"]) => {
     switch (type) {
       case "location":
-        return "Lokasi Darat"
+        return t("locations.type_land", "Lokasi Darat")
       case "repair_vessel":
         return "Repair Vessel"
       case "tug_boat":
@@ -257,9 +259,9 @@ export default function Locations() {
       {/* Header */}
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Master Lokasi & Kapal</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("locations.title", "Master Lokasi & Kapal")}</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Kelola lokasi darat galangan, dermaga, serta kapal sandar & perbaikan (IMO, Call Sign, Bendera, Captain, & PIC/Note).
+            {t("locations.description", "Kelola lokasi darat galangan, dermaga, serta kapal sandar & perbaikan (IMO, Call Sign, Bendera, Captain, & PIC/Note).")}
           </p>
         </div>
 
@@ -270,7 +272,7 @@ export default function Locations() {
             className="cursor-pointer"
           >
             <Upload className="h-4 w-4 mr-1.5" />
-            Import Excel
+            {t("common.import_excel", "Import Excel")}
           </Button>
 
           <Button
@@ -279,12 +281,12 @@ export default function Locations() {
             className="cursor-pointer"
           >
             <Download className="h-4 w-4 mr-1.5" />
-            Export Excel
+            {t("common.export_excel", "Export Excel")}
           </Button>
 
           <Button onClick={openCreateModal} className="cursor-pointer">
             <Plus className="h-4 w-4 mr-1.5" />
-            Tambah Lokasi / Kapal
+            {t("locations.add_location", "Tambah Lokasi / Kapal")}
           </Button>
         </div>
       </div>
@@ -299,7 +301,7 @@ export default function Locations() {
                 htmlFor="location-type-filter"
                 className="text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400"
               >
-                Filter Tipe
+                {t("locations.filter_type", "Filter Tipe")}
               </label>
               <select
                 id="location-type-filter"
@@ -310,8 +312,8 @@ export default function Locations() {
                 }}
                 className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
               >
-                <option value="">Semua Tipe</option>
-                <option value="location">Lokasi Darat</option>
+                <option value="">{t("locations.filter_all", "Semua Tipe")}</option>
+                <option value="location">{t("locations.type_land", "Lokasi Darat")}</option>
                 <option value="repair_vessel">Repair Vessel</option>
                 <option value="tug_boat">Tug Boat</option>
                 <option value="barge">Barge</option>
@@ -324,7 +326,7 @@ export default function Locations() {
                 htmlFor="location-status-filter"
                 className="text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400"
               >
-                Status
+                {t("common.status", "Status")}
               </label>
               <select
                 id="location-status-filter"
@@ -335,9 +337,9 @@ export default function Locations() {
                 }}
                 className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
               >
-                <option value="">Semua Status</option>
-                <option value="1">Aktif Saja</option>
-                <option value="0">Nonaktif Saja</option>
+                <option value="">{t("common.filter_all_status", "Semua Status")}</option>
+                <option value="1">{t("common.active_only", "Aktif Saja")}</option>
+                <option value="0">{t("common.inactive_only", "Nonaktif Saja")}</option>
               </select>
             </div>
 
@@ -346,7 +348,7 @@ export default function Locations() {
               size="sm"
               onClick={fetchLocations}
               disabled={loading}
-              title="Muat Ulang"
+              title={t("common.reload", "Muat Ulang")}
               className="cursor-pointer"
             >
               <RotateCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -356,7 +358,7 @@ export default function Locations() {
           <div className="relative w-full md:w-80">
             <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-400" />
             <Input
-              placeholder="Cari nama kapal, IMO, captain, atau PIC..."
+              placeholder={t("locations.search_placeholder", "Cari nama kapal, IMO, captain, atau PIC...")}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value)
@@ -372,16 +374,16 @@ export default function Locations() {
           <Table>
             <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
               <TableRow>
-                <TableHead className="w-12 text-center">No</TableHead>
-                <TableHead>Kode / IMO</TableHead>
-                <TableHead>Description / Nama Lokasi & Kapal</TableHead>
-                <TableHead>Tipe / Spesifikasi</TableHead>
-                <TableHead>Call Sign</TableHead>
-                <TableHead>Bendera</TableHead>
-                <TableHead>Captain</TableHead>
-                <TableHead>Note / PIC</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead className="w-12 text-center">{t("locations.col_no", "No")}</TableHead>
+                <TableHead>{t("locations.col_code_imo", "Kode / IMO")}</TableHead>
+                <TableHead>{t("locations.col_description_name", "Description / Nama Lokasi & Kapal")}</TableHead>
+                <TableHead>{t("locations.col_type_spec", "Tipe / Spesifikasi")}</TableHead>
+                <TableHead>{t("locations.col_call_sign", "Call Sign")}</TableHead>
+                <TableHead>{t("locations.col_flag", "Bendera")}</TableHead>
+                <TableHead>{t("locations.col_captain", "Captain")}</TableHead>
+                <TableHead>{t("locations.col_pic", "Note / PIC")}</TableHead>
+                <TableHead>{t("locations.col_status", "Status")}</TableHead>
+                <TableHead className="text-right">{t("locations.col_actions", "Aksi")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -389,13 +391,13 @@ export default function Locations() {
                 <TableRow>
                   <TableCell colSpan={10} className="h-28 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
-                    <span className="mt-2 block text-xs text-zinc-500">Memuat data lokasi...</span>
+                    <span className="mt-2 block text-xs text-zinc-500">{t("common.loading", "Memuat data lokasi...")}</span>
                   </TableCell>
                 </TableRow>
               ) : locations.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="h-24 text-center text-zinc-500">
-                    Tidak ada lokasi atau kapal ditemukan.
+                    {t("locations.empty_text", "Tidak ada lokasi atau kapal ditemukan.")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -450,11 +452,11 @@ export default function Locations() {
                       <TableCell>
                         {item.is_active ? (
                           <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
-                            Aktif
+                            {t("common.active", "Aktif")}
                           </Badge>
                         ) : (
                           <Badge variant="secondary" className="text-zinc-500">
-                            Nonaktif
+                            {t("common.inactive", "Nonaktif")}
                           </Badge>
                         )}
                       </TableCell>
@@ -463,23 +465,23 @@ export default function Locations() {
                           variant="outline"
                           size="sm"
                           onClick={() => openEditModal(item)}
-                          title="Edit"
-                          aria-label="Edit"
+                          title={t("common.edit", "Edit")}
+                          aria-label={t("common.edit", "Edit")}
                           className="cursor-pointer"
                         >
                           <Pencil className="h-3.5 w-3.5 mr-1" />
-                          Edit
+                          {t("common.edit", "Edit")}
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setDeleteTarget(item)}
-                          title="Hapus"
-                          aria-label="Hapus"
+                          title={t("common.delete", "Hapus")}
+                          aria-label={t("common.delete", "Hapus")}
                           className="cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1" />
-                          Hapus
+                          {t("common.delete", "Hapus")}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -493,8 +495,11 @@ export default function Locations() {
         {/* Pagination */}
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-zinc-500 dark:text-zinc-400">
-            Menampilkan {locations.length > 0 ? (currentPage - 1) * perPage + 1 : 0} hingga{" "}
-            {Math.min(currentPage * perPage, totalCount)} dari {totalCount} lokasi
+            {t("locations.pagination_showing", "Menampilkan {{from}} hingga {{to}} dari {{total}} lokasi", {
+              from: locations.length > 0 ? (currentPage - 1) * perPage + 1 : 0,
+              to: Math.min(currentPage * perPage, totalCount),
+              total: totalCount,
+            })}
           </div>
           <div className="flex gap-2">
             <Button
@@ -523,10 +528,12 @@ export default function Locations() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>
-                {editingItem ? "Edit Lokasi atau Kapal" : "Tambah Lokasi atau Kapal"}
+                {editingItem
+                  ? t("locations.modal_edit_title", "Edit Lokasi atau Kapal")
+                  : t("locations.modal_create_title", "Tambah Lokasi atau Kapal")}
               </DialogTitle>
               <DialogDescription>
-                Masukkan detail lokasi darat atau spesifikasi kapal galangan (IMO, Call Sign, Bendera, Captain, & Note/PIC).
+                {t("locations.modal_desc", "Masukkan detail lokasi darat atau spesifikasi kapal galangan (IMO, Call Sign, Bendera, Captain, & Note/PIC).")}
               </DialogDescription>
             </DialogHeader>
 
@@ -536,7 +543,7 @@ export default function Locations() {
                   htmlFor="location-name-input"
                   className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                 >
-                  Nama Lokasi / Kapal <span className="text-red-500">*</span>
+                  {t("locations.field_name_label", "Nama Lokasi / Kapal")} <span className="text-red-500">*</span>
                 </label>
                 <Input
                   id="location-name-input"
@@ -553,7 +560,7 @@ export default function Locations() {
                     htmlFor="location-type-input"
                     className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                   >
-                    Tipe Lokasi <span className="text-red-500">*</span>
+                    {t("locations.field_type_label", "Tipe Lokasi")} <span className="text-red-500">*</span>
                   </label>
                   <select
                     id="location-type-input"
@@ -566,7 +573,7 @@ export default function Locations() {
                     }
                     className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
                   >
-                    <option value="location">Lokasi Darat / Bangunan</option>
+                    <option value="location">{t("locations.type_land", "Lokasi Darat")}</option>
                     <option value="repair_vessel">Repair Vessel</option>
                     <option value="tug_boat">Tug Boat</option>
                     <option value="barge">Barge</option>
@@ -578,7 +585,7 @@ export default function Locations() {
                     htmlFor="location-vessel-type-input"
                     className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                   >
-                    Spesifikasi Tipe (Type)
+                    {t("locations.field_vessel_type_label", "Spesifikasi Tipe (Type)")}
                   </label>
                   <Input
                     id="location-vessel-type-input"
@@ -594,7 +601,7 @@ export default function Locations() {
                   htmlFor="location-code-input"
                   className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                 >
-                  Kode / IMO {form.type !== "location" && <span className="text-red-500">*</span>}
+                  {t("locations.field_code_imo_label", "Kode / IMO")} {form.type !== "location" && <span className="text-red-500">*</span>}
                 </label>
                 <Input
                   id="location-code-input"
@@ -614,7 +621,7 @@ export default function Locations() {
                     htmlFor="location-callsign-input"
                     className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                   >
-                    Call Sign
+                    {t("locations.field_callsign_label", "Call Sign")}
                   </label>
                   <Input
                     id="location-callsign-input"
@@ -628,7 +635,7 @@ export default function Locations() {
                     htmlFor="location-flag-input"
                     className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                   >
-                    Bendera
+                    {t("locations.field_flag_label", "Bendera")}
                   </label>
                   <Input
                     id="location-flag-input"
@@ -645,7 +652,7 @@ export default function Locations() {
                     htmlFor="location-captain-input"
                     className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                   >
-                    Captain / Nakhoda
+                    {t("locations.field_captain_label", "Captain / Nakhoda")}
                   </label>
                   <Input
                     id="location-captain-input"
@@ -659,7 +666,7 @@ export default function Locations() {
                     htmlFor="location-pic-input"
                     className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                   >
-                    Note / PIC
+                    {t("locations.field_pic_label", "Note / PIC")}
                   </label>
                   <Input
                     id="location-pic-input"
@@ -675,7 +682,7 @@ export default function Locations() {
                   htmlFor="location-port-input"
                   className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                 >
-                  Pelabuhan Asal / Pangkalan
+                  {t("locations.field_port_label", "Pelabuhan Asal / Pangkalan")}
                 </label>
                 <Input
                   id="location-port-input"
@@ -697,7 +704,7 @@ export default function Locations() {
                   htmlFor="location-is-active-checkbox"
                   className="text-sm font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer"
                 >
-                  Status Aktif (dapat dipilih pada saat check-in tamu)
+                  {t("locations.field_active_checkbox", "Status Aktif (dapat dipilih pada saat check-in tamu)")}
                 </label>
               </div>
             </div>
@@ -709,16 +716,16 @@ export default function Locations() {
                 onClick={() => setModalOpen(false)}
                 disabled={submitting}
               >
-                Batal
+                {t("common.cancel", "Batal")}
               </Button>
               <Button type="submit" disabled={submitting}>
                 {submitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                    Menyimpan...
+                    {t("common.saving", "Menyimpan...")}
                   </>
                 ) : (
-                  "Simpan"
+                  t("common.save", "Simpan")
                 )}
               </Button>
             </DialogFooter>
@@ -730,21 +737,23 @@ export default function Locations() {
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+            <AlertDialogTitle>{t("common.confirm_delete_title", "Konfirmasi Hapus")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus lokasi/kapal{" "}
-              <strong>{deleteTarget?.name}</strong>? Tindakan ini tidak dapat dibatalkan jika lokasi
-              pernah digunakan dalam kunjungan aktif.
+              {t(
+                "locations.delete_confirm_desc",
+                "Apakah Anda yakin ingin menghapus lokasi/kapal {{name}}? Tindakan ini tidak dapat dibatalkan jika lokasi pernah digunakan dalam kunjungan aktif.",
+                { name: deleteTarget?.name || "" }
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t("common.cancel", "Batal")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
               className="bg-red-600 text-white hover:bg-red-700"
             >
-              {deleting ? "Menghapus..." : "Ya, Hapus"}
+              {deleting ? t("common.processing", "Menghapus...") : t("common.confirm_delete", "Ya, Hapus")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

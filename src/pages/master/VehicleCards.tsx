@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import {
   Table,
@@ -59,6 +60,7 @@ export interface VehicleCardItem {
 }
 
 export default function VehicleCards() {
+  const { t } = useTranslation()
   const [cards, setCards] = useState<VehicleCardItem[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -105,11 +107,11 @@ export default function VehicleCards() {
       setTotalCount(res.data?.total || resData.length)
     } catch (error) {
       console.error("Gagal memuat kartu kendaraan", error)
-      toast.error("Gagal memuat daftar kartu kendaraan.")
+      toast.error(t("vehicleCards.toast_load_failed", "Gagal memuat daftar kartu kendaraan."))
     } finally {
       setLoading(false)
     }
-  }, [currentPage, search, statusFilter, cardNoFrom, cardNoTo])
+  }, [currentPage, search, statusFilter, cardNoFrom, cardNoTo, t])
 
   useEffect(() => {
     fetchCards()
@@ -140,7 +142,7 @@ export default function VehicleCards() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!cardNo.trim()) {
-      toast.error("Nomor kartu kendaraan wajib diisi.")
+      toast.error(t("vehicleCards.toast_card_no_required", "Nomor kartu kendaraan wajib diisi."))
       return
     }
 
@@ -156,18 +158,18 @@ export default function VehicleCards() {
           payload.status = cardStatus
         }
         await api.put(`/vehicle-cards/${editingCard.id}`, payload)
-        toast.success("Kartu kendaraan berhasil diperbarui.")
+        toast.success(t("vehicleCards.toast_updated", "Kartu kendaraan berhasil diperbarui."))
       } else {
         payload.status = cardStatus
         await api.post("/vehicle-cards", payload)
-        toast.success("Kartu kendaraan baru berhasil ditambahkan.")
+        toast.success(t("vehicleCards.toast_created", "Kartu kendaraan baru berhasil ditambahkan."))
       }
       setModalOpen(false)
       fetchCards()
     } catch (error: unknown) {
       console.error("Gagal menyimpan kartu kendaraan", error)
       const maybeAxios = error as { response?: { data?: { message?: string } } }
-      toast.error(maybeAxios.response?.data?.message || "Gagal menyimpan kartu kendaraan.")
+      toast.error(maybeAxios.response?.data?.message || t("vehicleCards.toast_save_failed", "Gagal menyimpan kartu kendaraan."))
     } finally {
       setSubmitting(false)
     }
@@ -176,7 +178,7 @@ export default function VehicleCards() {
   const handleDelete = async () => {
     if (!deleteTarget) return
     if (deleteTarget.status === "in_use") {
-      toast.error("Kartu kendaraan sedang digunakan dan tidak dapat dihapus.")
+      toast.error(t("vehicleCards.toast_delete_in_use", "Kartu kendaraan sedang digunakan dan tidak dapat dihapus."))
       setDeleteTarget(null)
       return
     }
@@ -184,44 +186,42 @@ export default function VehicleCards() {
     setDeleting(true)
     try {
       await api.delete(`/vehicle-cards/${deleteTarget.id}`)
-      toast.success("Kartu kendaraan berhasil dihapus.")
+      toast.success(t("vehicleCards.toast_deleted", "Kartu kendaraan berhasil dihapus."))
       setDeleteTarget(null)
       fetchCards()
     } catch (error: unknown) {
       console.error("Gagal menghapus kartu", error)
       const maybeAxios = error as { response?: { data?: { message?: string } } }
-      toast.error(maybeAxios.response?.data?.message || "Gagal menghapus kartu kendaraan.")
+      toast.error(maybeAxios.response?.data?.message || t("vehicleCards.toast_delete_failed", "Gagal menghapus kartu kendaraan."))
     } finally {
       setDeleting(false)
     }
   }
-
-
 
   const getStatusBadge = (status: VehicleCardItem["status"]) => {
     switch (status) {
       case "available":
         return (
           <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
-            Available
+            {t("vehicleCards.status_available", "Available")}
           </Badge>
         )
       case "in_use":
         return (
           <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-300 dark:border-amber-800">
-            In Use
+            {t("vehicleCards.status_in_use", "In Use")}
           </Badge>
         )
       case "lost":
         return (
           <Badge variant="destructive" className="font-medium text-xs">
-            Lost
+            {t("vehicleCards.status_lost", "Lost")}
           </Badge>
         )
       case "damaged":
         return (
           <Badge className="bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-300 dark:border-rose-800">
-            Damaged
+            {t("vehicleCards.status_damaged", "Damaged")}
           </Badge>
         )
       default:
@@ -234,9 +234,9 @@ export default function VehicleCards() {
       {/* Header */}
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Master Kartu Kendaraan</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("vehicleCards.title", "Master Kartu Kendaraan")}</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Kelola kartu pass kendaraan (mobil, truk, motor) di area galangan shipyard.
+            {t("vehicleCards.subtitle", "Kelola kartu pass kendaraan (mobil, truk, motor) di area galangan shipyard.")}
           </p>
         </div>
 
@@ -247,7 +247,7 @@ export default function VehicleCards() {
             className="cursor-pointer"
           >
             <Upload className="h-4 w-4 mr-1.5" />
-            Import Excel
+            {t("common.import_excel", "Import Excel")}
           </Button>
 
           <Button
@@ -256,12 +256,12 @@ export default function VehicleCards() {
             className="cursor-pointer"
           >
             <FileDown className="h-4 w-4 mr-1.5" />
-            Export Excel
+            {t("common.export_excel", "Export Excel")}
           </Button>
 
           <Button onClick={openCreateModal} className="cursor-pointer">
             <Plus className="h-4 w-4 mr-1.5" />
-            Tambah Kartu Kendaraan
+            {t("vehicleCards.add_card", "Tambah Kartu Kendaraan")}
           </Button>
         </div>
       </div>
@@ -275,13 +275,13 @@ export default function VehicleCards() {
                 htmlFor="vehicle-cards-search-input"
                 className="block text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 mb-1"
               >
-                Pencarian
+                {t("common.search", "Pencarian")}
               </label>
               <div className="relative">
                 <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-400" />
                 <Input
                   id="vehicle-cards-search-input"
-                  placeholder="Cari nomor kartu kendaraan..."
+                  placeholder={t("vehicleCards.search_placeholder", "Cari nomor kartu kendaraan...")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-8"
@@ -294,7 +294,7 @@ export default function VehicleCards() {
                 htmlFor="vehicle-cards-status-filter"
                 className="block text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 mb-1"
               >
-                Status Kartu
+                {t("vehicleCards.field_status_label", "Status Kartu")}
               </label>
               <select
                 id="vehicle-cards-status-filter"
@@ -302,10 +302,10 @@ export default function VehicleCards() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full rounded-md border border-zinc-300 bg-white text-zinc-900 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               >
-                <option value="" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Semua Status</option>
-                <option value="available" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Available</option>
-                <option value="in_use" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">In Use</option>
-                <option value="lost" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Lost</option>
+                <option value="" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">{t("common.all_status", "Semua Status")}</option>
+                <option value="available" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">{t("vehicleCards.status_available", "Available")}</option>
+                <option value="in_use" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">{t("vehicleCards.status_in_use", "In Use")}</option>
+                <option value="lost" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">{t("vehicleCards.status_lost", "Lost")}</option>
               </select>
             </div>
 
@@ -314,11 +314,11 @@ export default function VehicleCards() {
                 htmlFor="vehicle-cards-from-filter"
                 className="block text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 mb-1"
               >
-                Nomor Awal
+                {t("vehicleCards.number_from", "Nomor Awal")}
               </label>
               <Input
                 id="vehicle-cards-from-filter"
-                placeholder="Misal: VEH-001"
+                placeholder={t("vehicleCards.number_from_placeholder", "Misal: VEH-001")}
                 value={cardNoFrom}
                 onChange={(e) => setCardNoFrom(e.target.value)}
               />
@@ -329,18 +329,18 @@ export default function VehicleCards() {
                 htmlFor="vehicle-cards-to-filter"
                 className="block text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 mb-1"
               >
-                Nomor Akhir
+                {t("vehicleCards.number_to", "Nomor Akhir")}
               </label>
               <Input
                 id="vehicle-cards-to-filter"
-                placeholder="Misal: VEH-100"
+                placeholder={t("vehicleCards.number_to_placeholder", "Misal: VEH-100")}
                 value={cardNoTo}
                 onChange={(e) => setCardNoTo(e.target.value)}
               />
             </div>
 
             <Button type="submit" variant="secondary" className="cursor-pointer">
-              Terapkan Filter
+              {t("common.apply_filter", "Terapkan Filter")}
             </Button>
 
             <Button
@@ -349,7 +349,7 @@ export default function VehicleCards() {
               size="icon"
               onClick={fetchCards}
               disabled={loading}
-              title="Muat Ulang"
+              title={t("common.refresh", "Muat Ulang")}
               className="cursor-pointer"
             >
               <RotateCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -362,12 +362,12 @@ export default function VehicleCards() {
           <Table>
             <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
               <TableRow>
-                <TableHead className="w-12 text-center">No</TableHead>
-                <TableHead>Nomor Kartu Kendaraan</TableHead>
-                <TableHead>Tipe Kartu</TableHead>
-                <TableHead>Status Operasional</TableHead>
-                <TableHead>Catatan</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead className="w-12 text-center">{t("vehicleCards.col_no", "No")}</TableHead>
+                <TableHead>{t("vehicleCards.col_card_no_full", "Nomor Kartu Kendaraan")}</TableHead>
+                <TableHead>{t("vehicleCards.col_card_type", "Tipe Kartu")}</TableHead>
+                <TableHead>{t("vehicleCards.col_status_operational", "Status Operasional")}</TableHead>
+                <TableHead>{t("vehicleCards.col_notes_simple", "Catatan")}</TableHead>
+                <TableHead className="text-right">{t("vehicleCards.col_actions", "Aksi")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -375,13 +375,13 @@ export default function VehicleCards() {
                 <TableRow>
                   <TableCell colSpan={6} className="h-28 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
-                    <span className="mt-2 block text-xs text-zinc-500">Memuat data kartu kendaraan...</span>
+                    <span className="mt-2 block text-xs text-zinc-500">{t("vehicleCards.loading_cards", "Memuat data kartu kendaraan...")}</span>
                   </TableCell>
                 </TableRow>
               ) : cards.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center text-zinc-500">
-                    Tidak ada kartu kendaraan ditemukan.
+                    {t("vehicleCards.empty_text", "Tidak ada kartu kendaraan ditemukan.")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -420,12 +420,12 @@ export default function VehicleCards() {
                           variant="outline"
                           size="sm"
                           onClick={() => openEditModal(card)}
-                          title="Edit Nomor Kartu"
+                          title={t("vehicleCards.edit_card_title", "Edit Nomor Kartu")}
                           aria-label="Edit"
                           className="cursor-pointer"
                         >
                           <Pencil className="h-3.5 w-3.5 mr-1" />
-                          Edit
+                          {t("common.edit", "Edit")}
                         </Button>
                         <Button
                           variant="outline"
@@ -434,8 +434,8 @@ export default function VehicleCards() {
                           disabled={isInUse}
                           title={
                             isInUse
-                              ? "Kartu kendaraan sedang digunakan dan tidak dapat dihapus."
-                              : "Hapus Kartu"
+                              ? t("vehicleCards.delete_disabled_in_use", "Kartu kendaraan sedang digunakan dan tidak dapat dihapus.")
+                              : t("vehicleCards.delete_card_title", "Hapus Kartu")
                           }
                           aria-label="Hapus"
                           className={`cursor-pointer ${
@@ -445,7 +445,7 @@ export default function VehicleCards() {
                           }`}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1" />
-                          Hapus
+                          {t("common.delete", "Hapus")}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -459,8 +459,11 @@ export default function VehicleCards() {
         {/* Pagination */}
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-zinc-500 dark:text-zinc-400">
-            Menampilkan {cards.length > 0 ? (currentPage - 1) * perPage + 1 : 0} hingga{" "}
-            {Math.min(currentPage * perPage, totalCount)} dari {totalCount} kartu
+            {t("vehicleCards.pagination_showing", {
+              from: cards.length > 0 ? (currentPage - 1) * perPage + 1 : 0,
+              to: Math.min(currentPage * perPage, totalCount),
+              total: totalCount,
+            })}
           </div>
           <div className="flex gap-2">
             <Button
@@ -489,12 +492,12 @@ export default function VehicleCards() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>
-                {editingCard ? "Edit Kartu Kendaraan" : "Tambah Kartu Kendaraan"}
+                {editingCard ? t("vehicleCards.edit_modal_title", "Edit Kartu Kendaraan") : t("vehicleCards.create_modal_title", "Tambah Kartu Kendaraan")}
               </DialogTitle>
               <DialogDescription>
                 {editingCard
-                  ? "Ubah nomor fisik, status operasional, dan catatan kartu kendaraan."
-                  : "Masukkan nomor kartu pass kendaraan baru dan catatan jika diperlukan."}
+                  ? t("vehicleCards.edit_desc", "Ubah nomor fisik, status operasional, dan catatan kartu kendaraan.")
+                  : t("vehicleCards.create_desc", "Masukkan nomor kartu pass kendaraan baru dan catatan jika diperlukan.")}
               </DialogDescription>
             </DialogHeader>
 
@@ -504,13 +507,13 @@ export default function VehicleCards() {
                   htmlFor="vehicle-cards-cardno-input"
                   className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                 >
-                  Nomor Kartu Kendaraan <span className="text-red-500">*</span>
+                  {t("vehicleCards.field_card_no_label", "Nomor Kartu Kendaraan")} <span className="text-red-500">*</span>
                 </label>
                 <Input
                   id="vehicle-cards-cardno-input"
                   value={cardNo}
                   onChange={(e) => setCardNo(e.target.value)}
-                  placeholder="Misal: VEH-001"
+                  placeholder={t("vehicleCards.number_from_placeholder", "Misal: VEH-001")}
                   required
                 />
               </div>
@@ -520,18 +523,18 @@ export default function VehicleCards() {
                   htmlFor="vehicle-cards-status-input"
                   className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                 >
-                  Status Operasional
+                  {t("vehicleCards.field_status_label", "Status Operasional")}
                 </label>
                 {editingCard && editingCard.status === "in_use" ? (
                   <div className="space-y-1">
                     <Input
                       id="vehicle-cards-status-input"
-                      value="In Use (Sedang Digunakan)"
+                      value={t("vehicleCards.status_in_use_text", "In Use (Sedang Digunakan)")}
                       disabled
                       className="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 cursor-not-allowed"
                     />
                     <p className="text-[11px] text-zinc-500">
-                      Status In Use dikelola otomatis saat kendaraan check-in / check-out.
+                      {t("vehicleCards.status_in_use_note", "Status In Use dikelola otomatis saat kendaraan check-in / check-out.")}
                     </p>
                   </div>
                 ) : (
@@ -541,9 +544,9 @@ export default function VehicleCards() {
                     onChange={(e) => setCardStatus(e.target.value as "available" | "lost" | "damaged")}
                     className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
                   >
-                    <option value="available">Available (Tersedia)</option>
-                    <option value="lost">Lost (Hilang)</option>
-                    <option value="damaged">Damaged (Rusak)</option>
+                    <option value="available">{t("vehicleCards.opt_available", "Available (Tersedia)")}</option>
+                    <option value="lost">{t("vehicleCards.opt_lost", "Lost (Hilang)")}</option>
+                    <option value="damaged">{t("vehicleCards.opt_damaged", "Damaged (Rusak)")}</option>
                   </select>
                 )}
               </div>
@@ -553,15 +556,15 @@ export default function VehicleCards() {
                   htmlFor="vehicle-cards-note-input"
                   className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1"
                 >
-                  Catatan / Keterangan
+                  {t("vehicleCards.field_notes", "Catatan / Keterangan")}
                   {cardStatus === "lost" && (
                     <span className="ml-1 text-amber-600 font-normal">
-                      (Disarankan: catat siapa yang menghilangkan, nopol kendaraan, tanggal...)
+                      {t("vehicleCards.lost_hint", "(Disarankan: catat siapa yang menghilangkan, nopol kendaraan, tanggal...)")}
                     </span>
                   )}
                   {cardStatus === "damaged" && (
                     <span className="ml-1 text-rose-600 font-normal">
-                      (Disarankan: catat rincian kerusakan fisik kartu)
+                      {t("vehicleCards.damaged_hint", "(Disarankan: catat rincian kerusakan fisik kartu)")}
                     </span>
                   )}
                 </label>
@@ -571,10 +574,10 @@ export default function VehicleCards() {
                   onChange={(e) => setCardNote(e.target.value)}
                   placeholder={
                     cardStatus === "lost"
-                      ? "Contoh: Hilang oleh pengemudi truk BP 1234 XY pada 19/10/2026..."
+                      ? t("vehicleCards.note_lost_placeholder", "Contoh: Hilang oleh pengemudi truk BP 1234 XY pada 19/10/2026...")
                       : cardStatus === "damaged"
-                      ? "Contoh: Kartu tergilas ban / barcode rusak..."
-                      : "Catatan atau keterangan kartu kendaraan (opsional)..."
+                      ? t("vehicleCards.note_damaged_placeholder", "Contoh: Kartu tergilas ban / barcode rusak...")
+                      : t("vehicleCards.note_default_placeholder", "Catatan atau keterangan kartu kendaraan (opsional)...")
                   }
                 />
               </div>
@@ -587,16 +590,16 @@ export default function VehicleCards() {
                 onClick={() => setModalOpen(false)}
                 disabled={submitting}
               >
-                Batal
+                {t("common.cancel", "Batal")}
               </Button>
               <Button type="submit" disabled={submitting}>
                 {submitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                    Menyimpan...
+                    {t("common.processing", "Menyimpan...")}
                   </>
                 ) : (
-                  "Simpan"
+                  t("common.save", "Simpan")
                 )}
               </Button>
             </DialogFooter>
@@ -608,20 +611,19 @@ export default function VehicleCards() {
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Hapus Kartu Kendaraan</AlertDialogTitle>
+            <AlertDialogTitle>{t("vehicleCards.confirm_delete_title", "Konfirmasi Hapus Kartu Kendaraan")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus kartu kendaraan{" "}
-              <strong>{deleteTarget?.card_no}</strong>?
+              {t("vehicleCards.confirm_delete_desc_full", { card_no: deleteTarget?.card_no || "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t("common.cancel", "Batal")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
               className="bg-red-600 text-white hover:bg-red-700"
             >
-              {deleting ? "Menghapus..." : "Ya, Hapus"}
+              {deleting ? t("common.deleting", "Menghapus...") : t("common.yes_delete", "Ya, Hapus")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -631,15 +633,15 @@ export default function VehicleCards() {
       <MasterImportDialog
         open={importOpen}
         onOpenChange={setImportOpen}
-        title="Import Kartu Kendaraan"
-        description="Unggah berkas Excel (.xlsx / .xls / .csv) berisi nomor kartu fisik kendaraan."
+        title={t("vehicleCards.import_title", "Import Kartu Kendaraan")}
+        description={t("vehicleCards.import_desc", "Unggah berkas Excel (.xlsx / .xls / .csv) berisi nomor kartu fisik kendaraan.")}
         templateEndpoint="/vehicle-cards/template"
         templateFileName="template_vehicle_cards.xlsx"
         previewEndpoint="/vehicle-cards/import-preview"
         importEndpoint="/vehicle-cards/import"
         columns={[
-          { key: "card_no", label: "Nomor Kartu Kendaraan" },
-          { key: "status", label: "Status" },
+          { key: "card_no", label: t("vehicleCards.field_card_no_label", "Nomor Kartu Kendaraan") },
+          { key: "status", label: t("vehicleCards.col_status", "Status") },
         ]}
         onSuccess={fetchCards}
       />

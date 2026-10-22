@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import api from "@/lib/axios"
 import { FALLBACK_COMPANY_NAME, useAppConfig } from "@/lib/appConfig"
 import { useAuth } from "@/context/AuthContext"
+import { useTranslation } from "@/context/I18nContext"
 import { Loader2, Printer, PlusCircle, ArrowLeft } from "lucide-react"
 
 function Field({
@@ -38,6 +39,7 @@ export default function PrintVisit() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { t } = useTranslation()
   // Whose name goes on the pass comes from this yard's server (decision PE-7).
   const { config, ready: configReady } = useAppConfig()
 
@@ -94,7 +96,7 @@ export default function PrintVisit() {
       <div className="flex h-screen flex-col items-center justify-center gap-3 bg-zinc-50 font-sans dark:bg-zinc-950">
         <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
         <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-          Memuat data pass pengunjung...
+          {t("reprint.loading_pass", "Memuat data pass pengunjung...")}
         </p>
       </div>
     )
@@ -104,7 +106,7 @@ export default function PrintVisit() {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 p-10 text-center font-sans">
         <p className="text-base font-semibold text-red-600">
-          Data tiket pass tidak ditemukan.
+          {t("reprint.pass_not_found", "Data tiket pass tidak ditemukan.")}
         </p>
         <Link
           to="/visits/activate"
@@ -330,21 +332,21 @@ export default function PrintVisit() {
           className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Printer className="h-4 w-4" />
-          Print Pass Now
+          {t("reprint.print_now", "Print Pass Now")}
         </button>
         <button
           onClick={() => navigate("/visits/create")}
           className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
         >
           <PlusCircle className="h-4 w-4" />
-          Add New Visit
+          {t("reprint.add_new_visit", "Add New Visit")}
         </button>
         <button
           onClick={() => navigate("/visits/activate")}
           className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Active Visits
+          {t("reprint.back_active", "Back to Active Visits")}
         </button>
       </div>
     </div>

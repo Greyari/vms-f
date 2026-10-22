@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 import {
   Upload,
   Download,
@@ -73,6 +74,7 @@ export interface Visitor {
 const ITEMS_PER_PAGE = 100
 
 export default function Visitors() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [visitors, setVisitors] = useState<Visitor[]>([])
   const [loading, setLoading] = useState(false)
@@ -174,11 +176,11 @@ export default function Visitors() {
     if (!selectedUnblacklistId) return
     try {
       await api.post(`/visitors/${selectedUnblacklistId}/unblacklist`)
-      toast.success("Status blacklist pengunjung berhasil dicabut")
+      toast.success(t("visitors.toast_unblacklist_success", "Status blacklist pengunjung berhasil dicabut"))
       fetchVisitors()
     } catch (error: any) {
       console.error(error)
-      toast.error(error.response?.data?.message || "Gagal mencabut status blacklist")
+      toast.error(error.response?.data?.message || t("visitors.toast_unblacklist_failed", "Gagal mencabut status blacklist"))
     } finally {
       setUnblacklistAlertOpen(false)
       setSelectedUnblacklistId(null)
@@ -194,11 +196,11 @@ export default function Visitors() {
     if (!selectedDeleteId) return
     try {
       await api.delete(`/visitors/${selectedDeleteId}`)
-      toast.success("Data pengunjung berhasil dihapus")
+      toast.success(t("visitors.toast_delete_success", "Data pengunjung berhasil dihapus"))
       fetchVisitors()
     } catch (error: any) {
       console.error(error)
-      toast.error(error.response?.data?.message || "Gagal menghapus data pengunjung")
+      toast.error(error.response?.data?.message || t("visitors.toast_delete_failed", "Gagal menghapus data pengunjung"))
     } finally {
       setDeleteAlertOpen(false)
       setSelectedDeleteId(null)
@@ -224,9 +226,9 @@ export default function Visitors() {
       {/* Header */}
       <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-2xl font-bold">Master Pengunjung (Visitors)</h1>
+          <h1 className="text-2xl font-bold">{t("visitors.title", "Master Pengunjung (Visitors)")}</h1>
           <p className="text-muted-foreground">
-            Daftar induk seluruh pengunjung, kontraktor, dan kru kapal.
+            {t("visitors.subtitle", "Daftar induk seluruh pengunjung, kontraktor, dan kru kapal.")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -235,25 +237,25 @@ export default function Visitors() {
             onClick={() => setExportModalOpen(true)}
           >
             <Download className="mr-2 h-4 w-4" />
-            Export Excel
+            {t("visitors.export_btn", "Export Excel")}
           </Button>
           <Button
             variant="outline"
             onClick={() => setImportModalOpen(true)}
           >
             <Upload className="mr-2 h-4 w-4" />
-            Import Excel
+            {t("visitors.import_btn", "Import Excel")}
           </Button>
           <Button
             variant="secondary"
             onClick={() => navigate("/master/visitors/blacklist")}
           >
             <Ban className="mr-2 h-4 w-4" />
-            Daftar Blacklist
+            {t("visitors.blacklist_list_btn", "Daftar Blacklist")}
           </Button>
           <Button onClick={openCreateModal}>
             <Plus className="mr-2 h-4 w-4" />
-            Tambah Pengunjung
+            {t("visitors.add_visitor", "Tambah Pengunjung")}
           </Button>
         </div>
       </div>
@@ -264,7 +266,7 @@ export default function Visitors() {
           <div className="relative">
             <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />
             <Input
-              placeholder="Cari nama, KTP, atau perusahaan..."
+              placeholder={t("visitors.search_placeholder_full", "Cari nama, KTP, atau perusahaan...")}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value)
@@ -276,7 +278,7 @@ export default function Visitors() {
 
           <div className="flex items-center gap-2">
             <Label htmlFor="visitorTypeFilter" className="whitespace-nowrap text-sm font-medium">
-              Tipe Pengunjung
+              {t("visitors.filter_visitor_type", "Tipe Pengunjung")}
             </Label>
             <select
               id="visitorTypeFilter"
@@ -287,7 +289,7 @@ export default function Visitors() {
               }}
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
-              <option value="">Semua Tipe</option>
+              <option value="">{t("visitors.filter_type", "Semua Tipe")}</option>
               <option value="regular">Regular</option>
               <option value="contractor">Contractor</option>
               <option value="crew">Crew</option>
@@ -297,7 +299,7 @@ export default function Visitors() {
 
           <div className="flex items-center gap-2">
             <Label htmlFor="blacklistFilter" className="whitespace-nowrap text-sm font-medium">
-              Status Blacklist
+              {t("visitors.filter_blacklist_status", "Status Blacklist")}
             </Label>
             <select
               id="blacklistFilter"
@@ -308,9 +310,9 @@ export default function Visitors() {
               }}
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
-              <option value="">Semua Status</option>
-              <option value="0">Normal (Aktif)</option>
-              <option value="1">Blacklisted</option>
+              <option value="">{t("visitors.filter_status", "Semua Status")}</option>
+              <option value="0">{t("visitors.opt_normal_active", "Normal (Aktif)")}</option>
+              <option value="1">{t("visitors.opt_blacklisted", "Blacklisted")}</option>
             </select>
           </div>
         </div>
@@ -321,14 +323,14 @@ export default function Visitors() {
             <Table>
               <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
                 <TableRow>
-                  <TableHead>No. Visitor</TableHead>
-                  <TableHead>Identitas</TableHead>
-                  <TableHead>Nama Pengunjung</TableHead>
-                  <TableHead>Perusahaan</TableHead>
-                  <TableHead>Tipe</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Total Kunjungan</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
+                  <TableHead>{t("visitors.col_no", "No. Visitor")}</TableHead>
+                  <TableHead>{t("visitors.col_identity", "Identitas")}</TableHead>
+                  <TableHead>{t("visitors.col_name", "Nama Pengunjung")}</TableHead>
+                  <TableHead>{t("visitors.col_company", "Perusahaan")}</TableHead>
+                  <TableHead>{t("visitors.col_type", "Tipe")}</TableHead>
+                  <TableHead>{t("visitors.col_status", "Status")}</TableHead>
+                  <TableHead>{t("visitors.col_total_visits", "Total Kunjungan")}</TableHead>
+                  <TableHead className="text-right">{t("common.actions", "Aksi")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -344,7 +346,7 @@ export default function Visitors() {
                       colSpan={8}
                       className="h-24 text-center text-zinc-500"
                     >
-                      Data pengunjung tidak ditemukan.
+                      {t("visitors.empty_text", "Data pengunjung tidak ditemukan.")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -379,11 +381,11 @@ export default function Visitors() {
                       <TableCell>
                         {visitor.is_blacklisted ? (
                           <Badge variant="outline" className="border-red-500/30 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400">
-                            Blacklisted
+                            {t("common.blacklisted", "Blacklisted")}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
-                            Aktif
+                            {t("common.active", "Aktif")}
                           </Badge>
                         )}
                       </TableCell>
@@ -397,7 +399,7 @@ export default function Visitors() {
                           onClick={() => openDetailModal(visitor.id)}
                         >
                           <Eye className="mr-1 h-3.5 w-3.5" />
-                          Detail
+                          {t("common.detail", "Detail")}
                         </Button>
                         <Button
                           variant="outline"
@@ -405,7 +407,7 @@ export default function Visitors() {
                           onClick={() => openEditModal(visitor)}
                         >
                           <Edit className="mr-1 h-3.5 w-3.5" />
-                          Edit
+                          {t("common.edit", "Edit")}
                         </Button>
                         {visitor.is_blacklisted ? (
                           <Button
@@ -415,7 +417,7 @@ export default function Visitors() {
                             className="text-emerald-600 hover:text-emerald-700"
                           >
                             <ShieldCheck className="mr-1 h-3.5 w-3.5" />
-                            Unblacklist
+                            {t("visitors.btn_unblacklist", "Unblacklist")}
                           </Button>
                         ) : (
                           <Button
@@ -424,7 +426,7 @@ export default function Visitors() {
                             onClick={() => openBlacklistDialog(visitor)}
                           >
                             <ShieldOff className="mr-1 h-3.5 w-3.5" />
-                            Blacklist
+                            {t("visitors.btn_blacklist", "Blacklist")}
                           </Button>
                         )}
                         <Button
@@ -446,8 +448,11 @@ export default function Visitors() {
         {/* Pagination Controls */}
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-zinc-500">
-            Menampilkan {visitors.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}{" "}
-            hingga {Math.min(currentPage * ITEMS_PER_PAGE, totalItems)} dari {totalItems} total pengunjung
+            {t("visitors.pagination_showing", {
+              from: visitors.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0,
+              to: Math.min(currentPage * ITEMS_PER_PAGE, totalItems),
+              total: totalItems,
+            })}
           </div>
           <div className="flex gap-2">
             <Button
@@ -522,18 +527,18 @@ export default function Visitors() {
       <AlertDialog open={unblacklistAlertOpen} onOpenChange={setUnblacklistAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Pencabutan Blacklist</AlertDialogTitle>
+            <AlertDialogTitle>{t("visitors.unblacklist_confirm_title", "Konfirmasi Pencabutan Blacklist")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin memulihkan status pengunjung ini? Pengunjung akan dapat kembali melakukan kunjungan ke ASL.
+              {t("visitors.unblacklist_confirm_desc", "Apakah Anda yakin ingin memulihkan status pengunjung ini? Pengunjung akan dapat kembali melakukan kunjungan ke ASL.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel", "Batal")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={executeUnblacklist}
               className="bg-emerald-600 hover:bg-emerald-700"
             >
-              Cabut Blacklist
+              {t("visitors.unblacklist_action_btn", "Cabut Blacklist")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -543,18 +548,18 @@ export default function Visitors() {
       <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Hapus Pengunjung</AlertDialogTitle>
+            <AlertDialogTitle>{t("visitors.delete_confirm_title", "Konfirmasi Hapus Pengunjung")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tindakan ini tidak dapat dibatalkan. Menghapus pengunjung akan menghapus data induk pengunjung secara permanen.
+              {t("visitors.delete_confirm_desc", "Tindakan ini tidak dapat dibatalkan. Menghapus pengunjung akan menghapus data induk pengunjung secara permanen.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel", "Batal")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={executeDelete}
               className="bg-red-600 hover:bg-red-700"
             >
-              Ya, Hapus
+              {t("common.yes_delete", "Ya, Hapus")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

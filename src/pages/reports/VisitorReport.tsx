@@ -616,7 +616,7 @@ export default function VisitorReport() {
                       <TableCell>
                         {isOpen ? (
                           <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400">
-                            OPEN
+                            {t("visitor_report.open_badge", "OPEN")}
                           </Badge>
                         ) : (
                           <div className="font-mono text-zinc-700 dark:text-zinc-300">

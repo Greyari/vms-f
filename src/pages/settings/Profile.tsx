@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
 import { useAuth } from "@/context/AuthContext"
+import { useTranslation } from "@/context/I18nContext"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -11,6 +12,7 @@ import { Loader2, User, KeyRound, Shield, CheckCircle2 } from "lucide-react"
 
 export default function Profile() {
   const { user, token, login } = useAuth()
+  const { t } = useTranslation()
 
   const [profileForm, setProfileForm] = useState({
     name: "",
@@ -47,7 +49,7 @@ export default function Profile() {
         email: profileForm.email.trim() ? profileForm.email.trim().toLowerCase() : null,
       }
       const res = await api.put("/profile", payload)
-      toast.success("Profil berhasil diperbarui.")
+      toast.success(t("profile.toast_profile_updated", "Profil berhasil diperbarui."))
       if (res.data?.user && token) {
         const mergedUser = {
           ...user,
@@ -59,7 +61,7 @@ export default function Profile() {
       }
     } catch (error: any) {
       console.error(error)
-      toast.error(error.response?.data?.message || "Gagal memperbarui profil.")
+      toast.error(error.response?.data?.message || t("profile.toast_failed", "Gagal memperbarui profil."))
     } finally {
       setLoadingProfile(false)
     }
@@ -70,19 +72,19 @@ export default function Profile() {
     setPasswordError("")
 
     if (passwordForm.new_password !== passwordForm.new_password_confirmation) {
-      setPasswordError("Konfirmasi password baru tidak cocok.")
+      setPasswordError(t("validation.password_mismatch", "Konfirmasi password baru tidak cocok."))
       return
     }
 
     if (passwordForm.new_password.length < 6) {
-      setPasswordError("Password baru minimal 6 karakter.")
+      setPasswordError(t("profile.err_min_length", "Password baru minimal 6 karakter."))
       return
     }
 
     setLoadingPassword(true)
     try {
       await api.put("/profile/password", passwordForm)
-      toast.success("Password berhasil diubah.")
+      toast.success(t("profile.toast_password_updated", "Password berhasil diubah."))
       setPasswordForm({
         current_password: "",
         new_password: "",
@@ -90,7 +92,7 @@ export default function Profile() {
       })
     } catch (error: any) {
       console.error(error)
-      const msg = error.response?.data?.message || "Gagal mengubah password."
+      const msg = error.response?.data?.message || t("profile.toast_failed", "Gagal mengubah password.")
       setPasswordError(msg)
       toast.error(msg)
     } finally {
@@ -102,10 +104,10 @@ export default function Profile() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Profil Saya (My Profile)
+          {t("profile.title", "Profil Saya (My Profile)")}
         </h1>
         <p className="text-sm text-zinc-500">
-          Kelola informasi identitas pribadi, kredensial login, dan kata sandi akun Anda.
+          {t("profile.description", "Kelola informasi identitas pribadi, kredensial login, dan kata sandi akun Anda.")}
         </p>
       </div>
 
@@ -118,14 +120,14 @@ export default function Profile() {
             </div>
             <div>
               <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                {user?.name || "Nama Pengguna"}
+                {user?.name || t("profile.name", "Nama Pengguna")}
               </h2>
               <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-zinc-500">
                 <span className="font-mono font-medium text-zinc-800 dark:text-zinc-200">
                   {user?.username ? `@${user.username}` : "@USER"}
                 </span>
                 <span>•</span>
-                <span>{user?.email || "Tidak ada email"}</span>
+                <span>{user?.email || t("profile.no_email", "Tidak ada email")}</span>
               </div>
             </div>
           </div>
@@ -147,7 +149,7 @@ export default function Profile() {
                 )
               })
             ) : (
-              <Badge variant="outline">User</Badge>
+              <Badge variant="outline">{t("profile.role_user", "User")}</Badge>
             )}
           </div>
         </div>
@@ -159,14 +161,14 @@ export default function Profile() {
           <div className="mb-4 flex items-center gap-2">
             <User className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
             <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              Informasi Profil
+              {t("profile.tab_profile", "Informasi Profil")}
             </h2>
           </div>
 
           <form onSubmit={handleProfileSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="profile-name-input" className="text-xs">
-                Nama Lengkap
+                {t("profile.name", "Nama Lengkap")}
               </Label>
               <Input
                 id="profile-name-input"
@@ -181,11 +183,14 @@ export default function Profile() {
 
             <div className="space-y-1.5">
               <Label htmlFor="profile-username-input" className="text-xs">
-                Username Login <span className="text-zinc-400 font-normal">(opsional jika ada email)</span>
+                {t("profile.username", "Username Login")}{" "}
+                <span className="text-zinc-400 font-normal">
+                  ({t("profile.username_optional_hint", "opsional jika ada email")})
+                </span>
               </Label>
               <Input
                 id="profile-username-input"
-                placeholder="cth. POS1 atau ADMIN"
+                placeholder={t("profile.username_placeholder", "cth. POS1 atau ADMIN")}
                 value={profileForm.username}
                 onChange={(e) =>
                   setProfileForm({
@@ -196,13 +201,19 @@ export default function Profile() {
                 className="h-9 text-sm font-mono uppercase"
               />
               <p className="text-[11px] text-zinc-500">
-                Huruf besar otomatis. Dapat digunakan sebagai identitas login cepat.
+                {t(
+                  "profile.username_hint",
+                  "Huruf besar otomatis. Dapat digunakan sebagai identitas login cepat."
+                )}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="profile-email-input" className="text-xs">
-                Alamat Email <span className="text-zinc-400 font-normal">(opsional jika ada username)</span>
+                {t("profile.email", "Alamat Email")}{" "}
+                <span className="text-zinc-400 font-normal">
+                  ({t("profile.email_optional_hint", "opsional jika ada username")})
+                </span>
               </Label>
               <Input
                 id="profile-email-input"
@@ -227,7 +238,7 @@ export default function Profile() {
               ) : (
                 <CheckCircle2 className="h-4 w-4" />
               )}
-              Perbarui Profil
+              {t("profile.update_profile", "Perbarui Profil")}
             </Button>
           </form>
         </div>
@@ -237,7 +248,7 @@ export default function Profile() {
           <div className="mb-4 flex items-center gap-2">
             <KeyRound className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
             <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              Ubah Password
+              {t("profile.change_password_title", "Ubah Password")}
             </h2>
           </div>
 
@@ -250,7 +261,7 @@ export default function Profile() {
 
             <div className="space-y-1.5">
               <Label htmlFor="current-password-input" className="text-xs">
-                Password Saat Ini
+                {t("profile.current_password", "Password Saat Ini")}
               </Label>
               <Input
                 id="current-password-input"
@@ -269,12 +280,12 @@ export default function Profile() {
 
             <div className="space-y-1.5">
               <Label htmlFor="new-password-input" className="text-xs">
-                Password Baru
+                {t("profile.new_password", "Password Baru")}
               </Label>
               <Input
                 id="new-password-input"
                 type="password"
-                placeholder="Minimal 6 karakter..."
+                placeholder={t("profile.min_chars_placeholder", "Minimal 6 karakter...")}
                 value={passwordForm.new_password}
                 onChange={(e) =>
                   setPasswordForm({
@@ -289,7 +300,7 @@ export default function Profile() {
 
             <div className="space-y-1.5">
               <Label htmlFor="confirm-password-input" className="text-xs">
-                Konfirmasi Password Baru
+                {t("profile.confirm_new_password", "Konfirmasi Password Baru")}
               </Label>
               <Input
                 id="confirm-password-input"
@@ -317,7 +328,7 @@ export default function Profile() {
               ) : (
                 <KeyRound className="h-4 w-4" />
               )}
-              Ubah Password
+              {t("profile.update_password", "Ubah Password")}
             </Button>
           </form>
         </div>
