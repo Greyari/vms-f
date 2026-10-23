@@ -230,14 +230,14 @@ export default function AppLayout() {
     .sort((a, b) => b.path.length - a.path.length)[0]
 
   return (
-    <div className="flex h-screen w-full bg-zinc-50 dark:bg-zinc-900">
+    <div className="flex h-screen w-full overflow-hidden bg-zinc-50 dark:bg-zinc-900">
       {/* Sidebar */}
-      <aside className="flex w-64 flex-shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+      <aside className="flex h-screen w-64 flex-shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div className="flex h-14 items-center border-b border-zinc-200 px-6 text-lg font-semibold dark:border-zinc-800">
           VMS Core
         </div>
 
-        <div className="flex-1 overflow-y-auto py-4">
+        <div className="no-scrollbar flex-1 overflow-y-auto py-4">
           {menuItems.map((group, i) => {
             const visibleItems = group.items.filter((item) => item.show)
             if (visibleItems.length === 0) return null
@@ -325,9 +325,9 @@ export default function AppLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto min-w-0">
         {/* Top Header bar with Theme Toggle and Cloud hub sync indicator */}
-        <div className="flex h-14 items-center justify-between border-b border-zinc-200 bg-white px-6 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-zinc-200 bg-white/95 backdrop-blur px-6 dark:border-zinc-800 dark:bg-zinc-950/95">
           <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
             {t("layout.app_name", "Visitor Management System")}
           </div>

@@ -123,6 +123,15 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  html,
+  body {
+    overflow: hidden;
+  }
   body {
     @apply bg-background text-foreground;
   }
@@ -146,6 +155,11 @@
 }
 
 @media print {
+  html,
+  body {
+    overflow: visible !important;
+    height: auto !important;
+  }
   [data-sonner-toaster],
   [data-sonner-toast],
   section[aria-label*="Notifications"],

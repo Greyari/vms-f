@@ -204,7 +204,6 @@ export default function VesselArrivals() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-            <Ship className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             {t("vessel_arrivals.title", "Kedatangan Kapal & Kru")}
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
@@ -401,7 +400,9 @@ export default function VesselArrivals() {
                           </Badge>
                           {typeof arrival.completed_crew_count === "number" && arrival.completed_crew_count > 0 && (
                             <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
-                              {arrival.completed_crew_count} {t("vessel_arrivals.completed_crew_count", "Selesai")}
+                              {t("vessel_arrivals.completed_crew_count", "{{count}} Selesai", {
+                                count: arrival.completed_crew_count,
+                              })}
                             </span>
                           )}
                         </div>

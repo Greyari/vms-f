@@ -98,6 +98,9 @@ describe('VesselReport Page', () => {
       if (url === '/reports/vessels/export') {
         return { data: new Blob(['fake-vessel-excel']) }
       }
+      if (url === '/reports/vessels/pdf') {
+        return { data: new Blob(['fake-vessel-pdf'], { type: 'application/pdf' }) }
+      }
       return { data: {} }
     })
   })
@@ -198,6 +201,33 @@ describe('VesselReport Page', () => {
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith(
         '/reports/vessels/export',
+        expect.objectContaining({
+          responseType: 'blob',
+          params: expect.objectContaining({
+            mode: 'list_ships',
+          }),
+        })
+      )
+    })
+  })
+
+  it('triggers PDF export blob download for vessel report', async () => {
+    render(
+      <MemoryRouter>
+        <VesselReport />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('MV Samudera Pasifik')).toBeInTheDocument()
+    })
+
+    const exportPdfBtn = screen.getByRole('button', { name: /Cetak \/ PDF|Export PDF/i })
+    fireEvent.click(exportPdfBtn)
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith(
+        '/reports/vessels/pdf',
         expect.objectContaining({
           responseType: 'blob',
           params: expect.objectContaining({

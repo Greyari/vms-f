@@ -30,6 +30,7 @@ import {
   ChevronRight,
   Filter,
   FileDown,
+  Printer,
   Ship,
   Users,
 } from "lucide-react"
@@ -76,6 +77,7 @@ export default function VesselReport() {
   const [mode, setMode] = useState<"list_ships" | "list_ships_with_crew">("list_ships")
   const [loading, setLoading] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
+  const [exportPdfLoading, setExportPdfLoading] = useState(false)
   const [records, setRecords] = useState<VesselReportItem[]>([])
 
   // Filters
@@ -193,6 +195,53 @@ export default function VesselReport() {
     }
   }
 
+  const handleExportPdf = async () => {
+    setExportPdfLoading(true)
+    try {
+      const res = await api.get("/reports/vessels/pdf", {
+        params: {
+          mode,
+          ...appliedFilters,
+        },
+        responseType: "blob",
+      })
+
+      const blob = new Blob([res.data], { type: "application/pdf" })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      const dateStr = new Date().toISOString().split("T")[0]
+      link.download = `vessel-report-${mode}-${dateStr}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      toast.success(t("vessel_report.export_pdf_success", "Dokumen PDF laporan kapal berhasil diunduh."))
+    } catch (err: any) {
+      console.error(err)
+      if (err.response?.status === 422) {
+        let msg = t("vessel_report.limit_exceeded_msg", "Data yang akan dicetak melebihi batas maksimal 5.000 baris. Silakan persempit rentang tanggal atau filter lainnya sebelum mencetak dokumen.")
+        if (err.response.data instanceof Blob) {
+          try {
+            const text = await err.response.data.text()
+            const parsed = JSON.parse(text)
+            if (parsed.message) msg = parsed.message
+          } catch {
+            // fallback
+          }
+        } else if (err.response.data?.message) {
+          msg = err.response.data.message
+        }
+        toast.error(msg)
+      } else {
+        toast.error(t("vessel_report.export_pdf_error", "Gagal mencetak dokumen PDF laporan kapal."))
+      }
+    } finally {
+      setExportPdfLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -214,7 +263,7 @@ export default function VesselReport() {
             variant="outline"
             size="sm"
             className="gap-2"
-            disabled={loading || exportLoading}
+            disabled={loading || exportLoading || exportPdfLoading}
             onClick={handleExportExcel}
           >
             {exportLoading ? (
@@ -223,6 +272,20 @@ export default function VesselReport() {
               <FileDown className="h-4 w-4" />
             )}
             {t("common.export_excel", "Export Excel")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={loading || exportLoading || exportPdfLoading}
+            onClick={handleExportPdf}
+          >
+            {exportPdfLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Printer className="h-4 w-4" />
+            )}
+            {t("common.print_pdf", "Cetak / PDF")}
           </Button>
         </div>
       </div>

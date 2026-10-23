@@ -93,7 +93,7 @@ export default function PrintVisit() {
 
   if (loading) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-3 bg-zinc-50 font-sans dark:bg-zinc-950">
+      <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-50 font-sans dark:bg-zinc-950">
         <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
         <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
           {t("reprint.loading_pass", "Memuat data pass pengunjung...")}
@@ -104,7 +104,7 @@ export default function PrintVisit() {
 
   if (!visit) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 p-10 text-center font-sans">
+      <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-10 text-center font-sans">
         <p className="text-base font-semibold text-red-600">
           {t("reprint.pass_not_found", "Data tiket pass tidak ditemukan.")}
         </p>
@@ -132,7 +132,7 @@ export default function PrintVisit() {
   const companyName = config.company_name.trim()
 
   return (
-    <div className="min-h-screen bg-white font-sans text-black print:h-[15cm] print:min-h-0 print:w-[24cm] print:overflow-hidden print:p-0">
+    <div className="h-full w-full overflow-y-auto bg-white font-sans text-black print:h-[15cm] print:min-h-0 print:w-[24cm] print:overflow-hidden print:p-0">
       <style
         dangerouslySetInnerHTML={{
           __html: `

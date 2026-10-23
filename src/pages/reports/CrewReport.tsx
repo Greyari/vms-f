@@ -28,6 +28,7 @@ import {
   Search,
   RotateCcw,
   FileDown,
+  Printer,
   Loader2,
   ChevronLeft,
   ChevronRight,
@@ -89,6 +90,7 @@ export default function CrewReport() {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
+  const [exportPdfLoading, setExportPdfLoading] = useState(false)
   const [records, setRecords] = useState<CrewPlacementItem[]>([])
 
   // Filters
@@ -207,6 +209,50 @@ export default function CrewReport() {
     }
   }
 
+  const handleExportPdf = async () => {
+    setExportPdfLoading(true)
+    try {
+      const res = await api.get("/reports/crew/pdf", {
+        params: appliedFilters,
+        responseType: "blob",
+      })
+
+      const blob = new Blob([res.data], { type: "application/pdf" })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      const dateStr = new Date().toISOString().split("T")[0]
+      link.download = `vessel-crew-report-${dateStr}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      toast.success(t("crew_report.export_pdf_success", "Dokumen PDF laporan kru kapal berhasil diunduh."))
+    } catch (err: any) {
+      console.error(err)
+      if (err.response?.status === 422) {
+        let msg = t("crew_report.limit_exceeded_msg", "Data yang akan dicetak melebihi batas maksimal 5.000 baris. Silakan persempit rentang tanggal atau filter lainnya sebelum mencetak dokumen.")
+        if (err.response.data instanceof Blob) {
+          try {
+            const text = await err.response.data.text()
+            const parsed = JSON.parse(text)
+            if (parsed.message) msg = parsed.message
+          } catch {
+            // fallback
+          }
+        } else if (err.response.data?.message) {
+          msg = err.response.data.message
+        }
+        toast.error(msg)
+      } else {
+        toast.error(t("crew_report.export_pdf_error", "Gagal mencetak dokumen PDF laporan kru kapal."))
+      }
+    } finally {
+      setExportPdfLoading(false)
+    }
+  }
+
   const formatTimestamp = (ts?: string | null) => {
     if (!ts) return "-"
     try {
@@ -259,7 +305,7 @@ export default function CrewReport() {
             variant="default"
             size="sm"
             className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-            disabled={loading || exportLoading}
+            disabled={loading || exportLoading || exportPdfLoading}
             onClick={handleExportExcel}
           >
             {exportLoading ? (
@@ -268,6 +314,20 @@ export default function CrewReport() {
               <FileDown className="h-4 w-4" />
             )}
             {t("crew_report.export_excel", "Ekspor Excel (.xlsx)")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={loading || exportLoading || exportPdfLoading}
+            onClick={handleExportPdf}
+          >
+            {exportPdfLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Printer className="h-4 w-4" />
+            )}
+            {t("common.print_pdf", "Cetak / PDF")}
           </Button>
         </div>
       </div>

@@ -23,7 +23,9 @@ const sampleArrivals = [
     foreign_agent_name: null,
     foreign_agent_phone: null,
     foreign_agent_location: null,
-    crew_count: 5,
+    crew_count: 6,
+    active_crew_count: 4,
+    completed_crew_count: 2,
     vessel: {
       id: 'uuid-vessel-1',
       name: 'MV. PACIFIC GLORY',
@@ -79,7 +81,9 @@ describe('VesselArrivals Page', () => {
       expect(screen.getByText('IMO9123456')).toBeInTheDocument()
       expect(screen.getByText('TB. SAMUDERA 01')).toBeInTheDocument()
       expect(screen.getByText('Capt. Robert')).toBeInTheDocument()
-      expect(screen.getByText(/5 (Kru|Crew)/i)).toBeInTheDocument()
+      expect(screen.getByText(/4 (Kru|Crew)/i)).toBeInTheDocument()
+      expect(screen.getByText(/2 (Selesai|Completed)/i)).toBeInTheDocument()
+      expect(screen.queryByText(/\{\{count\}\}/)).not.toBeInTheDocument()
       expect(screen.getAllByText(/Sedang Sandar|In Port/i).length).toBeGreaterThan(0)
       expect(screen.getAllByText(/Sudah Berangkat|Departed/i).length).toBeGreaterThan(0)
     })
