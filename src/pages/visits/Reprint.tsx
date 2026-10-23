@@ -109,7 +109,7 @@ export default function Reprint() {
   const fetchVisits = useCallback(async () => {
     setLoading(true)
     try {
-      const params: Record<string, string> = { date }
+      const params: Record<string, string> = { date, per_page: "1000" }
       if (search.trim()) {
         params.name = search.trim()
       }

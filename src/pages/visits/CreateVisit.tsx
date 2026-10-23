@@ -87,6 +87,8 @@ export interface VisitorSearchResult {
   id_number?: string
   phone?: string | null
   company?: string | null
+  visitor_type?: string | null
+  visits_count?: number
   vessel_id?: string | number | null
   is_blacklisted?: boolean | number
   blacklist_reason?: string | null
@@ -1071,7 +1073,7 @@ export default function CreateVisit() {
                     setNameQuery(s.name || "")
                     setIdType(s.id_type || "ktp")
                     setIdNumber(s.id_number || "")
-                    checkIdentity(s.id_number, s)
+                    checkIdentity(s.id_number || "", s)
                   }}
                 />
                 <p className="text-[11px] text-zinc-500">
@@ -1138,7 +1140,7 @@ export default function CreateVisit() {
                       setNameQuery(s.name || "")
                       setIdType(s.id_type || "ktp")
                       setIdNumber(s.id_number || "")
-                      checkIdentity(s.id_number, s)
+                      checkIdentity(s.id_number || "", s)
                     }}
                     onEnter={() => checkIdentity(idNumber)}
                   />
