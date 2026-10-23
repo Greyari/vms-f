@@ -1,19 +1,16 @@
-import { useState, useEffect, useRef } from "react"
-import { useTranslation } from "@/context/I18nContext"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { isCancel } from "axios"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import {
-  Popover,
-  PopoverContent,
-  PopoverAnchor,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Command,
   CommandGroup,
@@ -37,773 +34,981 @@ import {
   Search,
   AlertTriangle,
   UserCheck,
-  UserPlus,
-  ScanLine,
+  UserX,
   Globe,
   Building2,
   CreditCard,
   User,
   Printer,
-  ChevronDown,
-  ChevronUp,
-  Edit2,
-  AlertCircle,
   Ship,
+  X,
 } from "lucide-react"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import SearchableLocationSelect from "@/components/common/SearchableLocationSelect"
-import type { GlobalBlacklistHit, PreRegistration } from "@/types/hybrid"
+import type { GlobalBlacklistHit } from "@/types/hybrid"
 
-interface LocationItem {
+/* ------------------------------------------------------------------ */
+/* Types & helpers                                                     */
+/* ------------------------------------------------------------------ */
+
+export interface LocationItem {
   id: number | string
   name: string
   code?: string | null
-  type?: "location" | "repair_vessel" | "tug_boat" | "barge" | string
+  type?: string
   vessel_type?: string | null
   call_sign?: string | null
   flag?: string | null
-  port?: string | null
   captain?: string | null
   pic?: string | null
   is_active?: boolean | number
 }
 
-interface StaffItem {
+export interface StaffItem {
   id: number | string
   staff_id?: string
   name: string
   department?: string
-  gender?: string
   address?: string
   company?: string
   is_active?: boolean | number
 }
 
-interface CardItem {
+export interface CardItem {
   id: number | string
   card_no: string
   status: string
-  card_type?: string
 }
 
-interface PurposeItem {
-  purpose?: string
+export interface VisitorSearchResult {
+  id: number | string
+  name: string
+  id_type?: string
+  id_number?: string
+  phone?: string | null
+  company?: string | null
+  vessel_id?: string | number | null
+  is_blacklisted?: boolean | number
+  blacklist_reason?: string | null
   [key: string]: unknown
 }
 
-// Module-level cache to make revisiting Add Visit instant across the session
-let cachedMasterData: {
-  locations: LocationItem[]
-  staffList: StaffItem[]
-  purposeSuggestions: string[]
-  cachedAt: number
-} | null = null
+type VisitorStatus = "idle" | "registered" | "blacklisted" | "notfound"
+
+const WRAPPER_KEYS = [
+  "data",
+  "locations",
+  "staffs",
+  "cards",
+  "vehicle_cards",
+  "vehicleCards",
+  "purposes",
+  "items",
+  "results",
+  "visitors",
+] as const
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const unwrap = (res: unknown): unknown[] => {
+  if (!res) return []
+  if (Array.isArray(res)) return res
+
+  const hasDataProp = res && typeof res === "object" && "data" in res
+  const payload = hasDataProp ? (res as { data: unknown }).data : res
+  if (Array.isArray(payload)) return payload
+
+  if (payload && typeof payload === "object") {
+    for (const key of WRAPPER_KEYS) {
+      const candidate = (payload as Record<string, unknown>)[key]
+      if (Array.isArray(candidate)) return candidate
+      if (candidate && typeof candidate === "object") {
+        for (const nestedKey of WRAPPER_KEYS) {
+          const nested = (candidate as Record<string, unknown>)[nestedKey]
+          if (Array.isArray(nested)) return nested
+        }
+      }
+    }
+  }
+
+  return []
+}
 
 const POPULAR_PURPOSES = [
-  "Meeting",
-  "Survey",
-  "Delivery",
-  "Maintenance",
-  "Inspection",
-  "Audit",
-]
+  { key: "purpose_meeting", value: "Meeting", defaultLabel: "Meeting" },
+  { key: "purpose_survey", value: "Survey", defaultLabel: "Survey" },
+  { key: "purpose_delivery", value: "Delivery", defaultLabel: "Delivery" },
+  { key: "purpose_maintenance", value: "Maintenance", defaultLabel: "Maintenance" },
+  { key: "purpose_inspection", value: "Inspection", defaultLabel: "Inspection" },
+  { key: "purpose_audit", value: "Audit", defaultLabel: "Audit" },
+] as const
+
+const CARD =
+  "rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+
+const CACHE_TTL_MS = 5 * 60 * 1000
+
+// Cache sederhana supaya buka halaman ini lagi terasa instan
+let cache: {
+  locations: LocationItem[]
+  staffList: StaffItem[]
+  purposes: string[]
+  at: number
+} | null = null
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function resetCreateVisitCache() {
+  cache = null
+}
+
+/* ------------------------------------------------------------------ */
+/* Autocomplete pengunjung (keyboard + klik + tap)                     */
+/* ------------------------------------------------------------------ */
+
+function VisitorAutocomplete({
+  id,
+  value,
+  placeholder,
+  onChange,
+  onPick,
+  onEnter,
+  inputRef,
+}: {
+  id: string
+  value: string
+  placeholder: string
+  onChange: (v: string) => void
+  onPick: (visitor: VisitorSearchResult) => void
+  onEnter?: () => void // dipanggil saat Enter tanpa memilih saran
+  inputRef?: React.Ref<HTMLInputElement>
+}) {
+  const { t } = useTranslation()
+  const [items, setItems] = useState<VisitorSearchResult[]>([])
+  const [open, setOpen] = useState(false)
+  const [active, setActive] = useState(-1)
+  const [loading, setLoading] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const ctrl = useRef<AbortController | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current)
+      ctrl.current?.abort()
+    },
+    []
+  )
+
+  useEffect(() => {
+    if (active >= 0) {
+      listRef.current?.children[active]?.scrollIntoView({ block: "nearest" })
+    }
+  }, [active])
+
+  const search = (q: string) => {
+    if (timer.current) clearTimeout(timer.current)
+    ctrl.current?.abort()
+    setActive(-1)
+
+    if (q.trim().length < 2) {
+      setItems([])
+      setOpen(false)
+      setLoading(false)
+      return
+    }
+
+    setOpen(true)
+    setLoading(true)
+    timer.current = setTimeout(async () => {
+      const c = new AbortController()
+      ctrl.current = c
+      try {
+        const res = await api.get("/visits/search", {
+          params: { q: q.trim() },
+          signal: c.signal,
+        })
+        setItems(unwrap(res) as VisitorSearchResult[])
+      } catch (err) {
+        if (!isCancel(err)) console.error(err)
+      } finally {
+        if (!c.signal.aborted) setLoading(false)
+      }
+    }, 250)
+  }
+
+  const pick = (visitor: VisitorSearchResult) => {
+    setOpen(false)
+    setItems([])
+    setActive(-1)
+    onPick(visitor)
+  }
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      if (!open && items.length) setOpen(true)
+      setActive((i) => (items.length ? (i + 1) % items.length : -1))
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setActive((i) => (items.length ? (i <= 0 ? items.length - 1 : i - 1) : -1))
+    } else if (e.key === "Enter") {
+      e.preventDefault() // jangan submit form
+      if (open && active >= 0 && items[active]) pick(items[active])
+      else if (onEnter) {
+        setOpen(false)
+        onEnter()
+      }
+    } else if (e.key === "Escape") {
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <Input
+        ref={inputRef}
+        id={id}
+        value={value}
+        autoComplete="off"
+        placeholder={placeholder}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={`${id}-list`}
+        aria-autocomplete="list"
+        onChange={(e) => {
+          onChange(e.target.value)
+          search(e.target.value)
+        }}
+        onKeyDown={onKeyDown}
+        onFocus={() => items.length > 0 && setOpen(true)}
+        onBlur={() => setOpen(false)}
+        className="h-10 pr-9"
+      />
+      {loading ? (
+        <Loader2 className="pointer-events-none absolute right-3 top-3 h-4 w-4 animate-spin text-zinc-400" />
+      ) : (
+        <Search className="pointer-events-none absolute right-3 top-3 h-4 w-4 text-zinc-400" />
+      )}
+
+      {open && (
+        <div
+          id={`${id}-list`}
+          role="listbox"
+          ref={listRef}
+          className="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
+        >
+          {!loading && items.length === 0 ? (
+            <div className="p-3 text-center text-xs text-zinc-500">
+              {t("create_visit.no_matching_visitors", "Tidak ada pengunjung yang cocok.")}
+            </div>
+          ) : (
+            items.map((s, i) => (
+              <div
+                key={s.id}
+                role="option"
+                aria-selected={i === active}
+                // mouseDown (bukan click) supaya input tidak blur sebelum terpilih; juga jalan di layar sentuh
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  pick(s)
+                }}
+                onMouseEnter={() => setActive(i)}
+                className={cn(
+                  "flex cursor-pointer items-center gap-2 px-3 py-2",
+                  i === active && "bg-zinc-100 dark:bg-zinc-800"
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{s.name}</p>
+                  <p className="truncate text-xs text-zinc-500">
+                    {(s.id_type || "ktp").toUpperCase()} {s.id_number}
+                    {s.company ? ` · ${s.company}` : ""}
+                  </p>
+                </div>
+                {s.is_blacklisted && (
+                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
+                    {t("create_visit.badge_blacklist", "BLACKLIST")}
+                  </span>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Picker (dropdown cari + pilih satu / banyak)                        */
+/* ------------------------------------------------------------------ */
+
+interface Opt {
+  value: string
+  label: string
+  sub?: string
+}
+
+function Picker({
+  options,
+  value,
+  onChange,
+  multiple,
+  placeholder,
+  searchPlaceholder,
+  emptyText,
+  noneLabel,
+  disabled,
+}: {
+  options: Opt[]
+  value: string[]
+  onChange: (v: string[]) => void
+  multiple?: boolean
+  placeholder: string
+  searchPlaceholder: string
+  emptyText: string
+  noneLabel?: string
+  disabled?: boolean
+}) {
+  const { t, formatNumber } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const selected = useMemo(
+    () => options.filter((o) => value.includes(o.value)),
+    [options, value]
+  )
+
+  const filteredOptions = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return options
+    return options.filter((o) =>
+      `${o.label} ${o.sub ?? ""} ${o.value}`.toLowerCase().includes(q)
+    )
+  }, [options, query])
+
+  const visibleOptions = useMemo(() => {
+    const limit = 100
+    const sliced = filteredOptions.slice(0, limit)
+    const missingSelected = selected.filter(
+      (sel) => !sliced.some((o) => o.value === sel.value)
+    )
+    return missingSelected.length ? [...missingSelected, ...sliced] : sliced
+  }, [filteredOptions, selected])
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen)
+        if (!nextOpen) setQuery("")
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className="w-full min-w-0 justify-between overflow-hidden bg-white text-xs font-normal dark:bg-zinc-950"
+        >
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate text-left",
+              !selected.length && "text-muted-foreground"
+            )}
+          >
+            {selected.length ? selected.map((o) => o.label).join(", ") : placeholder}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:min-w-[320px]">
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            value={query}
+            onValueChange={setQuery}
+          />
+          <CommandList>
+            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandGroup>
+              {noneLabel && !query.trim() && (
+                <CommandItem
+                  value="__none__"
+                  onSelect={() => {
+                    onChange([])
+                    setOpen(false)
+                    setQuery("")
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value.length === 0 ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <span className="text-xs italic text-zinc-500">{noneLabel}</span>
+                </CommandItem>
+              )}
+              {visibleOptions.map((o) => {
+                const isSel = value.includes(o.value)
+                return (
+                  <CommandItem
+                    key={o.value}
+                    value={`${o.label} ${o.sub ?? ""} ${o.value}`}
+                    onSelect={() => {
+                      if (multiple) {
+                        onChange(
+                          isSel
+                            ? value.filter((v) => v !== o.value)
+                            : [...value, o.value]
+                        )
+                      } else {
+                        onChange([o.value])
+                        setOpen(false)
+                        setQuery("")
+                      }
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4 shrink-0",
+                        isSel ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-xs font-medium">{o.label}</span>
+                      {o.sub && (
+                        <span className="truncate text-[11px] text-zinc-500">
+                          {o.sub}
+                        </span>
+                      )}
+                    </div>
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+            {filteredOptions.length > 100 && (
+              <div className="border-t border-zinc-100 px-3 py-1.5 text-center text-[11px] text-zinc-500 dark:border-zinc-800">
+                {t(
+                  "create_visit.picker_showing_limit",
+                  "Menampilkan 100 dari {{total}} pilihan — ketik di kotak pencarian untuk menyaring.",
+                  { total: formatNumber(filteredOptions.length) }
+                )}
+              </div>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function SectionTitle({
+  n,
+  icon: Icon,
+  children,
+}: {
+  n: number
+  icon: React.ElementType
+  children: React.ReactNode
+}) {
+  return (
+    <div className="mb-4 flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+        {n}
+      </span>
+      <Icon className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+      <h2 className="text-base font-semibold">{children}</h2>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Halaman                                                             */
+/* ------------------------------------------------------------------ */
 
 export default function CreateVisit() {
-  const { t } = useTranslation()
+  const { t, formatNumber } = useTranslation()
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
-  const [checkingKtp, setCheckingKtp] = useState(false)
-  const [loadingMaster, setLoadingMaster] = useState(true)
-  const [savingVisitorToMaster, setSavingVisitorToMaster] = useState(false)
+  const nameInputRef = useRef<HTMLInputElement>(null)
+  const tRef = useRef(t)
+  tRef.current = t
 
-  const idInputRef = useRef<HTMLInputElement>(null)
+  const [loading, setLoading] = useState(false)
+  const [checking, setChecking] = useState(false)
+  const [loadingMaster, setLoadingMaster] = useState(true)
 
   // Master data
   const [locations, setLocations] = useState<LocationItem[]>([])
   const [staffList, setStaffList] = useState<StaffItem[]>([])
   const [cardList, setCardList] = useState<CardItem[]>([])
   const [vehicleList, setVehicleList] = useState<CardItem[]>([])
-  const [purposeSuggestions, setPurposeSuggestions] = useState<string[]>([])
+  const [purposes, setPurposes] = useState<string[]>([])
 
-  // Autocomplete states
-  const [suggestions, setSuggestions] = useState<any[]>([])
-  const [openKtp, setOpenKtp] = useState(false)
-  const [openName, setOpenName] = useState(false)
-  const [nameSearchQuery, setNameSearchQuery] = useState("")
-  const [searching, setSearching] = useState(false)
-  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
-
-  // Visitor check-ktp status & details
-  const [visitorStatus, setVisitorStatus] = useState<
-    "idle" | "new" | "registered" | "blacklisted"
-  >("idle")
-  const [blacklistReason, setBlacklistReason] = useState<string>("")
-  const [foundVisitor, setFoundVisitor] = useState<any | null>(null)
-  const [isEditLockedVisitor, setIsEditLockedVisitor] = useState(true)
-  const [showAdditionalData, setShowAdditionalData] = useState(false)
-
-  // Combobox states
-  const [openStaff, setOpenStaff] = useState(false)
-  const [openCard, setOpenCard] = useState(false)
-  const [openVehicle, setOpenVehicle] = useState(false)
-
-  // Conflict modal state (close_open_visits = true)
-  const [conflictOpen, setConflictOpen] = useState(false)
-  const [conflictMessage, setConflictMessage] = useState("")
-
-  // Hybrid multi-yard (spec §6.2): scanned pre-registration, global blacklist, supervisor override.
-  const [preRegCode, setPreRegCode] = useState("")
-  const [preReg, setPreReg] = useState<PreRegistration | null>(null)
-  const [lookingUpPreReg, setLookingUpPreReg] = useState(false)
-  const [gender, setGender] = useState("")
+  // Langkah 1: cari pengunjung (hanya cek, tidak menambah)
+  const [nameQuery, setNameQuery] = useState("")
+  const [idType, setIdType] = useState("ktp")
+  const [idNumber, setIdNumber] = useState("")
+  const [visitor, setVisitor] = useState<VisitorSearchResult | null>(null)
+  const [status, setStatus] = useState<VisitorStatus>("idle")
+  const [blacklistReason, setBlacklistReason] = useState("")
   const [globalEntries, setGlobalEntries] = useState<GlobalBlacklistHit[]>([])
-  const [overrideEntry, setOverrideEntry] = useState<GlobalBlacklistHit | null>(
-    null
-  )
-  const [overrideReason, setOverrideReason] = useState("")
 
-  const [currentTime, setCurrentTime] = useState(new Date())
-
-  // Form State
-  const [form, setForm] = useState<{
-    id_type: string
-    id_number: string
-    name: string
-    company: string
-    occupation: string
-    visitor_type: string
-    seaman_book_no: string
-    certificate_no: string
-    phone: string
-    email: string
-    birth_place: string
-    birth_date: string
-    nationality: string
-    address: string
-    location_id: string
-    purpose: string
-    is_custom_host: boolean
-    staff_id: string
-    host_name: string
-    card_ids: string[]
-    vehicle_card_id: string
-    vehicle_no: string
-  }>({
-    id_type: "ktp",
-    id_number: "",
-    name: "",
-    company: "",
-    occupation: "",
-    visitor_type: "visitor",
-    seaman_book_no: "",
-    certificate_no: "",
-    phone: "",
-    email: "",
-    birth_place: "",
-    birth_date: "",
-    nationality: "Indonesia",
-    address: "",
+  // Langkah 2 & 3
+  const [form, setForm] = useState({
     location_id: "",
     purpose: "",
     is_custom_host: false,
     staff_id: "",
     host_name: "",
-    card_ids: [],
+    card_ids: [] as string[],
     vehicle_card_id: "",
     vehicle_no: "",
   })
+  const setField = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
+    setForm((p) => ({ ...p, [k]: v }))
 
+  // Dialog
+  const [conflictOpen, setConflictOpen] = useState(false)
+  const [conflictMessage, setConflictMessage] = useState("")
+  const [overrideEntry, setOverrideEntry] = useState<GlobalBlacklistHit | null>(null)
+  const [overrideReason, setOverrideReason] = useState("")
+
+  const globalBlock = globalEntries.find((e) => e.id_type === idType) ?? null
+  const globalWarnings = globalEntries.filter((e) => e.id_type !== idType)
+  const canFill = status === "registered"
+
+  /* ---------- load master data ---------- */
   useEffect(() => {
-    let isMounted = true
+    let alive = true
+    nameInputRef.current?.focus()
 
-    const fetchMasterData = async () => {
-      // 1. Instant populate from client cache if fresh (< 5 mins)
-      if (
-        cachedMasterData &&
-        Date.now() - cachedMasterData.cachedAt < 5 * 60 * 1000
-      ) {
-        setLocations(cachedMasterData.locations)
-        setStaffList(cachedMasterData.staffList)
-        setPurposeSuggestions(cachedMasterData.purposeSuggestions)
-        if (cachedMasterData.locations.length > 0 && !form.location_id) {
-          setForm((prev) => ({
-            ...prev,
-            location_id: cachedMasterData!.locations[0].id.toString(),
-          }))
-        }
-        if (cachedMasterData.staffList.length > 0 && !form.staff_id) {
-          setForm((prev) => ({
-            ...prev,
-            staff_id: cachedMasterData!.staffList[0].id.toString(),
-          }))
-        }
-        setLoadingMaster(false)
-      }
+    if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
+      setLocations(cache.locations)
+      setStaffList(cache.staffList)
+      setPurposes(cache.purposes)
+      setLoadingMaster(false)
+    }
 
-      // 2. Fetch fresh dynamic data from backend
+    const fetchEndpoint = async (
+      url: string,
+      params?: Record<string, unknown>
+    ): Promise<{ ok: boolean; data: unknown[] }> => {
       try {
-        const [locRes, staffRes, cardsRes, vehRes, purposeRes] =
-          await Promise.all([
-            api.get("/locations", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
-            api.get("/staffs", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
-            api.get("/cards", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
-            api.get("/vehicle-cards", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
-            api.get("/lookups/purposes").catch(() => ({ data: [] })),
-          ])
-
-        const locData = Array.isArray(locRes.data)
-          ? locRes.data
-          : locRes.data?.data || []
-        const staffData = Array.isArray(staffRes.data)
-          ? staffRes.data
-          : staffRes.data?.data || []
-        const rawCards = Array.isArray(cardsRes.data)
-          ? cardsRes.data
-          : cardsRes.data?.data || []
-        const rawVehicles = Array.isArray(vehRes.data)
-          ? vehRes.data
-          : vehRes.data?.data || []
-        const rawPurposes = Array.isArray(purposeRes.data)
-          ? purposeRes.data
-          : purposeRes.data?.data || []
-        const pList = rawPurposes.map((p: PurposeItem | string) =>
-          typeof p === "string" ? p : p.purpose || ""
-        )
-
-        if (!isMounted) return
-
-        cachedMasterData = {
-          locations: locData,
-          staffList: staffData,
-          purposeSuggestions: pList.filter(Boolean),
-          cachedAt: Date.now(),
+        const res = params ? await api.get(url, { params }) : await api.get(url)
+        return { ok: true, data: unwrap(res) }
+      } catch (err: unknown) {
+        const errorObj = err as { response?: { status?: number | string } }
+        const statusCode = errorObj?.response?.status ?? "ERR"
+        console.error(`[CreateVisit] Failed to load master data from ${url}`, {
+          endpoint: url,
+          status: statusCode,
+          error: err,
+        })
+        if (alive) {
+          toast.error(
+            tRef.current(
+              "create_visit.toast_master_load_failed",
+              "Gagal memuat data {{endpoint}} (status: {{status}}).",
+              { endpoint: url, status: statusCode }
+            )
+          )
         }
-
-        setLocations(locData)
-        if (locData.length > 0 && !form.location_id) {
-          setForm((prev) => ({
-            ...prev,
-            location_id: locData[0].id.toString(),
-          }))
-        }
-
-        setStaffList(staffData)
-        if (staffData.length > 0 && !form.staff_id) {
-          setForm((prev) => ({
-            ...prev,
-            staff_id: staffData[0].id.toString(),
-          }))
-        }
-
-        const availableCards = rawCards.filter(
-          (c: CardItem) => c.status === "available"
-        )
-        setCardList(availableCards)
-
-        const availableVehicles = rawVehicles.filter(
-          (c: CardItem) => c.status === "available"
-        )
-        setVehicleList(availableVehicles)
-
-        setPurposeSuggestions(pList.filter(Boolean))
-      } catch (error) {
-        console.error("Failed to load master data", error)
-      } finally {
-        if (isMounted) setLoadingMaster(false)
+        return { ok: false, data: [] }
       }
     }
-    fetchMasterData()
 
-    if (idInputRef.current) {
-      idInputRef.current.focus()
-    }
+    Promise.all([
+      fetchEndpoint("/locations", { per_page: 1000 }),
+      fetchEndpoint("/staffs", { per_page: 1000 }),
+      fetchEndpoint("/cards", { per_page: 1000 }),
+      fetchEndpoint("/vehicle-cards", { per_page: 1000 }),
+      fetchEndpoint("/lookups/purposes"),
+    ])
+      .then(([locRes, staffRes, cardsRes, vehiclesRes, purposesRes]) => {
+        if (!alive) return
 
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
+        const activeLocations = (locRes.data as LocationItem[]).filter(
+          (l: LocationItem) => l.is_active === undefined || Boolean(l.is_active)
+        )
+        const activeStaff = (staffRes.data as StaffItem[]).filter(
+          (s: StaffItem) => s.is_active === undefined || Boolean(s.is_active)
+        )
+        const pList = (purposesRes.data as (string | { purpose?: string })[])
+          .map((p) => (typeof p === "string" ? p : p?.purpose || ""))
+          .filter(Boolean)
+
+        if (locRes.ok) setLocations(activeLocations)
+        if (staffRes.ok) setStaffList(activeStaff)
+        if (purposesRes.ok) setPurposes(pList)
+        if (cardsRes.ok) {
+          setCardList(
+            (cardsRes.data as CardItem[]).filter((c: CardItem) => c.status === "available")
+          )
+        }
+        if (vehiclesRes.ok) {
+          setVehicleList(
+            (vehiclesRes.data as CardItem[]).filter((c: CardItem) => c.status === "available")
+          )
+        }
+
+        // Jangan menyimpan hasil kosong akibat error ke cache
+        if (locRes.ok && staffRes.ok && purposesRes.ok) {
+          cache = {
+            locations: activeLocations,
+            staffList: activeStaff,
+            purposes: pList,
+            at: Date.now(),
+          }
+        }
+      })
+      .finally(() => {
+        if (alive) setLoadingMaster(false)
+      })
+
     return () => {
-      isMounted = false
-      clearInterval(timer)
-      if (searchTimeout.current) clearTimeout(searchTimeout.current)
-      abortRef.current?.abort()
+      alive = false
     }
   }, [])
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+  /* ---------- cek pengunjung ---------- */
+  const clearResult = () => {
+    setVisitor(null)
+    setStatus("idle")
+    setBlacklistReason("")
+    setGlobalEntries([])
   }
 
-  const handleSelectChange = (name: string, value: string | string[]) => {
-    setForm((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const globalBlock =
-    globalEntries.find((e) => e.id_type === form.id_type) ?? null
-  const globalWarnings = globalEntries.filter((e) => e.id_type !== form.id_type)
-
-  const handlePreRegLookup = async (e?: React.FormEvent) => {
-    e?.preventDefault()
-    const code = preRegCode.trim().toUpperCase()
-    if (!code) return
-
-    setLookingUpPreReg(true)
-    try {
-      const res = await api.get(
-        `/pre-registrations/${encodeURIComponent(code)}`
-      )
-      const found = res.data?.data as PreRegistration
-      if (found.status !== "pending") {
-        setPreReg(null)
-        toast.error(
-          found.status === "checked_in"
-            ? "Pra-registrasi ini sudah dipakai untuk check-in."
-            : "Pra-registrasi ini sudah kedaluwarsa. Layani sebagai walk-in."
-        )
-        return
-      }
-
-      setPreReg(found)
-      setGender(found.gender ?? "")
-      setForm((prev) => ({
-        ...prev,
-        id_type: found.id_type,
-        id_number: found.id_number,
-        name: found.name,
-        company: found.company ?? prev.company,
-        purpose: found.purpose ?? prev.purpose,
-        is_custom_host: Boolean(found.host_name),
-        host_name: found.host_name ?? prev.host_name,
-        vehicle_no: found.vehicle_no ?? prev.vehicle_no,
-      }))
-      toast.success(`Pra-registrasi ${found.token} dimuat.`)
-      await checkIdentity(found.id_number)
-    } catch (err: any) {
-      if (err.response?.status === 404) {
-        toast.info(
-          "Kode ini belum tersinkron di gerbang ini. Layani sebagai walk-in."
-        )
-      } else {
-        toast.error("Gagal membaca pra-registrasi.")
-      }
-    } finally {
-      setLookingUpPreReg(false)
-    }
-  }
-
-  const handleCheckKtp = () => checkIdentity(form.id_number.trim())
-
-  const checkIdentity = async (idVal: string) => {
-    if (!idVal) {
-      toast.error("Please enter an ID number first.")
+  const applyVisitor = (v: VisitorSearchResult | null) => {
+    if (!v) {
+      setVisitor(null)
+      setStatus("notfound")
+      setBlacklistReason("")
       return
     }
+    setVisitor(v)
+    setNameQuery(v.name || "")
+    setIdType(v.id_type || "ktp")
+    setIdNumber(v.id_number || "")
+    if (v.vessel_id) setField("location_id", String(v.vessel_id))
 
-    setCheckingKtp(true)
+    if (v.is_blacklisted) {
+      const reason =
+        (v.blacklist_reason as string | undefined) ||
+        t(
+          "create_visit.default_blacklist_reason",
+          "Terdaftar di blacklist keamanan"
+        )
+      setStatus("blacklisted")
+      setBlacklistReason(reason)
+      toast.error(
+        t(
+          "create_visit.toast_visitor_blacklisted",
+          "Pengunjung ini masuk blacklist."
+        ),
+        { description: reason }
+      )
+    } else {
+      setStatus("registered")
+      setBlacklistReason("")
+    }
+  }
+
+  // Cek nomor identitas ke server (juga mengambil blacklist global).
+  // `fallback` = data dari daftar saran, dipakai jika server tidak mengembalikan data.
+  const checkIdentity = async (idVal: string, fallback?: VisitorSearchResult) => {
+    if (!idVal.trim()) {
+      toast.error(
+        t("create_visit.toast_enter_id_first", "Isi nomor identitas dulu.")
+      )
+      return
+    }
+    setChecking(true)
     try {
       const res = await api.get(
-        `/visitors/check-ktp/${encodeURIComponent(idVal)}`
+        `/visitors/check-ktp/${encodeURIComponent(idVal.trim())}`
       )
-      const visitor = res.data?.data
       setGlobalEntries(
         Array.isArray(res.data?.global_blacklist)
           ? res.data.global_blacklist
           : []
       )
-
-      if (!visitor) {
-        setVisitorStatus("new")
-        setBlacklistReason("")
-        setFoundVisitor(null)
-        setIsEditLockedVisitor(false)
-        toast.info("New visitor detected. Please complete registration fields.")
-      } else if (visitor.is_blacklisted) {
-        setVisitorStatus("blacklisted")
-        setFoundVisitor(visitor)
-        setBlacklistReason(
-          visitor.blacklist_reason || "Identified in visitor security blacklist"
-        )
-        setForm((prev) => ({
-          ...prev,
-          name: visitor.name || prev.name,
-          company: visitor.company || prev.company,
-          occupation: visitor.occupation || prev.occupation,
-          visitor_type: visitor.visitor_type || prev.visitor_type,
-          location_id: visitor.vessel_id
-            ? String(visitor.vessel_id)
-            : prev.location_id,
-          phone: visitor.phone || prev.phone,
-          email: visitor.email || prev.email,
-        }))
-        setIsEditLockedVisitor(true)
-        toast.error("Warning: This visitor is blacklisted!", {
-          description: visitor.blacklist_reason,
-        })
+      applyVisitor(res.data?.data ?? fallback ?? null)
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { status?: number } }
+      if (errorObj?.response?.status === 404 && !fallback) {
+        applyVisitor(null)
+      } else if (fallback) {
+        applyVisitor(fallback)
       } else {
-        setVisitorStatus("registered")
-        setFoundVisitor(visitor)
-        setBlacklistReason("")
-        setForm((prev) => ({
-          ...prev,
-          name: visitor.name || prev.name,
-          company: visitor.company || prev.company,
-          occupation: visitor.occupation || prev.occupation,
-          visitor_type: visitor.visitor_type || prev.visitor_type,
-          location_id: visitor.vessel_id
-            ? String(visitor.vessel_id)
-            : prev.location_id,
-          phone: visitor.phone || prev.phone,
-          email: visitor.email || prev.email,
-        }))
-        setIsEditLockedVisitor(true)
-        toast.success(`Visitor found: ${visitor.name}`)
+        toast.error(
+          t(
+            "create_visit.toast_check_visitor_failed",
+            "Gagal memeriksa pengunjung. Coba lagi."
+          )
+        )
       }
-    } catch (err) {
-      console.error("Check KTP failed:", err)
-      setVisitorStatus("new")
-      setFoundVisitor(null)
-      setIsEditLockedVisitor(false)
     } finally {
-      setCheckingKtp(false)
+      setChecking(false)
     }
   }
 
-  const searchVisitor = (query: string, source: "ktp" | "name") => {
-    if (searchTimeout.current) clearTimeout(searchTimeout.current)
-    abortRef.current?.abort()
-
-    if (!query || query.length < 2) {
-      setSuggestions([])
-      if (source === "ktp") setOpenKtp(false)
-      if (source === "name") setOpenName(false)
-      return
-    }
-
-    if (source === "ktp") {
-      setOpenKtp(true)
-      setOpenName(false)
-    } else {
-      setOpenName(true)
-      setOpenKtp(false)
-    }
-
-    setSearching(true)
-
-    searchTimeout.current = setTimeout(async () => {
-      const controller = new AbortController()
-      abortRef.current = controller
-      try {
-        const res = await api.get("/visits/search", {
-          params: { q: query },
-          signal: controller.signal,
-        })
-        const items = Array.isArray(res.data) ? res.data : res.data?.data || []
-        setSuggestions(items)
-      } catch (err) {
-        if (!isCancel(err)) console.error(err)
-      } finally {
-        if (!controller.signal.aborted) setSearching(false)
-      }
-    }, 300)
+  const resetVisitor = () => {
+    clearResult()
+    setNameQuery("")
+    setIdNumber("")
+    nameInputRef.current?.focus()
   }
 
-  const selectVisitor = (visitor: any) => {
-    setFoundVisitor(visitor)
-    setForm((prev) => ({
-      ...prev,
-      id_type: visitor.id_type || "ktp",
-      id_number: visitor.id_number,
-      name: visitor.name,
-      company: visitor.company || "",
-      occupation: visitor.occupation || prev.occupation,
-      visitor_type: visitor.visitor_type || prev.visitor_type,
-      location_id: visitor.vessel_id
-        ? String(visitor.vessel_id)
-        : prev.location_id,
-      phone: visitor.phone || prev.phone,
-      email: visitor.email || prev.email,
-    }))
-
-    if (visitor.is_blacklisted) {
-      setVisitorStatus("blacklisted")
-      setBlacklistReason(
-        visitor.blacklist_reason || "Identified in visitor security blacklist"
-      )
-      setIsEditLockedVisitor(true)
-      toast.warning("This visitor is blacklisted", {
-        description: visitor.blacklist_reason ?? undefined,
-      })
-    } else {
-      setVisitorStatus("registered")
-      setBlacklistReason("")
-      setIsEditLockedVisitor(true)
-      toast.success(`Visitor selected: ${visitor.name}`)
-    }
-    setOpenKtp(false)
-    setOpenName(false)
-  }
-
-  const handleSaveNewVisitorToMaster = async () => {
-    if (!form.name.trim() || !form.id_number.trim()) {
-      toast.error("Nama lengkap dan nomor identitas wajib diisi.")
-      return
-    }
-
-    setSavingVisitorToMaster(true)
-    try {
-      const selectedLoc = locations.find(
-        (loc) => loc.id.toString() === form.location_id.toString()
-      )
-      const isVessel = Boolean(
-        selectedLoc && selectedLoc.type && selectedLoc.type !== "location"
-      )
-
-      const payload: Record<string, any> = {
-        name: form.name.trim(),
-        id_type: form.id_type,
-        id_number: form.id_number.trim(),
-        company: form.company.trim() || null,
-        occupation: form.occupation.trim() || null,
-        visitor_type: form.visitor_type || "visitor",
-        phone: form.phone.trim() || null,
-        email: form.email.trim() || null,
-        birth_place: form.birth_place.trim() || null,
-        birth_date: form.birth_date || null,
-        gender: gender || null,
-        nationality: form.nationality.trim() || "Indonesia",
-        address: form.address.trim() || null,
-        vessel_id:
-          form.visitor_type === "crew" && isVessel ? form.location_id : null,
-        seaman_book_no:
-          form.visitor_type === "crew"
-            ? form.seaman_book_no.trim() || null
-            : null,
-        certificate_no:
-          form.visitor_type === "crew"
-            ? form.certificate_no.trim() || null
-            : null,
-      }
-
-      const res = await api.post("/visitors", payload)
-      const saved = res.data?.visitor || res.data?.data || res.data
-      setFoundVisitor(saved)
-      setVisitorStatus("registered")
-      setIsEditLockedVisitor(true)
-      toast.success("Pengunjung baru berhasil disimpan ke Master Data.")
-    } catch (err: any) {
-      console.error(err)
-      toast.error(err.response?.data?.message || "Gagal menyimpan data pengunjung baru.")
-    } finally {
-      setSavingVisitorToMaster(false)
-    }
-  }
+  /* ---------- kirim kunjungan ---------- */
+  const selectedLocation =
+    locations.find((l) => String(l.id) === form.location_id) ?? null
+  const isVessel = Boolean(
+    selectedLocation?.type && selectedLocation.type !== "location"
+  )
 
   const submitVisit = async (closeOpenVisits = false, override?: string) => {
-    if (visitorStatus === "blacklisted") {
+    if (status !== "registered" || !visitor) {
       toast.error(
-        "Cannot check-in a blacklisted visitor. Contact security administrator."
+        t(
+          "create_visit.toast_select_registered_visitor",
+          "Pilih pengunjung yang sudah terdaftar dulu."
+        )
       )
       return
     }
-
-    if (!form.id_number.trim() || !form.name.trim()) {
-      toast.error("Nomor identitas dan nama pengunjung wajib diisi.")
-      return
-    }
-
     if (!form.location_id) {
-      toast.error("Please select a Location / Vessel.")
-      return
+      return toast.error(
+        t(
+          "create_visit.toast_select_location",
+          "Pilih lokasi / kapal tujuan."
+        )
+      )
     }
-
-    if (!form.is_custom_host && !form.staff_id && !form.host_name) {
-      toast.error("Please select a Host Staff or provide a Custom Host.")
-      return
+    if (!form.purpose.trim()) {
+      return toast.error(
+        t("create_visit.toast_enter_purpose", "Isi tujuan kunjungan.")
+      )
     }
-
-    if (preReg && !gender) {
-      toast.error("Pilih jenis kelamin tamu pra-registrasi.")
-      return
+    if (form.is_custom_host ? !form.host_name.trim() : !form.staff_id) {
+      return toast.error(
+        t(
+          "create_visit.toast_select_host",
+          "Pilih staf host atau isi nama host."
+        )
+      )
     }
 
     setLoading(true)
     try {
-      const selectedLoc = locations.find(
-        (loc) => loc.id.toString() === form.location_id.toString()
-      )
-      const isVessel = Boolean(
-        selectedLoc && selectedLoc.type && selectedLoc.type !== "location"
-      )
-
       const payload: Record<string, unknown> = {
-        id_type: form.id_type,
-        id_number: form.id_number.trim(),
-        name: form.name.trim(),
-        company: form.company.trim(),
+        id_type: visitor.id_type || idType,
+        id_number: visitor.id_number,
+        name: visitor.name,
+        company: visitor.company || "",
         location_id: form.location_id,
         purpose: form.purpose.trim(),
         card_ids: form.card_ids,
         vehicle_no: form.vehicle_no.trim() || undefined,
         vehicle_card_id: form.vehicle_card_id || undefined,
       }
-
-      if (form.occupation.trim()) payload.occupation = form.occupation.trim()
-      if (form.phone.trim()) payload.phone = form.phone.trim()
-      if (form.email.trim()) payload.email = form.email.trim()
-      if (form.address.trim()) payload.address = form.address.trim()
-      if (form.birth_place.trim()) payload.birth_place = form.birth_place.trim()
-      if (form.birth_date) payload.birth_date = form.birth_date
-      if (form.visitor_type) payload.visitor_type = form.visitor_type
-      if (form.visitor_type === "crew") {
-        if (isVessel) {
-          payload.vessel_id = form.location_id
-        }
-        if (form.seaman_book_no.trim()) {
-          payload.seaman_book_no = form.seaman_book_no.trim()
-        }
-        if (form.certificate_no.trim()) {
-          payload.certificate_no = form.certificate_no.trim()
-        }
+      if (visitor.occupation) payload.occupation = visitor.occupation
+      if (visitor.phone) payload.phone = visitor.phone
+      if (visitor.email) payload.email = visitor.email
+      if (visitor.visitor_type) payload.visitor_type = visitor.visitor_type
+      if (visitor.visitor_type === "crew" && isVessel) {
+        payload.vessel_id = form.location_id
       }
 
-      if (form.is_custom_host || form.host_name) {
-        payload.host_name = form.host_name.trim()
-      } else if (form.staff_id) {
-        payload.staff_id = form.staff_id
-      }
+      if (form.is_custom_host) payload.host_name = form.host_name.trim()
+      else payload.staff_id = form.staff_id
 
-      if (gender) payload.gender = gender
-      if (preReg) payload.pre_registration_token = preReg.token
       if (override) {
         payload.override_global_blacklist = true
         payload.override_reason = override
       }
-      if (closeOpenVisits) {
-        payload.close_open_visits = true
-      }
+      if (closeOpenVisits) payload.close_open_visits = true
 
       const res = await api.post("/visits", payload)
-
-      const visit = res.data?.visit || res.data
-      if (visit && visit.id) {
+      const created = res.data?.visit || res.data
+      if (created?.id) {
         toast.dismiss()
-        navigate(`/visits/${visit.id}/print`, {
-          state: { visit },
-        })
+        navigate(`/visits/${created.id}/print`, { state: { visit: created } })
       } else {
-        toast.success("Visit successfully registered!")
+        toast.success(
+          t("create_visit.toast_visit_recorded", "Kunjungan berhasil dicatat.")
+        )
         navigate("/active-visitors")
       }
-    } catch (err: any) {
-      console.error("Visit submission error:", err)
-      const data = err.response?.data
-      const status = err.response?.status
-      const msg = data?.message || ""
+    } catch (err: unknown) {
+      const errorObj = err as {
+        response?: {
+          status?: number
+          data?: {
+            message?: string
+            global_blacklist?: GlobalBlacklistHit
+            can_override?: boolean
+            open_visit_id?: string | number
+          }
+        }
+      }
+      const data = errorObj?.response?.data
+      const code = errorObj?.response?.status
+      const msg: string = data?.message || ""
 
-      if (status === 422 && data?.global_blacklist) {
+      if (code === 422 && data?.global_blacklist) {
         if (data.can_override) {
           setOverrideEntry(data.global_blacklist)
           setOverrideReason("")
         } else {
           toast.error(
-            data.message ||
-              "Tamu ini ada di blacklist global. Check-in ditolak."
+            msg ||
+              t(
+                "create_visit.toast_global_blacklist_rejected",
+                "Pengunjung ini ada di blacklist global. Check-in ditolak."
+              )
           )
         }
         return
       }
 
+      const lower = msg.toLowerCase()
       if (
-        status === 422 &&
-        (msg.toLowerCase().includes("kunjungan terbuka") ||
-          msg.toLowerCase().includes("open visit") ||
-          msg.toLowerCase().includes("close_open_visits"))
+        code === 422 &&
+        (Boolean(data?.open_visit_id) ||
+          lower.includes("kunjungan terbuka") ||
+          lower.includes("open visit") ||
+          lower.includes("active visit") ||
+          lower.includes("close_open_visits"))
       ) {
         setConflictMessage(
           msg ||
-            "Pengunjung ini masih memiliki kunjungan terbuka. Apakah Anda ingin menutup kunjungan lama dan melanjutkan check-in?"
+            t(
+              "create_visit.conflict_default_message",
+              "Pengunjung ini masih punya kunjungan terbuka. Tutup kunjungan lama dan lanjutkan check-in?"
+            )
         )
         setConflictOpen(true)
         return
       }
 
       toast.error(
-        msg || "Gagal merekam data kunjungan. Pastikan API dan data valid."
+        msg ||
+          t(
+            "create_visit.toast_submit_failed",
+            "Gagal mencatat kunjungan. Periksa data lalu coba lagi."
+          )
       )
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    submitVisit(false)
+  /* ---------- opsi untuk Picker ---------- */
+  const staffOptions: Opt[] = staffList.map((s) => ({
+    value: String(s.id),
+    label: s.name,
+    sub: [s.staff_id, s.company, s.address || s.department]
+      .filter(Boolean)
+      .join(" · "),
+  }))
+  const cardOptions: Opt[] = cardList.map((c) => ({
+    value: String(c.id),
+    label: c.card_no,
+  }))
+  const vehicleOptions: Opt[] = vehicleList.map((c) => ({
+    value: String(c.id),
+    label: c.card_no,
+  }))
+
+  const getVisitorTypeLabel = (vType?: string | null) => {
+    if (!vType) return "-"
+    switch (vType) {
+      case "visitor":
+      case "regular":
+        return t("create_visit.type_visitor", "Pengunjung umum")
+      case "crew":
+        return t("create_visit.type_crew", "Kru kapal")
+      case "temp_worker":
+      case "contractor":
+        return t("create_visit.type_temp_worker", "Tenaga kerja sementara")
+      case "supplier":
+        return t("create_visit.type_supplier", "Pemasok / vendor")
+      case "others":
+        return t("create_visit.type_others", "Lainnya")
+      default:
+        return vType
+    }
   }
 
+  /* ---------- render ---------- */
   return (
-    <div className="relative mx-auto w-full max-w-[1600px] space-y-6 pb-24">
-      {/* Top Header */}
-      <div className="flex flex-col items-start justify-between gap-4 border-b border-zinc-200 pb-4 sm:flex-row sm:items-center dark:border-zinc-800">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Pendaftaran Kunjungan (Add Visit)
-          </h1>
-          <p className="text-sm text-zinc-500">
-            Periksa identitas pengunjung, pilih tujuan & host, alokasikan kartu akses, dan cetak tiket.
-          </p>
-        </div>
-
-        {/* Current Time Clock */}
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
-              Current Time
-            </p>
-            <div className="rounded bg-zinc-100 px-3 py-1 font-mono text-xl font-bold text-zinc-900 dark:bg-zinc-900 dark:text-zinc-50">
-              {currentTime.toLocaleTimeString("id-ID", {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-              })}
-            </div>
-          </div>
-        </div>
+    <div className="mx-auto w-full max-w-[1200px] space-y-6 pb-24">
+      <div className="border-b border-zinc-200 pb-4 dark:border-zinc-800">
+        <h1 className="text-2xl font-bold tracking-tight">
+          {t("create_visit.title", "Pendaftaran Kunjungan")}
+        </h1>
+        <p className="text-sm text-zinc-500">
+          {t(
+            "create_visit.subtitle",
+            "Cari pengunjung, tentukan tujuan dan host, lalu cetak tiket."
+          )}
+        </p>
       </div>
 
-      {/* Blacklist banner */}
-      {visitorStatus === "blacklisted" && (
+      {/* Banner blacklist */}
+      {status === "blacklisted" && (
         <div className="flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-          <div>
-            <span className="rounded-full bg-red-200 px-2 py-0.5 text-xs font-bold tracking-wider text-red-900 uppercase dark:bg-red-900 dark:text-red-100">
-              BLACKLISTED VISITOR
-            </span>
-            <p className="mt-1 text-sm font-medium">
-              Alasan: {blacklistReason}
+          <div className="text-sm">
+            <p className="font-semibold">
+              {t(
+                "create_visit.banner_blacklist_title",
+                "Pengunjung masuk blacklist"
+              )}
             </p>
-            <p className="mt-1 text-xs text-red-700 dark:text-red-400">
-              Entry denied. Form submission is disabled for security policy enforcement.
+            <p>
+              {t(
+                "create_visit.banner_blacklist_reason",
+                "Alasan: {{reason}}",
+                { reason: blacklistReason }
+              )}
+            </p>
+            <p className="mt-1 text-xs">
+              {t(
+                "create_visit.banner_blacklist_help",
+                "Check-in tidak bisa dilanjutkan. Hubungi administrator keamanan."
+              )}
             </p>
           </div>
         </div>
       )}
-
-      {/* Global blacklist (hybrid spec §6.2) */}
       {globalBlock && (
         <div className="flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
           <Globe className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-          <div>
-            <span className="rounded-full bg-red-200 px-2 py-0.5 text-xs font-bold tracking-wider text-red-900 uppercase dark:bg-red-900 dark:text-red-100">
-              BLACKLIST GLOBAL
-            </span>
-            <p className="mt-1 text-sm font-medium">
-              {globalBlock.reason_label} · didaftarkan {globalBlock.registered_by_yard}
+          <div className="text-sm">
+            <p className="font-semibold">
+              {t(
+                "create_visit.banner_global_blacklist_title",
+                "Blacklist global"
+              )}
             </p>
-            <p className="mt-1 text-xs text-red-700 dark:text-red-400">
-              Check-in ditolak. Supervisor dapat meloloskan satu kunjungan dengan alasan tertulis.
+            <p>
+              {t(
+                "create_visit.banner_global_blacklist_detail",
+                "{{reason}} · didaftarkan {{yard}}",
+                {
+                  reason: globalBlock.reason_label,
+                  yard: globalBlock.registered_by_yard,
+                }
+              )}
+            </p>
+            <p className="mt-1 text-xs">
+              {t(
+                "create_visit.banner_global_blacklist_help",
+                "Check-in ditolak. Supervisor dapat meloloskan satu kunjungan dengan alasan tertulis."
+              )}
             </p>
           </div>
         </div>
@@ -815,1255 +1020,717 @@ export default function CreateVisit() {
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
           <span>
-            Nomor yang sama ada di blacklist global sebagai {w.id_type.toUpperCase()} ({w.reason_label}, didaftarkan {w.registered_by_yard}). Periksa dokumen fisik dan cocokkan nama sebelum melanjutkan.
+            {t(
+              "create_visit.banner_global_warning",
+              "Nomor yang sama ada di blacklist global sebagai {{id_type}} ({{reason}}, didaftarkan {{yard}}). Periksa dokumen fisik dan cocokkan nama sebelum melanjutkan.",
+              {
+                id_type: w.id_type.toUpperCase(),
+                reason: w.reason_label,
+                yard: w.registered_by_yard,
+              }
+            )}
           </span>
         </div>
       ))}
 
-      {/* Pre-registration bar */}
-      <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-        <form
-          onSubmit={handlePreRegLookup}
-          className="flex flex-col gap-3 md:flex-row md:items-end"
-        >
-          <div className="flex-1 space-y-1.5">
-            <Label htmlFor="pre_registration_code" className="text-xs font-semibold">
-              Kode Pra-registrasi / Scan QR (Opsional)
-            </Label>
-            <Input
-              id="pre_registration_code"
-              value={preRegCode}
-              onChange={(e) => setPreRegCode(e.target.value)}
-              placeholder="PR-XXXX-XXXX-XXXX"
-              autoComplete="off"
-              className="bg-white dark:bg-zinc-950"
-            />
-          </div>
-          <Button
-            type="submit"
-            variant="outline"
-            disabled={lookingUpPreReg || !preRegCode.trim()}
-          >
-            {lookingUpPreReg ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <ScanLine className="mr-2 h-4 w-4" />
-            )}
-            Muat
-          </Button>
-        </form>
-        {preReg && (
-          <p className="mt-2 text-xs text-emerald-700 font-medium dark:text-emerald-400">
-            ✓ Pra-registrasi {preReg.token} · rencana datang: {preReg.scheduled_date}
-            {preReg.host_department ? ` · ${preReg.host_department}` : ""}
-          </p>
-        )}
-      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          submitVisit(false)
+        }}
+        className="space-y-6"
+      >
+        {/* ===== 1. Cari pengunjung ===== */}
+        <section className={CARD}>
+          <SectionTitle n={1} icon={User}>
+            {t("create_visit.section1_title", "Cari Pengunjung")}
+          </SectionTitle>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 3-Column Responsive Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
-          {/* ======================================================== */}
-          {/* KOLOM KIRI: SECTION 1 - Identitas Pengunjung             */}
-          {/* ======================================================== */}
-          <div className="min-w-0 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-                1
-              </span>
-              <User className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                {t("create_visit.section1_title", "Identitas Pengunjung (Visitor Identity)")}
-              </h2>
-            </div>
-
-            {/* LANGKAH A: Input Cek / Cari Pengunjung */}
-            <div className="rounded-md border border-zinc-200 bg-zinc-50/70 p-3.5 space-y-3 dark:border-zinc-800 dark:bg-zinc-900/30">
-              <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                {t("create_visit.step_a_title", "Langkah A: Cek / Cari Pengunjung")}
-              </p>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-1 space-y-1">
-                  <Label htmlFor="id_type" className="text-xs">ID Type</Label>
-                  <select
-                    id="id_type"
-                    name="id_type"
-                    value={form.id_type}
-                    onChange={handleChange}
-                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
-                  >
-                    <option value="ktp">KTP</option>
-                    <option value="sim">SIM</option>
-                    <option value="passport">PASPOR</option>
-                  </select>
-                </div>
-
-                <div className="col-span-2 space-y-1">
-                  <Label htmlFor="id_number" className="text-xs">ID Number *</Label>
-                  <Popover open={openKtp} onOpenChange={setOpenKtp}>
-                    <PopoverAnchor asChild>
-                      <Input
-                        ref={idInputRef}
-                        id="id_number"
-                        name="id_number"
-                        value={form.id_number}
-                        onChange={(e) => {
-                          handleChange(e)
-                          searchVisitor(e.target.value, "ktp")
-                        }}
-                        onFocus={() => {
-                          if (form.id_number.length >= 2) setOpenKtp(true)
-                        }}
-                        required
-                        autoComplete="off"
-                        placeholder={t("create_visit.id_number_placeholder", "Ketik nomor identitas...")}
-                        className="h-9 bg-white text-xs dark:bg-zinc-950"
-                      />
-                    </PopoverAnchor>
-                    <PopoverContent
-                      className="w-[300px] p-0"
-                      align="start"
-                      onOpenAutoFocus={(e) => e.preventDefault()}
-                    >
-                      <Command shouldFilter={false}>
-                        <CommandList>
-                          <CommandGroup>
-                            {searching ? (
-                              <div className="flex items-center justify-center p-3 text-xs text-zinc-500">
-                                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Mencari...
-                              </div>
-                            ) : suggestions.length > 0 ? (
-                              suggestions.map((s) => (
-                                <CommandItem
-                                  key={s.id}
-                                  value={s.id_number}
-                                  onSelect={() => selectVisitor(s)}
-                                >
-                                  <div className="flex flex-col">
-                                    <span className="font-semibold text-xs">{s.id_number}</span>
-                                    <span className="text-[11px] text-zinc-500">
-                                      {s.name} {s.company ? `· ${s.company}` : ""}
-                                    </span>
-                                  </div>
-                                  {s.is_blacklisted && (
-                                    <span className="ml-auto rounded bg-red-100 px-1.5 py-0.5 text-[9px] font-bold text-red-700">
-                                      BLACKLIST
-                                    </span>
-                                  )}
-                                </CommandItem>
-                              ))
-                            ) : (
-                              <div className="p-3 text-center text-xs text-zinc-500">
-                                {t("create_visit.new_visitor_hint", "Pengunjung baru. Klik Cek/Cari untuk verifikasi.")}
-                              </div>
-                            )}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleCheckKtp}
-                  disabled={checkingKtp || !form.id_number}
-                  className="w-full cursor-pointer text-xs"
-                >
-                  {checkingKtp ? (
-                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Search className="mr-2 h-3.5 w-3.5" />
-                  )}
-                  {t("create_visit.check_search_btn", "Check / Search ID")}
-                </Button>
-              </div>
-
-              {/* Cari berdasarkan Nama (Autocomplete) */}
-              <div className="space-y-1 pt-1">
-                <Label htmlFor="search_name" className="text-xs text-zinc-500">
-                  {t("create_visit.search_by_name", "Atau cari berdasarkan Nama Pengunjung:")}
+          <div className="grid items-start gap-6 lg:grid-cols-2">
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="visitor_name" className="text-xs font-semibold">
+                  {t("create_visit.field_name", "Nama")}
                 </Label>
-                <Popover open={openName} onOpenChange={setOpenName}>
-                  <PopoverAnchor asChild>
-                    <div className="relative">
-                      <Input
-                        id="search_name"
-                        value={nameSearchQuery}
-                        onChange={(e) => {
-                          setNameSearchQuery(e.target.value)
-                          searchVisitor(e.target.value, "name")
-                        }}
-                        onFocus={() => {
-                          if (nameSearchQuery.length >= 2) setOpenName(true)
-                        }}
-                        autoComplete="off"
-                        placeholder={t("create_visit.search_name_placeholder", "Ketik nama untuk mencari...")}
-                        className="h-9 bg-white pr-8 text-xs dark:bg-zinc-950"
-                      />
-                      <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
-                    </div>
-                  </PopoverAnchor>
-                  <PopoverContent
-                    className="w-[300px] p-0"
-                    align="start"
-                    onOpenAutoFocus={(e) => e.preventDefault()}
-                  >
-                    <Command shouldFilter={false}>
-                      <CommandList>
-                        <CommandGroup>
-                          {searching ? (
-                            <div className="flex items-center justify-center p-3 text-xs text-zinc-500">
-                              <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Mencari...
-                            </div>
-                          ) : suggestions.length > 0 ? (
-                            suggestions.map((s) => (
-                              <CommandItem
-                                key={s.id}
-                                value={s.id_number}
-                                onSelect={() => selectVisitor(s)}
-                              >
-                                <div className="flex flex-col">
-                                  <span className="font-semibold text-xs">{s.name}</span>
-                                  <span className="text-[11px] text-zinc-500">
-                                    {s.id_number} {s.company ? `· ${s.company}` : ""}
-                                  </span>
-                                </div>
-                                {s.is_blacklisted && (
-                                  <span className="ml-auto rounded bg-red-100 px-1.5 py-0.5 text-[9px] font-bold text-red-700">
-                                    BLACKLIST
-                                  </span>
-                                )}
-                              </CommandItem>
-                            ))
-                          ) : (
-                            <div className="p-3 text-center text-xs text-zinc-500">
-                              {t("create_visit.no_name_suggestions", "Tidak ada saran nama ditemukan.")}
-                            </div>
-                          )}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-
-            {/* LANGKAH B: Hasil Pengecekan */}
-            {visitorStatus === "registered" && (
-              <div className="rounded-md border border-emerald-300 bg-emerald-50/80 p-3.5 space-y-3 dark:border-emerald-800 dark:bg-emerald-950/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-emerald-800 font-semibold text-xs dark:text-emerald-300">
-                    <UserCheck className="h-4 w-4 text-emerald-600" />
-                    <span>{t("create_visit.visitor_found", "Pengunjung Ditemukan / Visitor Found")}</span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsEditLockedVisitor(!isEditLockedVisitor)}
-                    className="h-7 text-xs text-emerald-800 hover:bg-emerald-100 dark:text-emerald-300"
-                  >
-                    <Edit2 className="mr-1 h-3 w-3" />
-                    {isEditLockedVisitor ? t("create_visit.edit_data", "Edit Data") : t("create_visit.lock_data", "Kunci Data")}
-                  </Button>
-                </div>
-
-                {/* Kartu Ringkasan Data */}
-                <div className="rounded border border-emerald-200 bg-white p-2.5 text-xs space-y-1 text-zinc-800 dark:border-emerald-900/60 dark:bg-zinc-950 dark:text-zinc-200">
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">Nama:</span>
-                    <span className="font-semibold">{form.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">ID:</span>
-                    <span className="font-mono">{form.id_type.toUpperCase()} - {form.id_number}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">Perusahaan:</span>
-                    <span>{form.company || "-"}</span>
-                  </div>
-                  {foundVisitor?.visits_count !== undefined && (
-                    <div className="flex justify-between">
-                      <span className="text-zinc-500">Riwayat Kunjungan:</span>
-                      <span className="font-medium text-primary">{foundVisitor.visits_count} kali</span>
-                    </div>
+                <VisitorAutocomplete
+                  id="visitor_name"
+                  inputRef={nameInputRef}
+                  value={nameQuery}
+                  placeholder={t(
+                    "create_visit.search_name_placeholder",
+                    "Ketik nama pengunjung..."
                   )}
-                </div>
-              </div>
-            )}
-
-            {visitorStatus === "new" && (
-              <div className="rounded-md border border-sky-300 bg-sky-50/80 p-3.5 space-y-3 dark:border-sky-800 dark:bg-sky-950/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sky-800 font-semibold text-xs dark:text-sky-300">
-                    <UserPlus className="h-4 w-4 text-sky-600" />
-                    <span>{t("create_visit.visitor_new", "Pengunjung Belum Terdaftar / New Visitor")}</span>
-                  </div>
-                </div>
-                <p className="text-xs text-sky-700 dark:text-sky-400">
-                  {t("create_visit.new_visitor_desc", "Data pengunjung belum ada di master. Lengkapi formulir di bawah ini untuk didaftarkan secara otomatis.")}
+                  onChange={(v) => {
+                    setNameQuery(v)
+                    if (status !== "idle") {
+                      clearResult()
+                      setIdNumber("")
+                    }
+                  }}
+                  onPick={(s) => {
+                    setNameQuery(s.name || "")
+                    setIdType(s.id_type || "ktp")
+                    setIdNumber(s.id_number || "")
+                    checkIdentity(s.id_number, s)
+                  }}
+                />
+                <p className="text-[11px] text-zinc-500">
+                  {t(
+                    "create_visit.search_name_hint",
+                    "Gunakan ↑ ↓ lalu Enter, atau ketuk nama dari daftar."
+                  )}
                 </p>
               </div>
-            )}
 
-            {/* Form Input Detail Identitas (Editable / Read-only state) */}
-            <div className="space-y-3 pt-1">
-              <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-xs">{t("create_visit.visitor_name", "Visitor Name *")}</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={form.name}
-                  readOnly={visitorStatus === "registered" && isEditLockedVisitor}
-                  onChange={handleChange}
-                  required
-                  placeholder={t("create_visit.visitor_name_placeholder", "Nama lengkap pengunjung...")}
-                  className={cn(
-                    "h-9 text-xs",
-                    visitorStatus === "registered" && isEditLockedVisitor && "bg-zinc-100 dark:bg-zinc-900"
-                  )}
-                />
+              <div className="flex items-center gap-3 text-xs text-zinc-400">
+                <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                {t(
+                  "create_visit.or_search_by_id",
+                  "atau cari dengan nomor identitas"
+                )}
+                <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
               </div>
 
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="company" className="text-xs">{t("create_visit.company", "Company / Agency (Optional)")}</Label>
-                  <Input
-                    id="company"
-                    name="company"
-                    value={form.company}
-                    readOnly={visitorStatus === "registered" && isEditLockedVisitor}
-                    onChange={handleChange}
-                    placeholder="Contoh: PT Mitra Maritim"
-                    className={cn(
-                      "h-9 text-xs",
-                      visitorStatus === "registered" && isEditLockedVisitor && "bg-zinc-100 dark:bg-zinc-900"
+                  <Label htmlFor="id_type" className="text-xs font-semibold">
+                    {t("create_visit.id_type", "Jenis ID")}
+                  </Label>
+                  <select
+                    id="id_type"
+                    value={idType}
+                    onChange={(e) => {
+                      setIdType(e.target.value)
+                      if (status !== "idle") clearResult()
+                    }}
+                    className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-800 dark:bg-zinc-950"
+                  >
+                    <option value="ktp">
+                      {t("create_visit.id_type_ktp", "KTP")}
+                    </option>
+                    <option value="sim">
+                      {t("create_visit.id_type_sim", "SIM")}
+                    </option>
+                    <option value="passport">
+                      {t("create_visit.id_type_passport", "Paspor")}
+                    </option>
+                  </select>
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <Label htmlFor="id_number" className="text-xs font-semibold">
+                    {t("create_visit.id_number", "Nomor ID")}
+                  </Label>
+                  <VisitorAutocomplete
+                    id="id_number"
+                    value={idNumber}
+                    placeholder={t(
+                      "create_visit.id_number_placeholder",
+                      "Ketik nomor, tekan Enter untuk cek"
                     )}
+                    onChange={(v) => {
+                      setIdNumber(v)
+                      if (status !== "idle") {
+                        clearResult()
+                        setNameQuery("")
+                      }
+                    }}
+                    onPick={(s) => {
+                      setNameQuery(s.name || "")
+                      setIdType(s.id_type || "ktp")
+                      setIdNumber(s.id_number || "")
+                      checkIdentity(s.id_number, s)
+                    }}
+                    onEnter={() => checkIdentity(idNumber)}
                   />
                 </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="visitor_type" className="text-xs font-semibold">
-                    {t("create_visit.visitor_type", "Tipe Pengunjung (Visitor Type) *")}
-                  </Label>
-                  <select
-                    id="visitor_type"
-                    name="visitor_type"
-                    value={form.visitor_type}
-                    onChange={(e) => {
-                      const nextType = e.target.value
-                      setForm((prev) => ({
-                        ...prev,
-                        visitor_type: nextType,
-                        purpose:
-                          nextType === "crew" && !prev.purpose.trim()
-                            ? "Crew Sign-On"
-                            : prev.purpose,
-                      }))
-                    }}
-                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
-                  >
-                    <option value="visitor">{t("create_visit.type_visitor", "Pengunjung Umum (Visitor)")}</option>
-                    <option value="crew">{t("create_visit.type_crew", "Crew Kapal (Pelaut / ABK)")}</option>
-                    <option value="temporary_worker">{t("create_visit.type_temp_worker", "Tenaga Kerja Sementara")}</option>
-                    <option value="supplier">{t("create_visit.type_supplier", "Supplier / Vendor")}</option>
-                    <option value="others">{t("create_visit.type_others", "Lainnya")}</option>
-                  </select>
-                </div>
               </div>
 
-              {/* Panel Khusus jika Tipe Pengunjung = Crew Kapal */}
-              {form.visitor_type === "crew" && (
-                <div
-                  role="region"
-                  aria-label="Penugasan Crew Kapal"
-                  className="rounded-lg border border-blue-200 bg-blue-50/70 p-3.5 space-y-3 text-xs dark:border-blue-900/60 dark:bg-blue-950/30"
-                >
-                  <div className="flex items-start gap-2">
-                    <Ship className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                    <div className="space-y-0.5">
-                      <span className="font-semibold text-blue-950 dark:text-blue-200 block">
-                        Mode Kunjungan Kru Kapal (Auto Check-In Kedatangan Kru)
-                      </span>
-                      <p className="text-[11px] text-blue-800 dark:text-blue-300">
-                        Saat disimpan, kru ini otomatis ditugaskan ke manifest{" "}
-                        <strong>Kedatangan Kapal (Vessel Arrivals)</strong> kapal tujuan dan langsung terhitung{" "}
-                        <strong>Check-In (On-Board)</strong> beserta pencatatan log kru.
-                      </p>
-                    </div>
-                  </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={checking || !idNumber.trim()}
+                onClick={() => checkIdentity(idNumber)}
+                className="w-full"
+              >
+                {checking ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="mr-2 h-4 w-4" />
+                )}
+                {t("create_visit.check_id_btn", "Cek nomor ID")}
+              </Button>
+            </div>
 
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 pt-1">
-                    <div className="space-y-1">
-                      <Label htmlFor="crew_occupation" className="text-[11px] font-medium">
-                        Jabatan / Rank di Kapal
-                      </Label>
-                      <Input
-                        id="crew_occupation"
-                        name="occupation"
-                        value={form.occupation}
-                        onChange={handleChange}
-                        placeholder="Chief Eng, Bosun, ABK..."
-                        className="h-8 bg-white text-xs dark:bg-zinc-950"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="seaman_book_no" className="text-[11px] font-medium">
-                        No. Buku Pelaut
-                      </Label>
-                      <Input
-                        id="seaman_book_no"
-                        name="seaman_book_no"
-                        value={form.seaman_book_no}
-                        onChange={handleChange}
-                        placeholder="Opsional..."
-                        className="h-8 bg-white text-xs dark:bg-zinc-950"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="certificate_no" className="text-[11px] font-medium">
-                        No. Sertifikat (COC)
-                      </Label>
-                      <Input
-                        id="certificate_no"
-                        name="certificate_no"
-                        value={form.certificate_no}
-                        onChange={handleChange}
-                        placeholder="Opsional..."
-                        className="h-8 bg-white text-xs dark:bg-zinc-950"
-                      />
-                    </div>
-                  </div>
+            {/* Hasil */}
+            <div>
+              {status === "idle" && (
+                <div className="flex min-h-[160px] items-center justify-center rounded-md border border-dashed border-zinc-300 p-4 text-center text-sm text-zinc-500 dark:border-zinc-700">
+                  {t(
+                    "create_visit.result_idle_placeholder",
+                    "Hasil pengecekan akan muncul di sini."
+                  )}
                 </div>
               )}
 
-              {/* Bagian Collapsible: Data Tambahan */}
-              <div className="rounded border border-zinc-200 bg-zinc-50/50 p-2.5 dark:border-zinc-800 dark:bg-zinc-900/30">
-                <button
-                  type="button"
-                  onClick={() => setShowAdditionalData(!showAdditionalData)}
-                  className="flex w-full items-center justify-between text-xs font-semibold text-zinc-700 hover:text-zinc-900 dark:text-zinc-300"
-                >
-                  <span>Data Tambahan / Additional Data (Opsional)</span>
-                  {showAdditionalData ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </button>
-
-                {showAdditionalData && (
-                  <div className="mt-3 space-y-3 border-t border-zinc-200 pt-3 dark:border-zinc-800">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label htmlFor="occupation" className="text-[11px]">Jabatan / Profesi</Label>
-                        <Input
-                          id="occupation"
-                          name="occupation"
-                          value={form.occupation}
-                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
-                          onChange={handleChange}
-                          placeholder="Teknisi, Surveyor..."
-                          className="h-8 text-xs"
-                        />
+              {(status === "registered" || status === "blacklisted") &&
+                visitor && (
+                  <div
+                    className={cn(
+                      "space-y-3 rounded-md border p-4",
+                      status === "registered"
+                        ? "border-emerald-300 bg-emerald-50/80 dark:border-emerald-800 dark:bg-emerald-950/30"
+                        : "border-red-300 bg-red-50/80 dark:border-red-900 dark:bg-red-950/30"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={cn(
+                          "flex items-center gap-2 text-sm font-semibold",
+                          status === "registered"
+                            ? "text-emerald-800 dark:text-emerald-300"
+                            : "text-red-800 dark:text-red-300"
+                        )}
+                      >
+                        {status === "registered" ? (
+                          <UserCheck className="h-4 w-4" />
+                        ) : (
+                          <AlertTriangle className="h-4 w-4" />
+                        )}
+                        {status === "registered"
+                          ? t(
+                              "create_visit.status_registered",
+                              "Pengunjung ditemukan"
+                            )
+                          : t(
+                              "create_visit.status_blacklisted",
+                              "Pengunjung diblacklist"
+                            )}
                       </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="nationality" className="text-[11px]">Kebangsaan</Label>
-                        <Input
-                          id="nationality"
-                          name="nationality"
-                          value={form.nationality}
-                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
-                          onChange={handleChange}
-                          placeholder="Indonesia"
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label htmlFor="phone" className="text-[11px]">Nomor Telepon</Label>
-                        <Input
-                          id="phone"
-                          name="phone"
-                          value={form.phone}
-                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
-                          onChange={handleChange}
-                          placeholder="08123456789"
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="email" className="text-[11px]">Email</Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          value={form.email}
-                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
-                          onChange={handleChange}
-                          placeholder="email@domain.com"
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-1">
-                        <Label htmlFor="birth_place" className="text-[11px]">Tempat Lahir</Label>
-                        <Input
-                          id="birth_place"
-                          name="birth_place"
-                          value={form.birth_place}
-                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
-                          onChange={handleChange}
-                          placeholder="Kota lahir..."
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="birth_date" className="text-[11px]">Tanggal Lahir</Label>
-                        <Input
-                          id="birth_date"
-                          name="birth_date"
-                          type="date"
-                          value={form.birth_date}
-                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
-                          onChange={handleChange}
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="visitor_gender" className="text-[11px]">Jenis Kelamin</Label>
-                        <select
-                          id="visitor_gender"
-                          value={gender}
-                          disabled={visitorStatus === "registered" && isEditLockedVisitor}
-                          onChange={(e) => setGender(e.target.value)}
-                          className="flex h-8 w-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
-                        >
-                          <option value="">Pilih (Opsional)</option>
-                          <option value="M">Laki-laki (M)</option>
-                          <option value="F">Perempuan (F)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="address" className="text-[11px]">Alamat Domisili</Label>
-                      <Textarea
-                        id="address"
-                        name="address"
-                        value={form.address}
-                        disabled={visitorStatus === "registered" && isEditLockedVisitor}
-                        onChange={handleChange}
-                        placeholder="Alamat lengkap..."
-                        rows={2}
-                        className="text-xs"
-                      />
-                    </div>
-
-                    {visitorStatus === "new" && (
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        onClick={handleSaveNewVisitorToMaster}
-                        disabled={savingVisitorToMaster || !form.name.trim() || !form.id_number.trim()}
-                        className="w-full text-xs"
+                        onClick={resetVisitor}
+                        className="h-7 text-xs"
                       >
-                        {savingVisitorToMaster ? (
-                          <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <UserPlus className="mr-2 h-3.5 w-3.5" />
-                        )}
-                        Simpan ke Master Pengunjung
+                        <X className="mr-1 h-3 w-3" />{" "}
+                        {t("create_visit.change_visitor_btn", "Ganti")}
                       </Button>
+                    </div>
+                    <dl className="space-y-1 rounded border border-zinc-200 bg-white p-3 text-xs dark:border-zinc-800 dark:bg-zinc-950">
+                      {[
+                        [
+                          t("create_visit.summary_name", "Nama"),
+                          visitor.name,
+                        ],
+                        [
+                          t("create_visit.summary_id", "ID"),
+                          `${(visitor.id_type || idType).toUpperCase()} ${visitor.id_number}`,
+                        ],
+                        [
+                          t("create_visit.summary_company", "Perusahaan"),
+                          visitor.company || "-",
+                        ],
+                        [
+                          t("create_visit.summary_type", "Tipe"),
+                          getVisitorTypeLabel(visitor.visitor_type),
+                        ],
+                        ...(visitor.visits_count !== undefined
+                          ? [
+                              [
+                                t(
+                                  "create_visit.summary_visit_history",
+                                  "Riwayat kunjungan"
+                                ),
+                                t(
+                                  "create_visit.summary_visit_count",
+                                  "{{count}} kali",
+                                  { count: formatNumber(Number(visitor.visits_count)) }
+                                ),
+                              ],
+                            ]
+                          : []),
+                      ].map(([k, v]) => (
+                        <div key={k} className="flex justify-between gap-3">
+                          <dt className="text-zinc-500">{k}</dt>
+                          <dd className="text-right font-medium">{v}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                )}
+
+              {status === "notfound" && (
+                <div className="space-y-3 rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <UserX className="h-4 w-4" />{" "}
+                    {t(
+                      "create_visit.status_not_found",
+                      "Pengunjung belum terdaftar"
                     )}
                   </div>
-                )}
-              </div>
-
-              {/* Pre-reg gender input requirement */}
-              {preReg && (
-                <div className="space-y-1 pt-2">
-                  <Label htmlFor="gender" className="text-xs text-amber-700 font-semibold dark:text-amber-400">
-                    Jenis Kelamin * (Wajib untuk Pra-registrasi)
-                  </Label>
-                  <select
-                    id="gender"
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    required
-                    className="flex h-9 w-full rounded-md border border-amber-300 bg-amber-50/50 px-3 py-1 text-xs dark:border-amber-900 dark:bg-zinc-950"
+                  <p className="text-xs">
+                    {t(
+                      "create_visit.not_found_help",
+                      "Halaman ini hanya untuk mengecek. Daftarkan pengunjung di menu Data Pengunjung, lalu cari lagi di sini."
+                    )}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={resetVisitor}
                   >
-                    <option value="">-- Pilih Jenis Kelamin --</option>
-                    <option value="M">Laki-laki (M)</option>
-                    <option value="F">Perempuan (F)</option>
-                  </select>
+                    {t("create_visit.search_again_btn", "Cari lagi")}
+                  </Button>
                 </div>
               )}
             </div>
           </div>
+        </section>
 
-          {/* ======================================================== */}
-          {/* KOLOM TENGAH: SECTION 2 - Tujuan Kunjungan & Host        */}
-          {/* ======================================================== */}
-          <div className="min-w-0 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-                2
-              </span>
-              <Building2 className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                {t("create_visit.section2_title", "Tujuan Kunjungan & Host (Destination & Host)")}
-              </h2>
+        {/* Langkah 2 & 3 aktif setelah pengunjung dipilih */}
+        <fieldset
+          disabled={!canFill}
+          className={cn(
+            "grid items-start gap-6 md:grid-cols-2",
+            !canFill && "pointer-events-none opacity-50"
+          )}
+        >
+          {/* ===== 2. Tujuan & host ===== */}
+          <section className={cn(CARD, "min-w-0 space-y-4")}>
+            <SectionTitle n={2} icon={Building2}>
+              {t("create_visit.section2_title", "Tujuan & Host")}
+            </SectionTitle>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="location_id" className="text-xs font-semibold">
+                {t("create_visit.location_vessel", "Lokasi / Kapal *")}
+              </Label>
+              <SearchableLocationSelect
+                id="location_id"
+                name="location_id"
+                ariaLabel={t(
+                  "create_visit.location_vessel",
+                  "Lokasi / Kapal *"
+                )}
+                value={form.location_id}
+                onValueChange={(val) => setField("location_id", val)}
+                options={locations}
+                disabled={loadingMaster}
+                required
+                placeholder={
+                  loadingMaster
+                    ? t(
+                        "create_visit.location_loading_placeholder",
+                        "Memuat daftar lokasi & kapal..."
+                      )
+                    : t(
+                        "create_visit.location_select_placeholder",
+                        "-- Cari & pilih lokasi / kapal --"
+                      )
+                }
+                searchPlaceholder={t(
+                  "create_visit.location_search_placeholder",
+                  "Cari nama kapal/lokasi, IMO No, Captain, PIC, Call Sign..."
+                )}
+                emptyMessage={t(
+                  "create_visit.location_empty",
+                  "Lokasi atau kapal tidak ditemukan."
+                )}
+              />
             </div>
 
-            <div className="space-y-4">
-              {/* Lokasi / Vessel (Searchable Combobox) */}
-              <div className="space-y-1.5">
-                <Label htmlFor="location_id" className="text-xs font-semibold">
-                  {t("create_visit.location_vessel", "Location / Vessel (Mandatory) *")}
+            {selectedLocation && isVessel && (
+              <div
+                role="region"
+                aria-label={t(
+                  "create_visit.vessel_info_aria",
+                  "Informasi kapal tujuan"
+                )}
+                className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 text-xs dark:border-emerald-900/60 dark:bg-emerald-950/25"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 font-semibold">
+                    <Ship className="h-4 w-4 text-emerald-600" />
+                    {selectedLocation.name}
+                  </div>
+                  <div className="flex gap-1.5">
+                    {selectedLocation.code && (
+                      <Badge variant="outline" className="font-mono text-[11px]">
+                        {t("create_visit.vessel_imo_prefix", "IMO")}:{" "}
+                        {selectedLocation.code}
+                      </Badge>
+                    )}
+                    <Badge className="bg-emerald-600 text-[10px] text-white">
+                      {selectedLocation.vessel_type || selectedLocation.type}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      [
+                        t("create_visit.vessel_captain", "Captain / Nakhoda"),
+                        selectedLocation.captain,
+                      ],
+                      [
+                        t("create_visit.vessel_pic", "PIC Kapal"),
+                        selectedLocation.pic,
+                      ],
+                    ] as const
+                  ).map(([label, person]) => (
+                    <div
+                      key={label}
+                      className="rounded border border-emerald-100 bg-white/80 p-2 dark:border-emerald-900/50 dark:bg-zinc-900/70"
+                    >
+                      <span className="block text-[10px] text-zinc-500">
+                        {label}
+                      </span>
+                      <span className="font-semibold">{person || "-"}</span>
+                      {person && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm((p) => ({
+                              ...p,
+                              is_custom_host: true,
+                              host_name: person,
+                            }))
+                          }
+                          className="mt-1 block cursor-pointer text-[11px] font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
+                        >
+                          {t("create_visit.make_host_btn", "Jadikan host")}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <div>
+                    <span className="block text-[10px] text-zinc-500">
+                      {t("create_visit.vessel_call_sign", "Call Sign")}
+                    </span>
+                    <span className="font-mono">
+                      {selectedLocation.call_sign || "-"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-zinc-500">
+                      {t("create_visit.vessel_flag", "Bendera")}
+                    </span>
+                    <span>{selectedLocation.flag || "-"}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="purpose" className="text-xs font-semibold">
+                {t("create_visit.purpose_of_visit", "Tujuan kunjungan *")}
+              </Label>
+              <Input
+                id="purpose"
+                value={form.purpose}
+                onChange={(e) => setField("purpose", e.target.value)}
+                list="purpose-suggestions"
+                placeholder={t(
+                  "create_visit.purpose_placeholder",
+                  "Contoh: Survey, Meeting, Maintenance..."
+                )}
+                className="h-10"
+              />
+              <datalist id="purpose-suggestions">
+                {purposes.map((p, i) => (
+                  <option key={i} value={p} />
+                ))}
+              </datalist>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {POPULAR_PURPOSES.map((tag) => {
+                  const label = t(`create_visit.${tag.key}`, tag.defaultLabel)
+                  const isActive =
+                    form.purpose === tag.value || form.purpose === label
+                  return (
+                    <button
+                      key={tag.key}
+                      type="button"
+                      onClick={() => setField("purpose", label)}
+                      className={cn(
+                        "cursor-pointer rounded border px-2 py-0.5 text-[11px] transition-colors",
+                        isActive
+                          ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+                      )}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="min-w-0 space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">
+                  {t("create_visit.host_label", "Host *")}
                 </Label>
-                <SearchableLocationSelect
-                  id="location_id"
-                  name="location_id"
-                  value={form.location_id}
-                  onValueChange={(val) => handleSelectChange("location_id", val)}
-                  options={locations}
+                <label className="flex cursor-pointer select-none items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={form.is_custom_host}
+                    onChange={(e) =>
+                      setField("is_custom_host", e.target.checked)
+                    }
+                    className="rounded border-zinc-300"
+                  />
+                  {t(
+                    "create_visit.custom_host_toggle",
+                    "Tulis nama host sendiri"
+                  )}
+                </label>
+              </div>
+
+              {form.is_custom_host ? (
+                <Input
+                  value={form.host_name}
+                  onChange={(e) => setField("host_name", e.target.value)}
+                  placeholder={t(
+                    "create_visit.custom_host_placeholder",
+                    "Nama staf / penanggung jawab..."
+                  )}
+                  className="h-9"
+                />
+              ) : (
+                <Picker
+                  options={staffOptions}
+                  value={form.staff_id ? [form.staff_id] : []}
+                  onChange={(v) => setField("staff_id", v[0] ?? "")}
                   disabled={loadingMaster}
-                  required
                   placeholder={
                     loadingMaster
-                      ? "Memuat daftar lokasi & kapal..."
-                      : "-- Cari & Pilih Lokasi / Kapal --"
+                      ? t(
+                          "create_visit.staff_loading_placeholder",
+                          "Memuat daftar staf..."
+                        )
+                      : t(
+                          "create_visit.staff_select_placeholder",
+                          "Pilih staf host..."
+                        )
                   }
-                  searchPlaceholder="Cari nama kapal/lokasi, IMO No, Captain, PIC, Call Sign..."
+                  searchPlaceholder={t(
+                    "create_visit.staff_search_placeholder",
+                    "Cari nama staf, nomor staf, perusahaan..."
+                  )}
+                  emptyText={t(
+                    "create_visit.staff_empty",
+                    "Staf tidak ditemukan."
+                  )}
                 />
-              </div>
-
-              {/* Kartu Informasi Kapal (tampil jika yang dipilih adalah Kapal, bukan Lokasi Darat) */}
-              {(() => {
-                const selectedLocation =
-                  locations.find(
-                    (loc) => loc.id.toString() === form.location_id.toString()
-                  ) || null
-                const isSelectedVessel = Boolean(
-                  selectedLocation &&
-                    selectedLocation.type &&
-                    selectedLocation.type !== "location"
-                )
-                if (!selectedLocation || !isSelectedVessel) return null
-
-                return (
-                  <div
-                    role="region"
-                    aria-label="Informasi Kapal Tujuan"
-                    className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3.5 space-y-2.5 text-xs dark:border-emerald-900/60 dark:bg-emerald-950/25"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/70 pb-2 dark:border-emerald-800/60">
-                      <div className="flex items-center gap-1.5 font-semibold text-emerald-950 dark:text-emerald-200">
-                        <Ship className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <span>Informasi Kapal: {selectedLocation.name}</span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {selectedLocation.code && (
-                          <Badge
-                            variant="outline"
-                            className="bg-white font-mono text-[11px] dark:bg-zinc-900"
-                          >
-                            IMO: {selectedLocation.code}
-                          </Badge>
-                        )}
-                        <Badge className="bg-emerald-600 text-white text-[10px]">
-                          {selectedLocation.vessel_type || selectedLocation.type}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-zinc-700 dark:text-zinc-300">
-                      <div className="rounded bg-white/80 p-2 border border-emerald-100 dark:bg-zinc-900/70 dark:border-emerald-900/50">
-                        <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">
-                          Captain / Nakhoda
-                        </span>
-                        <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                          {selectedLocation.captain || "-"}
-                        </span>
-                        {selectedLocation.captain && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setForm((prev) => ({
-                                ...prev,
-                                is_custom_host: true,
-                                host_name: selectedLocation.captain || "",
-                              }))
-                            }
-                            className="mt-1 block text-[11px] font-semibold text-emerald-700 hover:underline dark:text-emerald-400 cursor-pointer"
-                          >
-                            + Jadikan Captain sebagai Host
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="rounded bg-white/80 p-2 border border-emerald-100 dark:bg-zinc-900/70 dark:border-emerald-900/50">
-                        <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">
-                          Note / PIC Kapal
-                        </span>
-                        <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                          {selectedLocation.pic || "-"}
-                        </span>
-                        {selectedLocation.pic && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setForm((prev) => ({
-                                ...prev,
-                                is_custom_host: true,
-                                host_name: selectedLocation.pic || "",
-                              }))
-                            }
-                            className="mt-1 block text-[11px] font-semibold text-emerald-700 hover:underline dark:text-emerald-400 cursor-pointer"
-                          >
-                            + Jadikan PIC sebagai Host
-                          </button>
-                        )}
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">
-                          Call Sign
-                        </span>
-                        <span className="font-mono font-medium">
-                          {selectedLocation.call_sign || "-"}
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">
-                          Bendera (Nationality Flag)
-                        </span>
-                        <span className="font-medium">
-                          {selectedLocation.flag || "-"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {/* Purpose of Visit */}
-              <div className="space-y-1.5">
-                <Label htmlFor="purpose" className="text-xs font-semibold">
-                  {t("create_visit.purpose_of_visit", "Purpose of Visit *")}
-                </Label>
-                <Input
-                  id="purpose"
-                  name="purpose"
-                  value={form.purpose}
-                  onChange={handleChange}
-                  list="purpose-suggestions"
-                  required
-                  placeholder={t("create_visit.purpose_placeholder", "Contoh: Survey, Meeting, Maintenance...")}
-                  className="h-10 text-xs"
-                />
-                <datalist id="purpose-suggestions">
-                  {purposeSuggestions.map((p, idx) => (
-                    <option key={idx} value={p} />
-                  ))}
-                </datalist>
-
-                {/* Quick Purpose Chips */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[11px] font-medium text-zinc-500">
-                    {t("create_visit.quick_suggestions", "Saran Cepat:")}
-                  </span>
-                  {POPULAR_PURPOSES.map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() =>
-                        setForm((prev) => ({ ...prev, purpose: tag }))
-                      }
-                      className={cn(
-                        "rounded border px-2 py-0.5 text-[11px] transition-colors cursor-pointer",
-                        form.purpose === tag
-                          ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                          : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                      )}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Host Destination Section */}
-              <div className="min-w-0 space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-                    {t("create_visit.host_destination", "Host Destination")}
-                  </Label>
-                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-zinc-600 select-none dark:text-zinc-400">
-                    <input
-                      type="checkbox"
-                      checked={form.is_custom_host}
-                      onChange={(e) =>
-                        setForm({ ...form, is_custom_host: e.target.checked })
-                      }
-                      className="rounded border-zinc-300"
-                    />
-                    <span>{t("create_visit.custom_host_toggle", "Custom Host Name")}</span>
-                  </label>
-                </div>
-
-                {!form.is_custom_host ? (
-                  <div className="min-w-0 space-y-1.5">
-                    <Label htmlFor="staff_id" className="text-xs">{t("create_visit.staff_host", "Staff Host PIC")}</Label>
-                    <Popover open={openStaff} onOpenChange={setOpenStaff}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          disabled={loadingMaster}
-                          className={cn(
-                            "w-full min-w-0 max-w-full overflow-hidden justify-between bg-white text-xs font-normal dark:bg-zinc-950",
-                            !form.staff_id && "text-muted-foreground"
-                          )}
-                        >
-                          <span className="min-w-0 flex-1 truncate text-left">
-                            {loadingMaster
-                              ? "Memuat daftar staf..."
-                              : form.staff_id
-                                ? (() => {
-                                    const selected = staffList.find(
-                                      (item) => item.id.toString() === form.staff_id
-                                    )
-                                    if (!selected) return "Pilih Staf PIC Host..."
-                                    const details = [selected.staff_id, selected.company, selected.address || selected.department].filter(Boolean).join(" - ")
-                                    return details ? `${selected.name} (${details})` : selected.name
-                                  })()
-                                : "Pilih Staf PIC Host..."}
-                          </span>
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[460px]">
-                        <Command
-                          filter={(value, search) =>
-                            value.toLowerCase().includes(search.toLowerCase())
-                              ? 1
-                              : 0
-                          }
-                        >
-                          <CommandInput placeholder="Cari nama staf, staff no, company, address..." />
-                          <CommandList>
-                            <CommandEmpty>Staf tidak ditemukan.</CommandEmpty>
-                            <CommandGroup>
-                              {staffList.map((item) => (
-                                <CommandItem
-                                  key={item.id}
-                                  value={`${item.name} ${item.staff_id || ""} ${item.company || ""} ${item.address || ""} ${item.department || ""} ${item.gender || ""} ${item.id}`}
-                                  onSelect={() => {
-                                    handleSelectChange(
-                                      "staff_id",
-                                      item.id.toString()
-                                    )
-                                    setOpenStaff(false)
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4 shrink-0",
-                                      form.staff_id === item.id.toString()
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  <div className="flex min-w-0 flex-1 flex-col gap-0.5 overflow-hidden">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="truncate text-xs font-semibold">{item.name}</span>
-                                      {item.staff_id && (
-                                        <span className="shrink-0 rounded bg-zinc-100 px-1 py-0.2 text-[10px] font-mono font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                                          {item.staff_id}
-                                        </span>
-                                      )}
-                                      {item.gender && (
-                                        <span className="shrink-0 text-[10px] text-zinc-500">
-                                          • {item.gender === "M" || item.gender === "Male" ? "Laki-laki (M)" : item.gender === "F" || item.gender === "Female" ? "Perempuan (F)" : item.gender}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <span className="truncate text-[10px] text-zinc-500">
-                                      {[item.company, item.address || item.department].filter(Boolean).join(" • ") || "No Department"}
-                                    </span>
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-
-                    {form.staff_id && (() => {
-                      const selected = staffList.find((item) => item.id.toString() === form.staff_id)
-                      if (!selected) return null
-                      return (
-                        <div className="mt-1 rounded-md border border-zinc-200 bg-zinc-50/80 p-2 text-[11px] text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300">
-                          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                            <div className="min-w-0 truncate"><span className="text-zinc-400">Staff No:</span> <span className="font-mono font-medium">{selected.staff_id || "-"}</span></div>
-                            <div className="min-w-0 truncate"><span className="text-zinc-400">Gender:</span> <span className="font-medium">{selected.gender === "M" || selected.gender === "Male" ? "Laki-laki (M)" : selected.gender === "F" || selected.gender === "Female" ? "Perempuan (F)" : selected.gender || "-"}</span></div>
-                            <div className="min-w-0 truncate" title={selected.company || "-"}><span className="text-zinc-400">Company:</span> <span className="font-medium">{selected.company || "-"}</span></div>
-                            <div className="min-w-0 truncate" title={selected.address || selected.department || "-"}><span className="text-zinc-400">Address / Role:</span> <span className="font-medium">{selected.address || selected.department || "-"}</span></div>
-                          </div>
-                        </div>
-                      )
-                    })()}
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="host_name" className="text-xs">Custom Host Name *</Label>
-                    <Input
-                      id="host_name"
-                      name="host_name"
-                      value={form.host_name}
-                      onChange={handleChange}
-                      placeholder="Masukkan nama staf / penanggung jawab..."
-                      required={form.is_custom_host}
-                      className="h-9 text-xs"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* ======================================================== */}
-          {/* KOLOM KANAN: SECTION 3 - Kartu Akses & Kendaraan         */}
-          {/* ======================================================== */}
-          <div className="min-w-0 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm space-y-4 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-                3
-              </span>
-              <CreditCard className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                {t("create_visit.section3_title", "Kartu Akses & Kendaraan (Pass & Vehicle)")}
-              </h2>
-            </div>
-
-            <div className="space-y-4">
-              {/* Alokasi Kartu Akses Pengunjung */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="card_ids" className="text-xs font-semibold">
-                    {t("create_visit.assign_cards", "Assign Visitor Cards (Optional)")}
-                  </Label>
-                  <Badge variant="outline" className="text-[11px] font-mono">
-                    {loadingMaster
-                      ? "Memuat..."
-                      : `${cardList.length} kartu tersedia`}
-                  </Badge>
-                </div>
-
-                {cardList.length === 0 && !loadingMaster ? (
-                  <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300 flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
-                    <span>
-                      Tidak ada kartu pengunjung yang tersedia saat ini. Kunjungan tetap dapat disimpan tanpa kartu pengunjung (misal hanya menggunakan kartu kendaraan).
-                    </span>
-                  </div>
-                ) : (
-                  <Popover open={openCard} onOpenChange={setOpenCard}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        disabled={loadingMaster}
-                        className={cn(
-                          "w-full min-w-0 max-w-full overflow-hidden justify-between text-xs font-normal",
-                          form.card_ids.length === 0 && "text-muted-foreground"
-                        )}
-                      >
-                        <span className="min-w-0 flex-1 truncate text-left">
-                          {loadingMaster
-                            ? "Memuat daftar kartu..."
-                            : form.card_ids.length > 0
-                              ? form.card_ids
-                                  .map(
-                                    (id) =>
-                                      cardList.find((c) => c.id.toString() === id)
-                                        ?.card_no
-                                  )
-                                  .filter(Boolean)
-                                  .join(", ")
-                              : "Tidak menggunakan kartu / Pilih Kartu Pengunjung..."}
-                        </span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[320px]">
-                      <Command
-                        filter={(value, search) =>
-                          value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
-                        }
-                      >
-                        <CommandInput placeholder="Cari nomor kartu..." />
-                        <CommandList>
-                          <CommandEmpty>Kartu tidak ditemukan.</CommandEmpty>
-                          <CommandGroup>
-                            <CommandItem
-                              value="tidak menggunakan kartu kosongkan none"
-                              onSelect={() => {
-                                handleSelectChange("card_ids", [])
-                                setOpenCard(false)
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  form.card_ids.length === 0
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              <span className="text-xs text-zinc-500 italic">
-                                Tidak menggunakan kartu pengunjung
-                              </span>
-                            </CommandItem>
-                            {cardList.map((item) => {
-                              const isSelected = form.card_ids.includes(
-                                item.id.toString()
-                              )
-                              return (
-                                <CommandItem
-                                  key={item.id}
-                                  value={`${item.card_no} ${item.id}`}
-                                  onSelect={() => {
-                                    const newSelection = isSelected
-                                      ? form.card_ids.filter(
-                                          (id) => id !== item.id.toString()
-                                        )
-                                      : [...form.card_ids, item.id.toString()]
-                                    handleSelectChange("card_ids", newSelection)
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      isSelected ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  <span className="text-xs font-mono">{item.card_no}</span>
-                                </CommandItem>
-                              )
-                            })}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                )}
-
-                {/* Selected Cards Chips */}
-                {form.card_ids.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[11px] font-medium text-zinc-500">
-                      Terpilih:
-                    </span>
-                    {form.card_ids.map((id) => {
-                      const card = cardList.find((c) => c.id.toString() === id)
-                      return (
-                        <span
-                          key={id}
-                          className="inline-flex items-center gap-1 rounded bg-zinc-100 px-2 py-0.5 text-xs font-mono font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
-                        >
-                          {card ? card.card_no : `Card #${id}`}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleSelectChange(
-                                "card_ids",
-                                form.card_ids.filter((cId) => cId !== id)
-                              )
-                            }
-                            className="ml-0.5 text-zinc-400 hover:text-red-600 cursor-pointer"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Kartu Akses Kendaraan */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="vehicle_card_id" className="text-xs font-semibold">
-                    Vehicle Card (Optional)
-                  </Label>
-                  <span className="text-[11px] text-zinc-500 font-mono">
-                    {loadingMaster
-                      ? ""
-                      : `${vehicleList.length} kartu`}
-                  </span>
-                </div>
-                <Popover open={openVehicle} onOpenChange={setOpenVehicle}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      disabled={loadingMaster}
-                      className={cn(
-                        "w-full min-w-0 max-w-full overflow-hidden justify-between text-xs font-normal",
-                        !form.vehicle_card_id && "text-muted-foreground"
-                      )}
-                    >
-                      <span className="min-w-0 flex-1 truncate text-left">
-                        {loadingMaster
-                          ? "Memuat..."
-                          : form.vehicle_card_id
-                            ? vehicleList.find(
-                                (item) =>
-                                  item.id.toString() === form.vehicle_card_id
-                              )?.card_no
-                            : "None / Select Vehicle Card..."}
-                      </span>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:w-[320px]">
-                    <Command
-                      filter={(value, search) =>
-                        value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
-                      }
-                    >
-                      <CommandInput placeholder="Cari nomor kartu kendaraan..." />
-                      <CommandList>
-                        <CommandEmpty>Kartu kendaraan tidak ditemukan.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            onSelect={() => {
-                              handleSelectChange("vehicle_card_id", "")
-                              setOpenVehicle(false)
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                !form.vehicle_card_id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <span className="text-xs text-zinc-500 italic">Tidak menggunakan kartu</span>
-                          </CommandItem>
-                          {vehicleList.map((item) => (
-                            <CommandItem
-                              key={item.id}
-                              value={`${item.card_no} ${item.id}`}
-                              onSelect={() => {
-                                handleSelectChange(
-                                  "vehicle_card_id",
-                                  item.id.toString()
-                                )
-                                setOpenVehicle(false)
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  form.vehicle_card_id === item.id.toString()
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              <span className="text-xs font-mono">{item.card_no}</span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Plat Nomor Kendaraan */}
-              <div className="space-y-1.5">
-                <Label htmlFor="vehicle_no" className="text-xs font-semibold">
-                  {t("create_visit.vehicle_plate", "Vehicle Plate Number (Optional)")}
-                </Label>
-                <Input
-                  id="vehicle_no"
-                  name="vehicle_no"
-                  className="w-full text-xs"
-                  value={form.vehicle_no}
-                  onChange={handleChange}
-                  placeholder={t("create_visit.vehicle_plate_placeholder", "Contoh: BP 1234 XY")}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Sticky Bottom Bar with Save & Print Ticket */}
-        <div className="sticky bottom-0 z-20 -mx-4 -mb-4 bg-white/95 backdrop-blur border-t border-zinc-200 p-4 shadow-lg sm:mx-0 sm:mb-0 sm:rounded-lg dark:bg-zinc-950/95 dark:border-zinc-800 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <div className="text-xs text-zinc-500 hidden sm:block">
-            {visitorStatus === "blacklisted" ? (
-              <span className="text-red-600 font-medium">
-                {t("create_visit.blocked_blacklisted", "Pendaftaran diblokir karena pengunjung berada dalam daftar blacklist.")}
-              </span>
-            ) : (
-              <span>
-                {t("create_visit.complete_all_sections", "Pastikan data Section 1, 2, dan 3 telah lengkap sebelum mencetak tiket.")}
-              </span>
-            )}
-          </div>
-          <div className="w-full sm:w-auto">
-            <Button
-              type="submit"
-              disabled={loading || visitorStatus === "blacklisted"}
-              className="w-full sm:w-auto h-11 px-8 font-semibold cursor-pointer text-sm"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t("common.processing", "Memproses & Menyimpan...")}
-                </>
-              ) : (
-                <>
-                  <Printer className="mr-2 h-4 w-4" />
-                  {t("create_visit.submit_btn", "Save & Print Ticket")}
-                </>
               )}
-            </Button>
-          </div>
+            </div>
+          </section>
+
+          {/* ===== 3. Kartu & kendaraan ===== */}
+          <section className={cn(CARD, "min-w-0 space-y-4")}>
+            <SectionTitle n={3} icon={CreditCard}>
+              {t("create_visit.section3_title", "Kartu Akses & Kendaraan")}
+            </SectionTitle>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">
+                  {t(
+                    "create_visit.visitor_card_label",
+                    "Kartu pengunjung (opsional)"
+                  )}
+                </Label>
+                <Badge variant="outline" className="font-mono text-[11px]">
+                  {loadingMaster
+                    ? t("common.loading", "Memuat...")
+                    : t(
+                        "create_visit.available_cards_count",
+                        "{{count}} tersedia",
+                        { count: formatNumber(cardList.length) }
+                      )}
+                </Badge>
+              </div>
+              <Picker
+                multiple
+                options={cardOptions}
+                value={form.card_ids}
+                onChange={(v) => setField("card_ids", v)}
+                disabled={loadingMaster}
+                placeholder={t(
+                  "create_visit.select_cards_placeholder",
+                  "Tanpa kartu / pilih kartu..."
+                )}
+                searchPlaceholder={t(
+                  "create_visit.search_cards_placeholder",
+                  "Cari nomor kartu..."
+                )}
+                emptyText={t(
+                  "create_visit.cards_empty",
+                  "Kartu pengunjung tidak ditemukan."
+                )}
+                noneLabel={t(
+                  "create_visit.no_visitor_card",
+                  "Tanpa kartu pengunjung"
+                )}
+              />
+              {form.card_ids.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {form.card_ids.map((id) => {
+                    const cardNo =
+                      cardList.find((c) => String(c.id) === id)?.card_no ??
+                      `#${id}`
+                    return (
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1 rounded bg-zinc-100 px-2 py-0.5 font-mono text-xs dark:bg-zinc-800"
+                      >
+                        {cardNo}
+                        <button
+                          type="button"
+                          aria-label={t(
+                            "create_visit.remove_card_aria",
+                            "Hapus kartu {{card}}",
+                            { card: cardNo }
+                          )}
+                          onClick={() =>
+                            setField(
+                              "card_ids",
+                              form.card_ids.filter((c) => c !== id)
+                            )
+                          }
+                          className="cursor-pointer text-zinc-400 hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">
+                  {t(
+                    "create_visit.vehicle_card_label",
+                    "Kartu kendaraan (opsional)"
+                  )}
+                </Label>
+                <span className="font-mono text-[11px] text-zinc-500">
+                  {loadingMaster
+                    ? ""
+                    : t(
+                        "create_visit.vehicle_cards_count",
+                        "{{count}} kartu",
+                        { count: formatNumber(vehicleList.length) }
+                      )}
+                </span>
+              </div>
+              <Picker
+                options={vehicleOptions}
+                value={form.vehicle_card_id ? [form.vehicle_card_id] : []}
+                onChange={(v) => setField("vehicle_card_id", v[0] ?? "")}
+                disabled={loadingMaster}
+                placeholder={t(
+                  "create_visit.select_vehicle_card_placeholder",
+                  "Tanpa kartu / pilih kartu kendaraan..."
+                )}
+                searchPlaceholder={t(
+                  "create_visit.search_vehicle_card_placeholder",
+                  "Cari nomor kartu kendaraan..."
+                )}
+                emptyText={t(
+                  "create_visit.vehicle_cards_empty",
+                  "Kartu kendaraan tidak ditemukan."
+                )}
+                noneLabel={t(
+                  "create_visit.no_vehicle_card",
+                  "Tanpa kartu kendaraan"
+                )}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="vehicle_no" className="text-xs font-semibold">
+                {t(
+                  "create_visit.vehicle_plate_label",
+                  "Plat nomor kendaraan (opsional)"
+                )}
+              </Label>
+              <Input
+                id="vehicle_no"
+                value={form.vehicle_no}
+                onChange={(e) => setField("vehicle_no", e.target.value)}
+                placeholder={t(
+                  "create_visit.vehicle_plate_placeholder",
+                  "Contoh: BP 1234 XY"
+                )}
+              />
+            </div>
+          </section>
+        </fieldset>
+
+        {/* Bar bawah */}
+        <div className="sticky bottom-0 z-20 -mx-4 flex flex-col items-center justify-between gap-3 border-t border-zinc-200 bg-white/95 p-4 shadow-lg backdrop-blur sm:mx-0 sm:flex-row sm:rounded-lg dark:border-zinc-800 dark:bg-zinc-950/95">
+          <p className="hidden text-xs text-zinc-500 sm:block">
+            {status === "blacklisted" ? (
+              <span className="font-medium text-red-600">
+                {t(
+                  "create_visit.footer_status_blacklisted",
+                  "Pendaftaran diblokir karena pengunjung masuk blacklist."
+                )}
+              </span>
+            ) : status === "registered" ? (
+              t(
+                "create_visit.footer_status_registered",
+                "Lengkapi tujuan dan host, lalu cetak tiket."
+              )
+            ) : (
+              t(
+                "create_visit.footer_status_idle",
+                "Cari dan pilih pengunjung terlebih dahulu."
+              )
+            )}
+          </p>
+          <Button
+            type="submit"
+            disabled={loading || !canFill}
+            className="h-11 w-full px-8 font-semibold sm:w-auto"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                {t("create_visit.submitting_btn", "Menyimpan...")}
+              </>
+            ) : (
+              <>
+                <Printer className="mr-2 h-4 w-4" />{" "}
+                {t("create_visit.submit_btn", "Simpan & Cetak Tiket")}
+              </>
+            )}
+          </Button>
         </div>
       </form>
 
-      {/* Conflict Modal: Open Visit Detected */}
+      {/* Dialog: kunjungan lama masih terbuka */}
       <Dialog open={conflictOpen} onOpenChange={setConflictOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-amber-600">
-              <AlertTriangle className="h-5 w-5" />
-              {t("create_visit.conflict_title", "Kunjungan Lama Terbuka Terdeteksi")}
+              <AlertTriangle className="h-5 w-5" />{" "}
+              {t("create_visit.conflict_title", "Kunjungan lama masih terbuka")}
             </DialogTitle>
-            <DialogDescription className="text-zinc-700 dark:text-zinc-300">
-              {conflictMessage}
-            </DialogDescription>
+            <DialogDescription>{conflictMessage}</DialogDescription>
           </DialogHeader>
           <p className="text-xs text-zinc-500">
-            {t("create_visit.conflict_desc", "Sistem dapat melakukan check-out otomatis pada kunjungan terbuka sebelumnya secara atomik dan langsung mendaftarkan kunjungan baru ini.")}
+            {t(
+              "create_visit.conflict_desc",
+              "Kunjungan lama akan di-check-out otomatis, lalu kunjungan baru langsung didaftarkan."
+            )}
           </p>
           <DialogFooter className="mt-4 gap-2">
             <Button
@@ -2074,20 +1741,23 @@ export default function CreateVisit() {
               {t("common.cancel", "Batal")}
             </Button>
             <Button
+              disabled={loading}
               onClick={() => {
                 setConflictOpen(false)
                 submitVisit(true)
               }}
-              disabled={loading}
               className="bg-amber-600 text-white hover:bg-amber-700"
             >
-              {loading ? t("common.processing", "Memproses...") : t("create_visit.close_and_checkin", "Tutup Kunjungan Lama & Check-In")}
+              {t(
+                "create_visit.close_and_checkin",
+                "Tutup kunjungan lama & check-in"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Supervisor override of a global entry (decision SEC-7) */}
+      {/* Dialog: override supervisor untuk blacklist global */}
       <Dialog
         open={overrideEntry !== null}
         onOpenChange={(open) => !open && setOverrideEntry(null)}
@@ -2095,19 +1765,29 @@ export default function CreateVisit() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
-              <Globe className="h-5 w-5" />
-              {t("create_visit.override_title", "Loloskan Satu Kunjungan (Supervisor Override)")}
+              <Globe className="h-5 w-5" />{" "}
+              {t(
+                "create_visit.override_title",
+                "Loloskan satu kunjungan (override supervisor)"
+              )}
             </DialogTitle>
-            <DialogDescription className="text-zinc-700 dark:text-zinc-300">
-              Tamu ini ada di blacklist global ({overrideEntry?.reason_label},
-              didaftarkan {overrideEntry?.registered_by_yard}). Override hanya
-              untuk kunjungan ini, tercatat di activity log, dan tidak mencabut
-              entri global.
+            <DialogDescription>
+              {t(
+                "create_visit.override_desc",
+                "Pengunjung ini ada di blacklist global ({{reason}}, didaftarkan {{yard}}). Override hanya berlaku untuk kunjungan ini, tercatat di log aktivitas, dan tidak mencabut entri global.",
+                {
+                  reason: overrideEntry?.reason_label ?? "-",
+                  yard: overrideEntry?.registered_by_yard ?? "-",
+                }
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="override_reason">
-              {t("create_visit.override_reason_label", "Alasan (minimal 10 karakter)")}
+              {t(
+                "create_visit.override_reason_label",
+                "Alasan (minimal 10 karakter)"
+              )}
             </Label>
             <Textarea
               id="override_reason"
@@ -2122,7 +1802,7 @@ export default function CreateVisit() {
               onClick={() => setOverrideEntry(null)}
               disabled={loading}
             >
-              Batal
+              {t("common.cancel", "Batal")}
             </Button>
             <Button
               variant="destructive"
@@ -2133,7 +1813,7 @@ export default function CreateVisit() {
                 submitVisit(false, reason)
               }}
             >
-              {t("create_visit.override_submit", "Loloskan & Check-In")}
+              {t("create_visit.override_submit", "Loloskan & check-in")}
             </Button>
           </DialogFooter>
         </DialogContent>

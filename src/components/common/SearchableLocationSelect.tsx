@@ -50,24 +50,26 @@ interface SearchableLocationSelectProps {
   className?: string
 }
 
-const getTypeBadgeLabel = (opt: SearchableLocationOption): string => {
+const getTypeBadgeLabel = (
+  opt: SearchableLocationOption,
+  t: (path: string, defaultValue?: string) => string
+): string => {
   if (opt.vessel_type) return opt.vessel_type
   switch (opt.type) {
     case "repair_vessel":
-      return "Kapal Perbaikan"
+      return t("locations.type_repair_vessel", "Kapal Perbaikan")
     case "tug_boat":
-      return "Tug Boat"
+      return t("locations.type_tug_boat", "Tug Boat")
     case "barge":
-      return "Tongkang (Barge)"
+      return t("locations.type_barge", "Tongkang (Barge)")
     case "location":
-      return "Lokasi Darat"
+      return t("locations.type_land", "Lokasi Darat")
     default:
-      return opt.type || "Lokasi"
+      return opt.type || t("locations.type_location", "Lokasi")
   }
 }
 
 export default function SearchableLocationSelect({
-
   id,
   name,
   ariaLabel,
@@ -75,16 +77,30 @@ export default function SearchableLocationSelect({
   onValueChange,
   onChange,
   options,
-  placeholder = "-- Pilih Lokasi / Kapal --",
-  searchPlaceholder = "Ketik nama kapal/lokasi, IMO No, Captain, PIC, atau tipe...",
-  emptyMessage = "Lokasi atau kapal tidak ditemukan.",
+  placeholder,
+  searchPlaceholder,
+  emptyMessage,
   disabled = false,
   required = false,
   allowClear = false,
-  clearLabel = "-- Tidak Dipilih --",
+  clearLabel,
   className,
 }: SearchableLocationSelectProps) {
   const { t } = useTranslation()
+  const resolvedPlaceholder =
+    placeholder ??
+    t("create_visit.location_select_placeholder", "-- Pilih lokasi / kapal --")
+  const resolvedSearchPlaceholder =
+    searchPlaceholder ??
+    t(
+      "create_visit.location_search_placeholder",
+      "Cari nama kapal/lokasi, IMO No, Captain, PIC, Call Sign..."
+    )
+  const resolvedEmptyMessage =
+    emptyMessage ??
+    t("create_visit.location_empty", "Lokasi atau kapal tidak ditemukan.")
+  const resolvedClearLabel =
+    clearLabel ?? t("common.none", "-- Tidak dipilih --")
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
 
@@ -101,7 +117,13 @@ export default function SearchableLocationSelect({
 
   const filteredOptions = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return options
+    if (!q) {
+      const land = options.filter((opt) => !opt.type || opt.type === "location")
+      const vessels = options.filter((opt) =>
+        Boolean(opt.type && opt.type !== "location")
+      )
+      return [...land, ...vessels]
+    }
     return options.filter((opt) => {
       const haystack = [
         opt.name,
@@ -149,7 +171,7 @@ export default function SearchableLocationSelect({
         className="sr-only"
         tabIndex={-1}
       >
-        <option value="">{placeholder}</option>
+        <option value="">{resolvedPlaceholder}</option>
         {options.map((opt) => (
           <option key={opt.id} value={String(opt.id)}>
             {opt.name}
@@ -171,8 +193,11 @@ export default function SearchableLocationSelect({
             type="button"
             variant="outline"
             role="combobox"
+            data-testid="location-select-trigger"
+            aria-label={ariaLabel}
             aria-expanded={open}
             disabled={disabled}
+            onClick={() => setOpen((prev) => !prev)}
             className={cn(
               "w-full justify-between bg-white text-left text-xs font-normal h-auto min-h-10 py-1.5 px-3 dark:bg-zinc-950",
               !selectedOption && "text-muted-foreground"
@@ -199,7 +224,7 @@ export default function SearchableLocationSelect({
                   variant="secondary"
                   className="text-[10px] px-1.5 py-0 font-normal"
                 >
-                  {getTypeBadgeLabel(selectedOption)}
+                  {getTypeBadgeLabel(selectedOption, t)}
                 </Badge>
                 {selectedOption.captain && (
                   <span className="text-[11px] text-emerald-700 dark:text-emerald-400">
@@ -208,7 +233,7 @@ export default function SearchableLocationSelect({
                 )}
               </div>
             ) : (
-              <span>{placeholder}</span>
+              <span>{resolvedPlaceholder}</span>
             )}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -220,12 +245,12 @@ export default function SearchableLocationSelect({
         >
           <Command shouldFilter={false}>
             <CommandInput
-              placeholder={searchPlaceholder}
+              placeholder={resolvedSearchPlaceholder}
               value={query}
               onValueChange={setQuery}
             />
             <CommandList className="max-h-72">
-              <CommandEmpty>{emptyMessage}</CommandEmpty>
+              <CommandEmpty>{resolvedEmptyMessage}</CommandEmpty>
               <CommandGroup>
                 {allowClear && value && (
                   <CommandItem
@@ -238,7 +263,7 @@ export default function SearchableLocationSelect({
                     className="text-xs text-zinc-500 italic"
                   >
                     <X className="mr-2 h-3.5 w-3.5" />
-                    {clearLabel}
+                    {resolvedClearLabel}
                   </CommandItem>
                 )}
 
@@ -286,7 +311,7 @@ export default function SearchableLocationSelect({
                                 : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
                             )}
                           >
-                            {getTypeBadgeLabel(opt)}
+                            {getTypeBadgeLabel(opt, t)}
                           </span>
                         </div>
 
@@ -320,7 +345,11 @@ export default function SearchableLocationSelect({
               </CommandGroup>
               {filteredOptions.length > 80 && (
                 <div className="border-t border-zinc-100 px-3 py-1.5 text-center text-[11px] text-zinc-500 dark:border-zinc-800">
-                  {t("common.showing_limit", "Menampilkan 80 dari {{total}} lokasi/kapal — ketik di kotak pencarian untuk menyaring.", { total: filteredOptions.length })}
+                  {t(
+                    "common.showing_limit",
+                    "Menampilkan 80 dari {{total}} lokasi/kapal — ketik di kotak pencarian untuk menyaring.",
+                    { total: filteredOptions.length }
+                  )}
                 </div>
               )}
             </CommandList>

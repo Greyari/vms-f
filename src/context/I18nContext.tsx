@@ -23,7 +23,7 @@ export interface I18nContextType {
   ) => string
 }
 
-const dictionaries: Record<Language, Record<string, any>> = {
+const dictionaries: Record<Language, Record<string, unknown>> = {
   id: idDict,
   en: enDict,
 }
@@ -51,13 +51,13 @@ const NAMESPACE_ALIASES: Record<string, string[]> = {
   nav: ["sidebar"],
 }
 
-const getValueByPath = (dict: any, path: string): string | undefined => {
+const getValueByPath = (dict: unknown, path: string): string | undefined => {
   if (!dict || typeof dict !== "object") return undefined
   const keys = path.split(".")
-  let current: any = dict
+  let current: unknown = dict
   for (const k of keys) {
-    if (current && typeof current === "object" && k in current) {
-      current = current[k]
+    if (current && typeof current === "object" && k in (current as Record<string, unknown>)) {
+      current = (current as Record<string, unknown>)[k]
     } else {
       return undefined
     }
@@ -114,7 +114,9 @@ const resolveTranslation = (
 
   if (params) {
     return Object.entries(params).reduce((str, [paramKey, paramVal]) => {
-      return str.replace(new RegExp(`{{${paramKey}}}`, "g"), String(paramVal))
+      return str
+        .replace(new RegExp(`\\{\\{\\s*${paramKey}\\s*\\}\\}`, "g"), String(paramVal))
+        .replace(new RegExp(`\\{\\s*${paramKey}\\s*\\}`, "g"), String(paramVal))
     }, result)
   }
 
@@ -149,8 +151,12 @@ const defaultContextValue: I18nContextType = {
 
 const I18nContext = createContext<I18nContextType>(defaultContextValue)
 
-export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const I18nProvider: React.FC<{
+  children: React.ReactNode
+  initialLanguage?: Language
+}> = ({ children, initialLanguage }) => {
   const [language, setLanguageState] = useState<Language>(() => {
+    if (initialLanguage) return initialLanguage
     if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem("vms_lang") as Language
@@ -231,4 +237,5 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useTranslation = () => useContext(I18nContext)
