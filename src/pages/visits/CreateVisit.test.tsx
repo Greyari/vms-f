@@ -208,16 +208,24 @@ describe("CreateVisit Page & Master Data", () => {
         expect(screen.getByText("Ahmad Dahlan")).toBeInTheDocument()
       })
 
-      // Check that STORE is present in the options of the location select
-      const selectEl = document.getElementById("location_id") as HTMLSelectElement
-      expect(selectEl).toBeInTheDocument()
-      const storeOption = Array.from(selectEl.options).find((opt) => opt.text === "STORE")
-      expect(storeOption).toBeDefined()
-      expect(storeOption?.value).toBe("loc-1289")
+      // Check that STORE can be searched and selected in location SearchSelect
+      const locationInput = document.getElementById("location_id") as HTMLInputElement
+      expect(locationInput).toBeInTheDocument()
+      await waitFor(() => {
+        expect(locationInput).not.toBeDisabled()
+      })
+      await waitFor(() => {
+        expect(locationInput).toHaveFocus()
+      })
 
-      // Selecting STORE updates location_id
-      fireEvent.change(selectEl, { target: { value: "loc-1289" } })
-      expect(selectEl.value).toBe("loc-1289")
+      fireEvent.change(locationInput, { target: { value: "STORE" } })
+
+      const storeOption = await screen.findByText("STORE")
+      fireEvent.mouseDown(storeOption)
+
+      await waitFor(() => {
+        expect(locationInput.value).toBe("STORE")
+      })
     })
   })
 
@@ -387,13 +395,16 @@ describe("CreateVisit Page & Master Data", () => {
       })
 
       // Wait for master data to finish loading
-      const selectEl = document.getElementById("location_id") as HTMLSelectElement
-      await waitFor(() => {
-        expect(selectEl.options.length).toBeGreaterThan(1)
-      })
+      const locationInput = document.getElementById("location_id") as HTMLInputElement
+      expect(locationInput).toBeInTheDocument()
 
       // Select vessel
-      fireEvent.change(selectEl, { target: { value: "vessel-1" } })
+      fireEvent.focus(locationInput)
+      fireEvent.change(locationInput, { target: { value: "GAS" } })
+      await waitFor(() => {
+        expect(screen.getByText("GAS WIDURI")).toBeInTheDocument()
+      })
+      fireEvent.mouseDown(screen.getByText("GAS WIDURI"))
 
       // Vessel card appears
       await waitFor(() => {
@@ -401,16 +412,6 @@ describe("CreateVisit Page & Master Data", () => {
         expect(screen.getByText("ALVI")).toBeInTheDocument()
         expect(screen.getByText("POJR")).toBeInTheDocument()
       })
-
-      // Click "Jadikan host" for Captain
-      const captainBtn = screen.getAllByRole("button", {
-        name: /jadikan host/i,
-      })[0]
-      fireEvent.click(captainBtn)
-
-      // Custom host input receives captain name
-      const customHostInput = screen.getByPlaceholderText(/nama staf \/ penanggung jawab/i)
-      expect(customHostInput).toHaveValue("CAPT. SUTRISNO")
     })
   })
 
@@ -449,28 +450,36 @@ describe("CreateVisit Page & Master Data", () => {
       })
 
       // Wait for master data to finish loading
-      const selectEl = document.getElementById("location_id") as HTMLSelectElement
-      await waitFor(() => {
-        expect(selectEl.options.length).toBeGreaterThan(1)
-      })
+      const locationInput = document.getElementById("location_id") as HTMLInputElement
+      expect(locationInput).toBeInTheDocument()
 
       // Select location
-      fireEvent.change(selectEl, { target: { value: "loc-1" } })
-
-      // Fill purpose & custom host
-      const purposeInput = screen.getByPlaceholderText(/contoh: survey, meeting/i)
-      fireEvent.change(purposeInput, { target: { value: "Audit Gudang" } })
-
-      fireEvent.click(screen.getByLabelText(/tulis nama host sendiri/i))
-      fireEvent.change(screen.getByPlaceholderText(/nama staf \/ penanggung jawab/i), {
-        target: { value: "Pak Budi" },
+      fireEvent.focus(locationInput)
+      fireEvent.change(locationInput, { target: { value: "STORE" } })
+      await waitFor(() => {
+        expect(screen.getByText("STORE")).toBeInTheDocument()
       })
+      fireEvent.mouseDown(screen.getByText("STORE"))
+
+      // Fill purpose
+      const purposeInput = document.getElementById("purpose") as HTMLInputElement
+      fireEvent.focus(purposeInput)
+      fireEvent.change(purposeInput, { target: { value: "AUDIT GUDANG" } })
+
+      // Select staff
+      const staffInput = document.getElementById("staff_id") as HTMLInputElement
+      fireEvent.focus(staffInput)
+      fireEvent.change(staffInput, { target: { value: "Budi" } })
+      await waitFor(() => {
+        expect(screen.getByText("Budi Santoso")).toBeInTheDocument()
+      })
+      fireEvent.mouseDown(screen.getByText("Budi Santoso"))
 
       // Submit form
       const submitBtn = screen.getByRole("button", {
         name: /simpan & cetak tiket/i,
       })
-      fireEvent.submit(submitBtn.closest("form")!)
+      fireEvent.click(submitBtn)
 
       // Conflict dialog appears
       await waitFor(() => {
