@@ -10,15 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-  CommandInput,
-  CommandEmpty,
-} from "@/components/ui/command"
 import {
   Dialog,
   DialogContent,
@@ -44,7 +35,6 @@ import {
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import SearchableLocationSelect from "@/components/common/SearchableLocationSelect"
 import type { GlobalBlacklistHit } from "@/types/hybrid"
 
 /* ------------------------------------------------------------------ */
@@ -135,19 +125,14 @@ export const unwrap = (res: unknown): unknown[] => {
   return []
 }
 
-const POPULAR_PURPOSES = [
-  { key: "purpose_meeting", value: "Meeting", defaultLabel: "Meeting" },
-  { key: "purpose_survey", value: "Survey", defaultLabel: "Survey" },
-  { key: "purpose_delivery", value: "Delivery", defaultLabel: "Delivery" },
-  { key: "purpose_maintenance", value: "Maintenance", defaultLabel: "Maintenance" },
-  { key: "purpose_inspection", value: "Inspection", defaultLabel: "Inspection" },
-  { key: "purpose_audit", value: "Audit", defaultLabel: "Audit" },
-] as const
-
 const CARD =
   "rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
 
+// Tampilkan huruf besar saat ada isi (placeholder tetap normal)
+const UPPER_WHEN_FILLED = "[&:not(:placeholder-shown)]:uppercase"
+
 const CACHE_TTL_MS = 5 * 60 * 1000
+const MAX_VISIBLE_OPTIONS = 100
 
 // Cache sederhana supaya buka halaman ini lagi terasa instan
 let cache: {
@@ -162,6 +147,67 @@ export function resetCreateVisitCache() {
   cache = null
 }
 
+// Ubah ke huruf besar tanpa membuat kursor loncat ke akhir teks
+function upperKeepCaret(e: React.ChangeEvent<HTMLInputElement>): string {
+  const el = e.target
+  const { selectionStart, selectionEnd } = el
+  const next = el.value.toUpperCase()
+  requestAnimationFrame(() => {
+    try {
+      el.setSelectionRange(selectionStart, selectionEnd)
+    } catch {
+      /* abaikan */
+    }
+  })
+  return next
+}
+
+// Pindahkan fokus ke input / tombol berikutnya di dalam form yang sama
+function focusNextField(from: HTMLElement) {
+  const form = from.closest("form")
+  if (!form) return
+  const focusables = Array.from(
+    form.querySelectorAll<HTMLElement>(
+      'input:not([disabled]):not([tabindex="-1"]):not([type="hidden"]):not([type="checkbox"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), button:not([disabled]):not([tabindex="-1"])'
+    )
+  )
+  const i = focusables.indexOf(from)
+  if (i >= 0) focusables[i + 1]?.focus()
+}
+
+/* ------------------------------------------------------------------ */
+/* Potongan UI kecil                                                   */
+/* ------------------------------------------------------------------ */
+
+function KeyHint({ extra }: { extra?: string }) {
+  const { t } = useTranslation()
+  return (
+    <div className="border-t border-zinc-100 bg-zinc-50 px-3 py-1.5 text-[11px] text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
+      {extra && <div className="mb-0.5 text-center">{extra}</div>}
+      {t(
+        "create_visit.keyboard_hint",
+        "↑ ↓ pilih · Enter pilih · Tab pilih & lanjut · Esc tutup"
+      )}
+    </div>
+  )
+}
+
+function EnterBadge() {
+  const { t } = useTranslation()
+  return (
+    <kbd className="shrink-0 rounded border border-emerald-300 bg-white px-1.5 py-0.5 font-mono text-[10px] font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-zinc-900 dark:text-emerald-300">
+      {t("create_visit.enter_key", "Enter ↵")}
+    </kbd>
+  )
+}
+
+const ROW_BASE = "flex cursor-pointer items-center gap-2 border-l-4 px-3 py-2"
+const ROW_ACTIVE =
+  "border-emerald-500 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-950/40"
+const ROW_IDLE = "border-transparent"
+const DROPDOWN =
+  "absolute z-40 mt-1 w-full overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
+
 /* ------------------------------------------------------------------ */
 /* Autocomplete pengunjung (keyboard + klik + tap)                     */
 /* ------------------------------------------------------------------ */
@@ -174,6 +220,7 @@ function VisitorAutocomplete({
   onPick,
   onEnter,
   inputRef,
+  tabIndex,
 }: {
   id: string
   value: string
@@ -182,6 +229,7 @@ function VisitorAutocomplete({
   onPick: (visitor: VisitorSearchResult) => void
   onEnter?: () => void // dipanggil saat Enter tanpa memilih saran
   inputRef?: React.Ref<HTMLInputElement>
+  tabIndex?: number
 }) {
   const { t } = useTranslation()
   const [items, setItems] = useState<VisitorSearchResult[]>([])
@@ -228,7 +276,10 @@ function VisitorAutocomplete({
           params: { q: q.trim() },
           signal: c.signal,
         })
-        setItems(unwrap(res) as VisitorSearchResult[])
+        const list = unwrap(res) as VisitorSearchResult[]
+        setItems(list)
+        // Hasil pertama langsung tersorot, jadi Enter / Tab langsung memilihnya
+        setActive(list.length ? 0 : -1)
       } catch (err) {
         if (!isCancel(err)) console.error(err)
       } finally {
@@ -259,6 +310,12 @@ function VisitorAutocomplete({
         setOpen(false)
         onEnter()
       }
+    } else if (e.key === "Tab" && !e.shiftKey) {
+      // Tab memilih hasil yang tersorot. Fokus lanjut otomatis setelah pengunjung terverifikasi.
+      if (open && !loading && active >= 0 && items[active]) {
+        e.preventDefault()
+        pick(items[active])
+      }
     } else if (e.key === "Escape") {
       setOpen(false)
     }
@@ -270,6 +327,7 @@ function VisitorAutocomplete({
         ref={inputRef}
         id={id}
         value={value}
+        tabIndex={tabIndex}
         autoComplete="off"
         placeholder={placeholder}
         role="combobox"
@@ -283,7 +341,7 @@ function VisitorAutocomplete({
         onKeyDown={onKeyDown}
         onFocus={() => items.length > 0 && setOpen(true)}
         onBlur={() => setOpen(false)}
-        className="h-10 pr-9"
+        className={cn("h-10 pr-9", UPPER_WHEN_FILLED)}
       />
       {loading ? (
         <Loader2 className="pointer-events-none absolute right-3 top-3 h-4 w-4 animate-spin text-zinc-400" />
@@ -293,47 +351,55 @@ function VisitorAutocomplete({
 
       {open && (
         <div
-          id={`${id}-list`}
-          role="listbox"
-          ref={listRef}
-          className="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
+          className={DROPDOWN}
+          onMouseDown={(e) => e.preventDefault()} // jaga fokus input saat klik / geser scrollbar
         >
-          {!loading && items.length === 0 ? (
-            <div className="p-3 text-center text-xs text-zinc-500">
-              {t("create_visit.no_matching_visitors", "Tidak ada pengunjung yang cocok.")}
-            </div>
-          ) : (
-            items.map((s, i) => (
-              <div
-                key={s.id}
-                role="option"
-                aria-selected={i === active}
-                // mouseDown (bukan click) supaya input tidak blur sebelum terpilih; juga jalan di layar sentuh
-                onMouseDown={(e) => {
-                  e.preventDefault()
-                  pick(s)
-                }}
-                onMouseEnter={() => setActive(i)}
-                className={cn(
-                  "flex cursor-pointer items-center gap-2 px-3 py-2",
-                  i === active && "bg-zinc-100 dark:bg-zinc-800"
-                )}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{s.name}</p>
-                  <p className="truncate text-xs text-zinc-500">
-                    {(s.id_type || "ktp").toUpperCase()} {s.id_number}
-                    {s.company ? ` · ${s.company}` : ""}
-                  </p>
-                </div>
-                {s.is_blacklisted && (
-                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
-                    {t("create_visit.badge_blacklist", "BLACKLIST")}
-                  </span>
+          <div
+            id={`${id}-list`}
+            role="listbox"
+            ref={listRef}
+            className="max-h-64 overflow-auto"
+          >
+            {!loading && items.length === 0 ? (
+              <div className="p-3 text-center text-xs text-zinc-500">
+                {t(
+                  "create_visit.no_matching_visitors",
+                  "Tidak ada pengunjung yang cocok."
                 )}
               </div>
-            ))
-          )}
+            ) : (
+              items.map((s, i) => (
+                <div
+                  key={s.id}
+                  role="option"
+                  aria-selected={i === active}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    pick(s)
+                  }}
+                  onMouseEnter={() => setActive(i)}
+                  className={cn(ROW_BASE, i === active ? ROW_ACTIVE : ROW_IDLE)}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium uppercase">
+                      {s.name}
+                    </p>
+                    <p className="truncate text-xs uppercase text-zinc-500">
+                      {(s.id_type || "ktp").toUpperCase()} {s.id_number}
+                      {s.company ? ` · ${s.company}` : ""}
+                    </p>
+                  </div>
+                  {s.is_blacklisted && (
+                    <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
+                      {t("create_visit.badge_blacklist", "BLACKLIST")}
+                    </span>
+                  )}
+                  {i === active && <EnterBadge />}
+                </div>
+              ))
+            )}
+          </div>
+          {items.length > 0 && <KeyHint />}
         </div>
       )}
     </div>
@@ -341,168 +407,303 @@ function VisitorAutocomplete({
 }
 
 /* ------------------------------------------------------------------ */
-/* Picker (dropdown cari + pilih satu / banyak)                        */
+/* SearchSelect: kolom ketik-langsung-cari (satu / banyak pilihan)     */
 /* ------------------------------------------------------------------ */
 
 interface Opt {
   value: string
   label: string
   sub?: string
+  search?: string
 }
 
-function Picker({
+type Row = { opt: Opt | null } // opt null = baris "tanpa pilihan"
+
+function filterOptions(options: Opt[], q: string): Opt[] {
+  const full = q.trim().toLowerCase()
+  const tokens = full.split(/\s+/).filter(Boolean)
+  if (!tokens.length) return options
+
+  const scored: { o: Opt; s: number }[] = []
+  for (const o of options) {
+    const label = o.label.toLowerCase()
+    const hay = `${label} ${(o.sub ?? "").toLowerCase()} ${(o.search ?? "").toLowerCase()}`
+    if (!tokens.every((tk) => hay.includes(tk))) continue
+    const s = label === full ? 0 : label.startsWith(full) ? 1 : label.includes(full) ? 2 : 3
+    scored.push({ o, s })
+  }
+  return scored.sort((a, b) => a.s - b.s).map((x) => x.o)
+}
+
+function SearchSelect({
+  id,
+  inputRef,
   options,
   value,
   onChange,
   multiple,
+  allowCustom,
+  upper,
   placeholder,
-  searchPlaceholder,
   emptyText,
   noneLabel,
   disabled,
 }: {
+  id: string
+  inputRef?: React.Ref<HTMLInputElement>
   options: Opt[]
   value: string[]
   onChange: (v: string[]) => void
   multiple?: boolean
+  /** Teks bebas (misalnya tujuan kunjungan): opsi hanya saran, ketikan tetap jadi nilai */
+  allowCustom?: boolean
+  /** Paksa huruf besar pada teks yang diketik (hanya untuk allowCustom) */
+  upper?: boolean
   placeholder: string
-  searchPlaceholder: string
   emptyText: string
   noneLabel?: string
   disabled?: boolean
 }) {
   const { t, formatNumber } = useTranslation()
   const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [query, setQuery] = useState("")
+  const [active, setActive] = useState(0)
+  const [navigated, setNavigated] = useState(false)
+  const listRef = useRef<HTMLDivElement>(null)
+
   const selected = useMemo(
     () => options.filter((o) => value.includes(o.value)),
     [options, value]
   )
 
-  const filteredOptions = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return options
-    return options.filter((o) =>
-      `${o.label} ${o.sub ?? ""} ${o.value}`.toLowerCase().includes(q)
-    )
-  }, [options, query])
+  // Teks yang dipakai untuk menyaring
+  const q = allowCustom ? (value[0] ?? "") : editing ? query : ""
+  const hasQuery = q.trim() !== ""
 
-  const visibleOptions = useMemo(() => {
-    const limit = 100
-    const sliced = filteredOptions.slice(0, limit)
-    const missingSelected = selected.filter(
-      (sel) => !sliced.some((o) => o.value === sel.value)
-    )
-    return missingSelected.length ? [...missingSelected, ...sliced] : sliced
-  }, [filteredOptions, selected])
+  const filtered = useMemo(() => filterOptions(options, q), [options, q])
+
+  const visible = useMemo(() => {
+    const ordered = hasQuery
+      ? filtered
+      : [...selected, ...options.filter((o) => !value.includes(o.value))]
+    return ordered.slice(0, MAX_VISIBLE_OPTIONS)
+  }, [hasQuery, filtered, selected, options, value])
+
+  const rows: Row[] = useMemo(
+    () => [
+      ...(noneLabel && !hasQuery ? [{ opt: null }] : []),
+      ...visible.map((opt) => ({ opt })),
+    ],
+    [noneLabel, hasQuery, visible]
+  )
+
+  // Setiap ketikan berubah: sorot hasil paling atas
+  useEffect(() => {
+    setActive(0)
+    setNavigated(false)
+  }, [q])
+
+  useEffect(() => {
+    if (open) listRef.current?.children[active]?.scrollIntoView({ block: "nearest" })
+  }, [active, open])
+
+  // Boleh memilih dengan Enter / Tab hanya jika user sudah mengetik atau menavigasi
+  const canAccept = hasQuery || navigated
+
+  const choose = (
+    row: Row,
+    how: "mouse" | "enter" | "tab",
+    el?: HTMLInputElement
+  ) => {
+    const opt = row.opt
+    if (!opt) onChange([])
+    else if (multiple) {
+      onChange(
+        value.includes(opt.value)
+          ? value.filter((v) => v !== opt.value)
+          : [...value, opt.value]
+      )
+    } else {
+      onChange([allowCustom ? opt.label : opt.value])
+    }
+
+    if (multiple && opt) {
+      setQuery("")
+      return
+    }
+
+    setOpen(false)
+    setEditing(false)
+    setQuery("")
+    if (how === "mouse") (document.activeElement as HTMLElement | null)?.blur()
+    if (how === "enter" && el) requestAnimationFrame(() => focusNextField(el))
+  }
+
+  const hasValue = allowCustom ? Boolean(value[0]?.trim()) : selected.length > 0
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (disabled) return
+    const count = rows.length
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setOpen(true)
+      setNavigated(true)
+      setActive((i) => (count ? (i + 1) % count : 0))
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setOpen(true)
+      setNavigated(true)
+      setActive((i) => (count ? (i <= 0 ? count - 1 : i - 1) : 0))
+    } else if (e.key === "Enter") {
+      e.preventDefault() // jangan submit form
+      if (open && canAccept && rows[active]) {
+        choose(rows[active], "enter", e.currentTarget)
+      } else if (!multiple && hasValue) {
+        focusNextField(e.currentTarget) // sudah terisi: Enter = lanjut
+      }
+    } else if (e.key === "Tab" && !e.shiftKey) {
+      // Tab memilih yang tersorot lalu fokus pindah seperti biasa
+      if (open && canAccept && rows[active]) choose(rows[active], "tab")
+    } else if (e.key === "Escape") {
+      setOpen(false)
+    }
+  }
+
+  const inputValue = allowCustom
+    ? (value[0] ?? "")
+    : multiple
+      ? query
+      : editing
+        ? query
+        : (selected[0]?.label ?? "")
+
+  const inputPlaceholder =
+    !multiple && !allowCustom && editing && selected[0]
+      ? selected[0].label
+      : placeholder
+
+  const showList = open && !disabled && (rows.length > 0 || !allowCustom)
 
   return (
-    <Popover
-      open={open}
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen)
-        if (!nextOpen) setQuery("")
-      }}
-    >
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          disabled={disabled}
-          className="w-full min-w-0 justify-between overflow-hidden bg-white text-xs font-normal dark:bg-zinc-950"
-        >
-          <span
-            className={cn(
-              "min-w-0 flex-1 truncate text-left",
-              !selected.length && "text-muted-foreground"
-            )}
+    <div className="relative">
+      <Input
+        ref={inputRef}
+        id={id}
+        value={inputValue}
+        disabled={disabled}
+        autoComplete="off"
+        placeholder={inputPlaceholder}
+        role="combobox"
+        aria-expanded={showList}
+        aria-controls={`${id}-list`}
+        aria-autocomplete="list"
+        onChange={(e) => {
+          setOpen(true)
+          if (allowCustom) {
+            onChange([upper ? upperKeepCaret(e) : e.target.value])
+          } else {
+            setEditing(true)
+            setQuery(e.target.value)
+          }
+        }}
+        onFocus={() => {
+          if (disabled) return
+          setOpen(true)
+          if (!multiple && !allowCustom) {
+            setEditing(true)
+            setQuery("")
+          }
+        }}
+        onBlur={() => {
+          setOpen(false)
+          setEditing(false)
+          setQuery("")
+        }}
+        onKeyDown={onKeyDown}
+        className={cn("h-10 pr-9", UPPER_WHEN_FILLED)}
+      />
+      <ChevronsUpDown className="pointer-events-none absolute right-3 top-3 h-4 w-4 opacity-50" />
+
+      {showList && (
+        <div className={DROPDOWN} onMouseDown={(e) => e.preventDefault()}>
+          <div
+            id={`${id}-list`}
+            role="listbox"
+            aria-multiselectable={multiple}
+            ref={listRef}
+            className="max-h-64 overflow-auto"
           >
-            {selected.length ? selected.map((o) => o.label).join(", ") : placeholder}
-          </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 md:min-w-[320px]">
-        <Command shouldFilter={false}>
-          <CommandInput
-            placeholder={searchPlaceholder}
-            value={query}
-            onValueChange={setQuery}
-          />
-          <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
-            <CommandGroup>
-              {noneLabel && !query.trim() && (
-                <CommandItem
-                  value="__none__"
-                  onSelect={() => {
-                    onChange([])
-                    setOpen(false)
-                    setQuery("")
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value.length === 0 ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <span className="text-xs italic text-zinc-500">{noneLabel}</span>
-                </CommandItem>
-              )}
-              {visibleOptions.map((o) => {
-                const isSel = value.includes(o.value)
+            {rows.length === 0 ? (
+              <div className="p-3 text-center text-xs text-zinc-500">
+                {emptyText}
+              </div>
+            ) : (
+              rows.map((row, i) => {
+                const isSel = row.opt
+                  ? value.includes(row.opt.value)
+                  : value.length === 0
                 return (
-                  <CommandItem
-                    key={o.value}
-                    value={`${o.label} ${o.sub ?? ""} ${o.value}`}
-                    onSelect={() => {
-                      if (multiple) {
-                        onChange(
-                          isSel
-                            ? value.filter((v) => v !== o.value)
-                            : [...value, o.value]
-                        )
-                      } else {
-                        onChange([o.value])
-                        setOpen(false)
-                        setQuery("")
-                      }
+                  <div
+                    key={row.opt?.value ?? "__none__"}
+                    role="option"
+                    aria-selected={isSel}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      choose(row, "mouse")
                     }}
+                    onMouseEnter={() => setActive(i)}
+                    className={cn(ROW_BASE, i === active ? ROW_ACTIVE : ROW_IDLE)}
                   >
                     <Check
                       className={cn(
-                        "mr-2 h-4 w-4 shrink-0",
+                        "h-4 w-4 shrink-0",
                         isSel ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-xs font-medium">{o.label}</span>
-                      {o.sub && (
-                        <span className="truncate text-[11px] text-zinc-500">
-                          {o.sub}
-                        </span>
+                    <div className="min-w-0 flex-1">
+                      {row.opt ? (
+                        <>
+                          <p className="truncate text-xs font-medium uppercase">
+                            {row.opt.label}
+                          </p>
+                          {row.opt.sub && (
+                            <p className="truncate text-[11px] uppercase text-zinc-500">
+                              {row.opt.sub}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-xs italic text-zinc-500">{noneLabel}</p>
                       )}
                     </div>
-                  </CommandItem>
+                    {i === active && canAccept && <EnterBadge />}
+                  </div>
                 )
-              })}
-            </CommandGroup>
-            {filteredOptions.length > 100 && (
-              <div className="border-t border-zinc-100 px-3 py-1.5 text-center text-[11px] text-zinc-500 dark:border-zinc-800">
-                {t(
-                  "create_visit.picker_showing_limit",
-                  "Menampilkan 100 dari {{total}} pilihan — ketik di kotak pencarian untuk menyaring.",
-                  { total: formatNumber(filteredOptions.length) }
-                )}
-              </div>
+              })
             )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+          </div>
+          {rows.length > 0 && (
+            <KeyHint
+              extra={
+                (hasQuery ? filtered.length : options.length) > MAX_VISIBLE_OPTIONS
+                  ? t(
+                      "create_visit.picker_showing_limit",
+                      "Menampilkan 100 dari {{total}} pilihan — ketik di kotak pencarian untuk menyaring.",
+                      {
+                        total: formatNumber(
+                          hasQuery ? filtered.length : options.length
+                        ),
+                      }
+                    )
+                  : undefined
+              }
+            />
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -534,6 +735,8 @@ export default function CreateVisit() {
   const { t, formatNumber } = useTranslation()
   const navigate = useNavigate()
   const nameInputRef = useRef<HTMLInputElement>(null)
+  const locationInputRef = useRef<HTMLInputElement>(null)
+  const purposeInputRef = useRef<HTMLInputElement>(null)
   const tRef = useRef(t)
   tRef.current = t
 
@@ -561,9 +764,7 @@ export default function CreateVisit() {
   const [form, setForm] = useState({
     location_id: "",
     purpose: "",
-    is_custom_host: false,
     staff_id: "",
-    host_name: "",
     card_ids: [] as string[],
     vehicle_card_id: "",
     vehicle_no: "",
@@ -673,6 +874,17 @@ export default function CreateVisit() {
       alive = false
     }
   }, [])
+
+  // Setelah pengunjung terverifikasi, fokus otomatis lanjut ke input berikutnya
+  useEffect(() => {
+    if (status !== "registered") return
+    const raf = requestAnimationFrame(() => {
+      const target = form.location_id ? purposeInputRef.current : locationInputRef.current
+      target?.focus()
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status])
 
   /* ---------- cek pengunjung ---------- */
   const clearResult = () => {
@@ -793,12 +1005,9 @@ export default function CreateVisit() {
         t("create_visit.toast_enter_purpose", "Isi tujuan kunjungan.")
       )
     }
-    if (form.is_custom_host ? !form.host_name.trim() : !form.staff_id) {
+    if (!form.staff_id) {
       return toast.error(
-        t(
-          "create_visit.toast_select_host",
-          "Pilih staf host atau isi nama host."
-        )
+        t("create_visit.toast_select_staff_host", "Pilih staf host.")
       )
     }
 
@@ -810,9 +1019,10 @@ export default function CreateVisit() {
         name: visitor.name,
         company: visitor.company || "",
         location_id: form.location_id,
-        purpose: form.purpose.trim(),
+        purpose: form.purpose.trim().toUpperCase(),
+        staff_id: form.staff_id,
         card_ids: form.card_ids,
-        vehicle_no: form.vehicle_no.trim() || undefined,
+        vehicle_no: form.vehicle_no.trim().toUpperCase() || undefined,
         vehicle_card_id: form.vehicle_card_id || undefined,
       }
       if (visitor.occupation) payload.occupation = visitor.occupation
@@ -822,9 +1032,6 @@ export default function CreateVisit() {
       if (visitor.visitor_type === "crew" && isVessel) {
         payload.vessel_id = form.location_id
       }
-
-      if (form.is_custom_host) payload.host_name = form.host_name.trim()
-      else payload.staff_id = form.staff_id
 
       if (override) {
         payload.override_global_blacklist = true
@@ -907,22 +1114,58 @@ export default function CreateVisit() {
     }
   }
 
-  /* ---------- opsi untuk Picker ---------- */
-  const staffOptions: Opt[] = staffList.map((s) => ({
-    value: String(s.id),
-    label: s.name,
-    sub: [s.staff_id, s.company, s.address || s.department]
-      .filter(Boolean)
-      .join(" · "),
-  }))
-  const cardOptions: Opt[] = cardList.map((c) => ({
-    value: String(c.id),
-    label: c.card_no,
-  }))
-  const vehicleOptions: Opt[] = vehicleList.map((c) => ({
-    value: String(c.id),
-    label: c.card_no,
-  }))
+  /* ---------- opsi untuk SearchSelect ---------- */
+  const locationOptions = useMemo<Opt[]>(
+    () =>
+      locations.map((l) => ({
+        value: String(l.id),
+        label: l.name,
+        sub: [
+          l.code ? `IMO ${l.code}` : null,
+          l.vessel_type || (l.type && l.type !== "location" ? l.type : null),
+          l.captain,
+          l.pic,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        search: [l.call_sign, l.flag, l.type].filter(Boolean).join(" "),
+      })),
+    [locations]
+  )
+
+  const staffOptions = useMemo<Opt[]>(
+    () =>
+      staffList.map((s) => ({
+        value: String(s.id),
+        label: s.name,
+        sub: [s.staff_id, s.company, s.address || s.department]
+          .filter(Boolean)
+          .join(" · "),
+      })),
+    [staffList]
+  )
+
+  const purposeOptions = useMemo<Opt[]>(() => {
+    const seen = new Set<string>()
+    const out: Opt[] = []
+    for (const p of purposes) {
+      const label = p.trim().toUpperCase()
+      if (label && !seen.has(label)) {
+        seen.add(label)
+        out.push({ value: label, label })
+      }
+    }
+    return out
+  }, [purposes])
+
+  const cardOptions = useMemo<Opt[]>(
+    () => cardList.map((c) => ({ value: String(c.id), label: c.card_no })),
+    [cardList]
+  )
+  const vehicleOptions = useMemo<Opt[]>(
+    () => vehicleList.map((c) => ({ value: String(c.id), label: c.card_no })),
+    [vehicleList]
+  )
 
   const getVisitorTypeLabel = (vType?: string | null) => {
     if (!vType) return "-"
@@ -1079,7 +1322,7 @@ export default function CreateVisit() {
                 <p className="text-[11px] text-zinc-500">
                   {t(
                     "create_visit.search_name_hint",
-                    "Gunakan ↑ ↓ lalu Enter, atau ketuk nama dari daftar."
+                    "Hasil teratas langsung tersorot: tekan Enter atau Tab untuk memilih, atau ketuk nama dari daftar."
                   )}
                 </p>
               </div>
@@ -1100,6 +1343,7 @@ export default function CreateVisit() {
                   </Label>
                   <select
                     id="id_type"
+                    tabIndex={-1}
                     value={idType}
                     onChange={(e) => {
                       setIdType(e.target.value)
@@ -1125,6 +1369,8 @@ export default function CreateVisit() {
                   <VisitorAutocomplete
                     id="id_number"
                     value={idNumber}
+                    // Sudah ada pengunjung terpilih: Tab dari Nama langsung ke Lokasi
+                    tabIndex={status === "registered" ? -1 : undefined}
                     placeholder={t(
                       "create_visit.id_number_placeholder",
                       "Ketik nomor, tekan Enter untuk cek"
@@ -1151,6 +1397,7 @@ export default function CreateVisit() {
                 type="button"
                 variant="secondary"
                 size="sm"
+                tabIndex={-1}
                 disabled={checking || !idNumber.trim()}
                 onClick={() => checkIdentity(idNumber)}
                 className="w-full"
@@ -1213,6 +1460,7 @@ export default function CreateVisit() {
                         type="button"
                         variant="ghost"
                         size="sm"
+                        tabIndex={-1}
                         onClick={resetVisitor}
                         className="h-7 text-xs"
                       >
@@ -1256,7 +1504,7 @@ export default function CreateVisit() {
                       ].map(([k, v]) => (
                         <div key={k} className="flex justify-between gap-3">
                           <dt className="text-zinc-500">{k}</dt>
-                          <dd className="text-right font-medium">{v}</dd>
+                          <dd className="text-right font-medium uppercase">{v}</dd>
                         </div>
                       ))}
                     </dl>
@@ -1310,18 +1558,13 @@ export default function CreateVisit() {
               <Label htmlFor="location_id" className="text-xs font-semibold">
                 {t("create_visit.location_vessel", "Lokasi / Kapal *")}
               </Label>
-              <SearchableLocationSelect
+              <SearchSelect
                 id="location_id"
-                name="location_id"
-                ariaLabel={t(
-                  "create_visit.location_vessel",
-                  "Lokasi / Kapal *"
-                )}
-                value={form.location_id}
-                onValueChange={(val) => setField("location_id", val)}
-                options={locations}
+                inputRef={locationInputRef}
+                options={locationOptions}
+                value={form.location_id ? [form.location_id] : []}
+                onChange={(v) => setField("location_id", v[0] ?? "")}
                 disabled={loadingMaster}
-                required
                 placeholder={
                   loadingMaster
                     ? t(
@@ -1330,14 +1573,10 @@ export default function CreateVisit() {
                       )
                     : t(
                         "create_visit.location_select_placeholder",
-                        "-- Cari & pilih lokasi / kapal --"
+                        "Ketik nama kapal / lokasi, IMO, captain, PIC, call sign..."
                       )
                 }
-                searchPlaceholder={t(
-                  "create_visit.location_search_placeholder",
-                  "Cari nama kapal/lokasi, IMO No, Captain, PIC, Call Sign..."
-                )}
-                emptyMessage={t(
+                emptyText={t(
                   "create_visit.location_empty",
                   "Lokasi atau kapal tidak ditemukan."
                 )}
@@ -1391,21 +1630,6 @@ export default function CreateVisit() {
                         {label}
                       </span>
                       <span className="font-semibold">{person || "-"}</span>
-                      {person && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setForm((p) => ({
-                              ...p,
-                              is_custom_host: true,
-                              host_name: person,
-                            }))
-                          }
-                          className="mt-1 block cursor-pointer text-[11px] font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
-                        >
-                          {t("create_visit.make_host_btn", "Jadikan host")}
-                        </button>
-                      )}
                     </div>
                   ))}
                   <div>
@@ -1430,104 +1654,54 @@ export default function CreateVisit() {
               <Label htmlFor="purpose" className="text-xs font-semibold">
                 {t("create_visit.purpose_of_visit", "Tujuan kunjungan *")}
               </Label>
-              <Input
+              <SearchSelect
                 id="purpose"
-                value={form.purpose}
-                onChange={(e) => setField("purpose", e.target.value)}
-                list="purpose-suggestions"
+                inputRef={purposeInputRef}
+                allowCustom
+                upper
+                options={purposeOptions}
+                value={form.purpose ? [form.purpose] : []}
+                onChange={(v) => setField("purpose", v[0] ?? "")}
                 placeholder={t(
                   "create_visit.purpose_placeholder",
-                  "Contoh: Survey, Meeting, Maintenance..."
+                  "Ketik tujuan kunjungan..."
                 )}
-                className="h-10"
+                emptyText=""
               />
-              <datalist id="purpose-suggestions">
-                {purposes.map((p, i) => (
-                  <option key={i} value={p} />
-                ))}
-              </datalist>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {POPULAR_PURPOSES.map((tag) => {
-                  const label = t(`create_visit.${tag.key}`, tag.defaultLabel)
-                  const isActive =
-                    form.purpose === tag.value || form.purpose === label
-                  return (
-                    <button
-                      key={tag.key}
-                      type="button"
-                      onClick={() => setField("purpose", label)}
-                      className={cn(
-                        "cursor-pointer rounded border px-2 py-0.5 text-[11px] transition-colors",
-                        isActive
-                          ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                          : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
-                      )}
-                    >
-                      {label}
-                    </button>
-                  )
-                })}
-              </div>
             </div>
 
-            <div className="min-w-0 space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">
-                  {t("create_visit.host_label", "Host *")}
-                </Label>
-                <label className="flex cursor-pointer select-none items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400">
-                  <input
-                    type="checkbox"
-                    checked={form.is_custom_host}
-                    onChange={(e) =>
-                      setField("is_custom_host", e.target.checked)
-                    }
-                    className="rounded border-zinc-300"
-                  />
-                  {t(
-                    "create_visit.custom_host_toggle",
-                    "Tulis nama host sendiri"
-                  )}
-                </label>
-              </div>
-
-              {form.is_custom_host ? (
-                <Input
-                  value={form.host_name}
-                  onChange={(e) => setField("host_name", e.target.value)}
-                  placeholder={t(
-                    "create_visit.custom_host_placeholder",
-                    "Nama staf / penanggung jawab..."
-                  )}
-                  className="h-9"
-                />
-              ) : (
-                <Picker
-                  options={staffOptions}
-                  value={form.staff_id ? [form.staff_id] : []}
-                  onChange={(v) => setField("staff_id", v[0] ?? "")}
-                  disabled={loadingMaster}
-                  placeholder={
-                    loadingMaster
-                      ? t(
-                          "create_visit.staff_loading_placeholder",
-                          "Memuat daftar staf..."
-                        )
-                      : t(
-                          "create_visit.staff_select_placeholder",
-                          "Pilih staf host..."
-                        )
-                  }
-                  searchPlaceholder={t(
-                    "create_visit.staff_search_placeholder",
-                    "Cari nama staf, nomor staf, perusahaan..."
-                  )}
-                  emptyText={t(
-                    "create_visit.staff_empty",
-                    "Staf tidak ditemukan."
-                  )}
-                />
-              )}
+            <div className="min-w-0 space-y-1.5">
+              <Label htmlFor="staff_id" className="text-xs font-semibold">
+                {t("create_visit.host_label", "Host *")}
+              </Label>
+              <SearchSelect
+                id="staff_id"
+                options={staffOptions}
+                value={form.staff_id ? [form.staff_id] : []}
+                onChange={(v) => setField("staff_id", v[0] ?? "")}
+                disabled={loadingMaster}
+                placeholder={
+                  loadingMaster
+                    ? t(
+                        "create_visit.staff_loading_placeholder",
+                        "Memuat daftar staf..."
+                      )
+                    : t(
+                        "create_visit.staff_select_placeholder",
+                        "Ketik nama staf, nomor staf, perusahaan..."
+                      )
+                }
+                emptyText={t(
+                  "create_visit.staff_empty",
+                  "Staf tidak ditemukan."
+                )}
+              />
+              <p className="text-[11px] text-zinc-500">
+                {t(
+                  "create_visit.host_add_hint",
+                  "Host tidak ada di daftar? Tambahkan dulu di halaman Staf."
+                )}
+              </p>
             </div>
           </section>
 
@@ -1539,7 +1713,7 @@ export default function CreateVisit() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">
+                <Label htmlFor="card_ids" className="text-xs font-semibold">
                   {t(
                     "create_visit.visitor_card_label",
                     "Kartu pengunjung (opsional)"
@@ -1555,7 +1729,8 @@ export default function CreateVisit() {
                       )}
                 </Badge>
               </div>
-              <Picker
+              <SearchSelect
+                id="card_ids"
                 multiple
                 options={cardOptions}
                 value={form.card_ids}
@@ -1563,19 +1738,11 @@ export default function CreateVisit() {
                 disabled={loadingMaster}
                 placeholder={t(
                   "create_visit.select_cards_placeholder",
-                  "Tanpa kartu / pilih kartu..."
-                )}
-                searchPlaceholder={t(
-                  "create_visit.search_cards_placeholder",
-                  "Cari nomor kartu..."
+                  "Ketik nomor kartu..."
                 )}
                 emptyText={t(
                   "create_visit.cards_empty",
                   "Kartu pengunjung tidak ditemukan."
-                )}
-                noneLabel={t(
-                  "create_visit.no_visitor_card",
-                  "Tanpa kartu pengunjung"
                 )}
               />
               {form.card_ids.length > 0 && (
@@ -1592,6 +1759,7 @@ export default function CreateVisit() {
                         {cardNo}
                         <button
                           type="button"
+                          tabIndex={-1}
                           aria-label={t(
                             "create_visit.remove_card_aria",
                             "Hapus kartu {{card}}",
@@ -1616,7 +1784,7 @@ export default function CreateVisit() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">
+                <Label htmlFor="vehicle_card_id" className="text-xs font-semibold">
                   {t(
                     "create_visit.vehicle_card_label",
                     "Kartu kendaraan (opsional)"
@@ -1632,18 +1800,15 @@ export default function CreateVisit() {
                       )}
                 </span>
               </div>
-              <Picker
+              <SearchSelect
+                id="vehicle_card_id"
                 options={vehicleOptions}
                 value={form.vehicle_card_id ? [form.vehicle_card_id] : []}
                 onChange={(v) => setField("vehicle_card_id", v[0] ?? "")}
                 disabled={loadingMaster}
                 placeholder={t(
                   "create_visit.select_vehicle_card_placeholder",
-                  "Tanpa kartu / pilih kartu kendaraan..."
-                )}
-                searchPlaceholder={t(
-                  "create_visit.search_vehicle_card_placeholder",
-                  "Cari nomor kartu kendaraan..."
+                  "Ketik nomor kartu kendaraan..."
                 )}
                 emptyText={t(
                   "create_visit.vehicle_cards_empty",
@@ -1666,11 +1831,13 @@ export default function CreateVisit() {
               <Input
                 id="vehicle_no"
                 value={form.vehicle_no}
-                onChange={(e) => setField("vehicle_no", e.target.value)}
+                onChange={(e) => setField("vehicle_no", upperKeepCaret(e))}
+                autoComplete="off"
                 placeholder={t(
                   "create_visit.vehicle_plate_placeholder",
                   "Contoh: BP 1234 XY"
                 )}
+                className="h-10"
               />
             </div>
           </section>
