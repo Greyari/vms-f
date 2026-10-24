@@ -194,7 +194,6 @@ export default function SearchableLocationSelect({
             variant="outline"
             role="combobox"
             data-testid="location-select-trigger"
-            aria-label={ariaLabel}
             aria-expanded={open}
             disabled={disabled}
             onClick={() => setOpen((prev) => !prev)}

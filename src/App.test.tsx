@@ -33,8 +33,16 @@ describe("App Router Integration", () => {
           },
         })
       }
-      if (url.includes("/visits/reprint")) {
-        return Promise.resolve({ data: [] })
+      if (url === "/visits") {
+        return Promise.resolve({
+          data: {
+            data: [],
+            current_page: 1,
+            last_page: 1,
+            total: 0,
+            counts: { active: 0, completed: 0, all: 0 },
+          },
+        })
       }
       if (url.includes("/reports/visits")) {
         return Promise.resolve({ data: { data: [], total: 0 } })
@@ -60,14 +68,15 @@ describe("App Router Integration", () => {
     })
   })
 
-  it("renders Reprint Pass page when navigating to /visits/reprint", async () => {
+  it("redirects /visits/reprint and /visits/activate to /visits/history and renders Visit History page", async () => {
     window.history.pushState({}, "Reprint Pass", "/visits/reprint")
 
     render(<App />)
 
     await waitFor(() => {
+      expect(window.location.pathname).toBe("/visits/history")
       expect(
-        screen.getByRole("heading", { name: /cetak ulang pass kunjungan|reprint visitor pass/i })
+        screen.getByRole("heading", { name: /riwayat kunjungan|visit history/i })
       ).toBeInTheDocument()
     })
   })

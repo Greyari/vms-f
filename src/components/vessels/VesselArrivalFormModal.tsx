@@ -638,7 +638,7 @@ export default function VesselArrivalFormModal({
 
               <div>
                 <Label htmlFor="sign-in-date">
-                  {t("vesselArrivals.sign_in_date_label", "Tanggal Kedatangan (Sign-In)")} <span className="text-red-500">*</span>
+                  {t("vesselArrivals.sign_in_date_label", "Tanggal Kedatangan (Check-In)")} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="sign-in-date"
@@ -669,7 +669,7 @@ export default function VesselArrivalFormModal({
               </div>
 
               <div>
-                <Label htmlFor="sign-out-date">{t("vesselArrivals.sign_out_date_label", "Tanggal Keberangkatan (Sign-Out)")}</Label>
+                <Label htmlFor="sign-out-date">{t("vesselArrivals.sign_out_date_label", "Tanggal Keberangkatan (Check-Out)")}</Label>
                 <Input
                   id="sign-out-date"
                   type="date"

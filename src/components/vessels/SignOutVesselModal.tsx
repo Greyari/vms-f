@@ -72,11 +72,11 @@ export default function SignOutVesselModal({
         sign_out_port: signOutPort.trim() || null,
       })
 
-      toast.success(t("vesselArrivals.toast_vessel_signed_out", "Kapal {{name}} berhasil dicatat sign-out", { name: arrival.vessel_name }))
+      toast.success(t("vesselArrivals.toast_vessel_signed_out", "Kapal {{name}} berhasil dicatat check-out", { name: arrival.vessel_name }))
       onSuccess()
       onClose()
     } catch {
-      toast.error(t("vesselArrivals.toast_sign_out_failed", "Gagal mencatat keberangkatan kapal"))
+      toast.error(t("vesselArrivals.toast_sign_out_failed", "Gagal mencatat check-out kapal"))
     } finally {
       setSubmitting(false)
     }
@@ -88,7 +88,7 @@ export default function SignOutVesselModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <LogOut className="h-5 w-5 text-amber-600" />
-            {t("vesselArrivals.sign_out_modal_title", "Sign-Out Keberangkatan Kapal")}
+            {t("vesselArrivals.sign_out_modal_title", "Check-Out Keberangkatan Kapal")}
           </DialogTitle>
           <DialogDescription>
             {t("vesselArrivals.sign_out_modal_desc", "Catat tanggal dan pelabuhan tujuan keberangkatan kapal yang telah selesai berlabuh di galangan.")}

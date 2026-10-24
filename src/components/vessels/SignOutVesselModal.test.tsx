@@ -34,7 +34,7 @@ describe('SignOutVesselModal', () => {
       />
     )
 
-    expect(screen.getByRole('heading', { name: /sign-out keberangkatan kapal/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /check-out keberangkatan kapal/i })).toBeInTheDocument()
     expect(screen.getByText('MV. PACIFIC GLORY')).toBeInTheDocument()
     expect(screen.getByText('2026-09-20')).toBeInTheDocument()
     expect(screen.getByLabelText(/tanggal keberangkatan/i)).toBeInTheDocument()

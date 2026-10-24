@@ -6,8 +6,7 @@
  */
 export const ROUTE_PERMISSIONS = {
   "/visits/create": "create_visits",
-  "/visits/activate": "view_visits",
-  "/visits/reprint": "view_visits",
+  "/visits/history": "view_visits",
   "/visits/print": "view_visits",
   "/visits/:id/print": "view_visits",
   "/vessel-arrivals": "view_vessel_arrivals",

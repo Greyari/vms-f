@@ -30,7 +30,6 @@ import {
   Clock,
   CheckCircle2,
   LogOut,
-  RotateCcw,
   AlertTriangle,
   Loader2,
   ExternalLink,
@@ -251,7 +250,7 @@ export default function CrewPersonPanelModal({
         }
       )
       toast.success(
-        t("vessel.reactivate_success", "Kru {{name}} berhasil diaktifkan kembali.", {
+        t("vessel.checkin_success", "Kru {{name}} berhasil di-check-in kembali.", {
           name: data.visitor.name,
         })
       )
@@ -262,7 +261,7 @@ export default function CrewPersonPanelModal({
       const msg =
         err?.response?.data?.message ||
         err?.response?.data?.errors?.conflict?.[0] ||
-        t("vessel.reactivate_failed", "Gagal mengaktifkan kembali kru.")
+        t("vessel.checkin_failed", "Gagal melakukan check-in kru.")
       toast.error(msg)
     } finally {
       setActionLoading(false)
@@ -485,9 +484,9 @@ export default function CrewPersonPanelModal({
                     {actionLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <RotateCcw className="h-4 w-4" />
+                      <CheckCircle2 className="h-4 w-4" />
                     )}
-                    {t("vessel.btn_reactivate", "AKTIFKAN KEMBALI (REACTIVATE)")}
+                    {t("vessel.btn_check_in", "CHECK-IN KRU")}
                   </Button>
                 )}
               </div>
@@ -621,12 +620,12 @@ export default function CrewPersonPanelModal({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t("vessel.confirm_reactivate_title", "Konfirmasi Aktifkan Kembali Kru")}
+              {t("vessel.confirm_checkin_title", "Konfirmasi Check-In Kru")}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t(
-                "vessel.confirm_reactivate_desc",
-                "Aktifkan kembali kru {{name}} pada kapal {{vessel}}? Kru akan berstatus Check-In kembali.",
+                "vessel.confirm_checkin_desc",
+                "Check-In kembali kru {{name}} pada kapal {{vessel}}? Kru akan berstatus Check-In kembali.",
                 {
                   name: visitor?.name || "",
                   vessel: placement?.vessel_name || "",
@@ -644,7 +643,7 @@ export default function CrewPersonPanelModal({
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              {t("vessel.btn_reactivate", "Aktifkan Kembali")}
+              {t("vessel.btn_check_in", "Check-In Kru")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -150,7 +150,7 @@ describe("PrintVisit Page", () => {
     )
     renderFromState()
 
-    const printBtn = screen.getByRole("button", { name: /print pass now/i })
+    const printBtn = screen.getByRole("button", { name: /cetak pass sekarang|print pass now/i })
     expect(printBtn).toBeDisabled()
     expect(printSpy).not.toHaveBeenCalled()
 

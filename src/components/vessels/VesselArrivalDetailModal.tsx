@@ -36,7 +36,6 @@ import {
   UserPlus,
   History,
   X,
-  RotateCcw,
   CheckSquare,
   Square,
 } from "lucide-react"
@@ -132,7 +131,7 @@ const getSourceLabel = (source?: string | null, t?: (key: string, fallback: stri
     case "vessel_signon":
       return t ? t("vesselArrivals.source_vessel_signon", "Manifest Kedatangan") : "Manifest Kedatangan"
     case "vessel_signout":
-      return t ? t("vesselArrivals.source_vessel_signout", "Kapal Berangkat (Sign-Out)") : "Kapal Berangkat (Sign-Out)"
+      return t ? t("vesselArrivals.source_vessel_signout", "Check-Out Kapal") : "Check-Out Kapal"
     case "manual":
     default:
       return t ? t("vesselArrivals.source_manual", "Check-In/Out Manual") : "Check-In/Out Manual"
@@ -276,25 +275,6 @@ export default function VesselArrivalDetailModal({
     })
   }, [detail?.crew])
 
-  const handleCrewReactivate = async (visitorId: string) => {
-    if (!detail) return
-    setProcessingCrewId(visitorId)
-    try {
-      const res = await api.post(
-        `/vessel-arrivals/${detail.id}/crew/reactivate`,
-        { visitor_id: visitorId }
-      )
-      setDetail(res.data)
-      toast.success("Kru berhasil diaktifkan kembali.")
-      onUpdated?.()
-    } catch (err: any) {
-      toast.error(
-        err?.response?.data?.message || "Gagal mengaktifkan kembali kru."
-      )
-    } finally {
-      setProcessingCrewId(null)
-    }
-  }
 
   const toggleSelectCrew = (crewId: string) => {
     setSelectedCrewIds((prev) => {
@@ -309,11 +289,11 @@ export default function VesselArrivalDetailModal({
   }
 
   const toggleSelectAll = () => {
-    if (!detail?.crew || detail.crew.length === 0) return
-    if (selectedCrewIds.size === detail.crew.length) {
+    if (!checkedInCrew || checkedInCrew.length === 0) return
+    if (selectedCrewIds.size === checkedInCrew.length) {
       setSelectedCrewIds(new Set())
     } else {
-      setSelectedCrewIds(new Set(detail.crew.map((c) => c.id)))
+      setSelectedCrewIds(new Set(checkedInCrew.map((c) => c.id)))
     }
   }
 
@@ -478,7 +458,7 @@ export default function VesselArrivalDetailModal({
                 <div>
                   <div className="text-xs text-zinc-500 flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
-                    {t("vesselArrivals.sign_in_time", "Waktu Masuk (Sign-In)")}
+                    {t("vesselArrivals.sign_in_time", "Waktu Check-In")}
                   </div>
                   <div className="font-medium mt-0.5">{detail.sign_in_date}</div>
                   <div className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5">
@@ -490,7 +470,7 @@ export default function VesselArrivalDetailModal({
                 <div>
                   <div className="text-xs text-zinc-500 flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
-                    {t("vesselArrivals.sign_out_time", "Waktu Keluar (Sign-Out)")}
+                    {t("vesselArrivals.sign_out_time", "Waktu Check-Out")}
                   </div>
                   <div className="font-medium mt-0.5">
                     {detail.sign_out_date || t("vesselArrivals.not_departed", "Belum Berangkat")}
@@ -700,7 +680,7 @@ export default function VesselArrivalDetailModal({
                         <TableHead>{t("vesselArrivals.col_occupation", "Jabatan")}</TableHead>
                         <TableHead>{t("vesselArrivals.col_nationality", "Kebangsaan")}</TableHead>
                         <TableHead>{t("vesselArrivals.col_seaman_cert", "Buku Pelaut & Sertifikat")}</TableHead>
-                        <TableHead>{t("vesselArrivals.col_status_checkin_out", "Status Check-In / Out")}</TableHead>
+                        <TableHead>{t("vesselArrivals.col_status_checkin_out", "Status Check-In / Check-Out")}</TableHead>
                         <TableHead className="text-right">{t("vesselArrivals.col_crew_actions", "Aksi Kru")}</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -738,8 +718,13 @@ export default function VesselArrivalDetailModal({
                               <TableCell className="text-center">
                                 <button
                                   type="button"
-                                  onClick={() => toggleSelectCrew(member.id)}
-                                  className="p-1 hover:text-blue-600 transition-colors"
+                                  disabled={isCheckedOut}
+                                  onClick={() => !isCheckedOut && toggleSelectCrew(member.id)}
+                                  className={`p-1 transition-colors ${
+                                    isCheckedOut
+                                      ? "cursor-not-allowed opacity-40"
+                                      : "hover:text-blue-600 cursor-pointer"
+                                  }`}
                                 >
                                   {isSelected ? (
                                     <CheckSquare className="h-4 w-4 text-blue-600" />
@@ -799,11 +784,11 @@ export default function VesselArrivalDetailModal({
                                       variant="secondary"
                                       className="text-xs opacity-80"
                                     >
-                                      {t("vesselArrivals.status_checked_out", "Check-Out (Turun)")}
+                                      {t("vesselArrivals.status_checked_out", "Check-Out")}
                                     </Badge>
                                     {member.pivot?.checked_out_at && (
                                       <div className="text-[11px] text-zinc-500">
-                                        {t("vesselArrivals.out_label", "Keluar")}:{" "}
+                                        {t("vesselArrivals.out_label", "Check-Out")}:{" "}
                                         {formatTimestamp(
                                           member.pivot.checked_out_at
                                         )}
@@ -821,7 +806,7 @@ export default function VesselArrivalDetailModal({
                                       variant="outline"
                                       className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-300 text-xs"
                                     >
-                                      {t("vesselArrivals.status_expected", "Belum Check-In (Expected)")}
+                                      {t("vesselArrivals.status_expected", "Belum Check-In")}
                                     </Badge>
                                     {member.pivot?.notes && (
                                       <div className="text-[11px] text-zinc-400 italic">
@@ -832,11 +817,11 @@ export default function VesselArrivalDetailModal({
                                 ) : (
                                   <div className="space-y-0.5">
                                     <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs">
-                                      {t("vesselArrivals.status_checked_in", "Check-In (Di Kapal)")}
+                                      {t("vesselArrivals.status_checked_in", "Check-In")}
                                     </Badge>
                                     {member.pivot?.checked_in_at && (
                                       <div className="text-[11px] text-zinc-500">
-                                        {t("vesselArrivals.in_label", "Masuk")}:{" "}
+                                        {t("vesselArrivals.in_label", "Check-In")}:{" "}
                                         {formatTimestamp(
                                           member.pivot.checked_in_at
                                         )}
@@ -868,20 +853,12 @@ export default function VesselArrivalDetailModal({
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    disabled={isBusy}
-                                    onClick={() =>
-                                      handleCrewReactivate(member.id)
-                                    }
-                                    className="h-7 text-xs text-blue-700 border-blue-300 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-800"
+                                    disabled
+                                    className="h-7 text-xs opacity-45 cursor-not-allowed"
+                                    title={t("vesselArrivals.tooltip_already_checked_out", "Kru sudah Check-Out")}
                                   >
-                                    {isBusy ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <>
-                                        <RotateCcw className="h-3 w-3 mr-1" />
-                                        {t("vesselArrivals.reactivate_btn", "Aktifkan Kembali")}
-                                      </>
-                                    )}
+                                    <LogOut className="h-3 w-3 mr-1" />
+                                    {t("vesselArrivals.btn_checkout_crew", "Check-Out Kru")}
                                   </Button>
                                 ) : isExpected ? (
                                   <Button
@@ -964,8 +941,8 @@ export default function VesselArrivalDetailModal({
                         className="h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs dark:border-zinc-700 dark:bg-zinc-900"
                       >
                         <option value="">{t("vesselArrivals.filter_all_actions", "Semua Aksi")}</option>
-                        <option value="check_in">{t("vesselArrivals.log_type_check_in", "Check-In (Masuk)")}</option>
-                        <option value="check_out">{t("vesselArrivals.log_type_check_out", "Check-Out (Turun)")}</option>
+                        <option value="check_in">{t("vesselArrivals.log_type_check_in", "Check-In")}</option>
+                        <option value="check_out">{t("vesselArrivals.log_type_check_out", "Check-Out")}</option>
                       </select>
 
                       {(selectedCrewFilter || selectedActionFilter) && (
@@ -1050,7 +1027,7 @@ export default function VesselArrivalDetailModal({
                                   {isCheckIn ? (
                                     <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs">
                                       <LogIn className="h-3 w-3 mr-1" />
-                                      {t("vesselArrivals.log_type_check_in", "Check-In (Masuk)")}
+                                      {t("vesselArrivals.log_type_check_in", "Check-In")}
                                     </Badge>
                                   ) : (
                                     <Badge
@@ -1058,7 +1035,7 @@ export default function VesselArrivalDetailModal({
                                       className="text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 text-xs"
                                     >
                                       <LogOut className="h-3 w-3 mr-1" />
-                                      {t("vesselArrivals.log_type_check_out", "Check-Out (Turun)")}
+                                      {t("vesselArrivals.log_type_check_out", "Check-Out")}
                                     </Badge>
                                   )}
                                 </TableCell>

@@ -3,8 +3,6 @@ import { useTranslation } from "@/context/I18nContext"
 import api from "@/lib/axios"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
 import {
   Search,
   Loader2,
@@ -95,7 +93,6 @@ export default function UnifiedVesselCrewSearch({
 }: UnifiedVesselCrewSearchProps) {
   const { t } = useTranslation()
   const [query, setQuery] = useState("")
-  const [showCompleted, setShowCompleted] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<{
@@ -115,39 +112,35 @@ export default function UnifiedVesselCrewSearch({
     ...results.crew.map((c) => ({ type: "crew" as const, item: c })),
   ]
 
-  const executeSearch = useCallback(
-    async (q: string, completed: boolean) => {
-      const clean = q.trim()
-      if (clean.length < 2) {
-        setResults({ vessels: [], crew: [] })
-        setLoading(false)
-        return
-      }
+  const executeSearch = useCallback(async (q: string) => {
+    const clean = q.trim()
+    if (clean.length < 2) {
+      setResults({ vessels: [], crew: [] })
+      setLoading(false)
+      return
+    }
 
-      setLoading(true)
-      try {
-        const res = await api.get("/vessel-arrivals/search", {
-          params: {
-            q: clean,
-            show_completed: completed ? 1 : 0,
-          },
-        })
-        setResults({
-          vessels: res.data?.vessels || [],
-          crew: res.data?.crew || [],
-        })
-        setIsOpen(true)
-        setSelectedIndex(-1)
-      } catch (err) {
-        console.error("Unified search failed:", err)
-      } finally {
-        setLoading(false)
-      }
-    },
-    []
-  )
+    setLoading(true)
+    try {
+      const res = await api.get("/vessel-arrivals/search", {
+        params: {
+          q: clean,
+        },
+      })
+      setResults({
+        vessels: res.data?.vessels || [],
+        crew: res.data?.crew || [],
+      })
+      setIsOpen(true)
+      setSelectedIndex(-1)
+    } catch (err) {
+      console.error("Unified search failed:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  // Debounced search on query or toggle change
+  // Debounced search on query change
   useEffect(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current)
@@ -160,7 +153,7 @@ export default function UnifiedVesselCrewSearch({
     }
 
     debounceTimerRef.current = setTimeout(() => {
-      executeSearch(query, showCompleted)
+      executeSearch(query)
     }, 300)
 
     return () => {
@@ -168,7 +161,7 @@ export default function UnifiedVesselCrewSearch({
         clearTimeout(debounceTimerRef.current)
       }
     }
-  }, [query, showCompleted, executeSearch])
+  }, [query, executeSearch])
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -291,26 +284,6 @@ export default function UnifiedVesselCrewSearch({
             </button>
           ) : null}
         </div>
-
-        {/* Toggle Show Completed Placements */}
-        <div className="flex items-center gap-2 px-1 shrink-0">
-          <Switch
-            id="show-completed-toggle"
-            checked={showCompleted}
-            onCheckedChange={(checked) => {
-              setShowCompleted(checked)
-              if (query.trim().length >= 2) {
-                executeSearch(query, checked)
-              }
-            }}
-          />
-          <Label
-            htmlFor="show-completed-toggle"
-            className="text-xs font-medium cursor-pointer text-muted-foreground select-none"
-          >
-            {t("vessel.show_completed_placements", "Tampilkan yang selesai (Checked Out)")}
-          </Label>
-        </div>
       </div>
 
       {/* Dropdown Results Card */}
@@ -382,7 +355,14 @@ export default function UnifiedVesselCrewSearch({
 
                           <div className="flex items-center gap-2 shrink-0">
                             <Badge variant="secondary" className="text-xs">
-                              {v.active_crew_count} {t("vessel.active_crew", "Kru Aktif")}
+                              {t(
+                                "vessel_arrivals.crew_active_completed_counter",
+                                "{{active}} aktif, {{completed}} selesai",
+                                {
+                                  active: v.active_crew_count ?? 0,
+                                  completed: v.completed_crew_count ?? 0,
+                                }
+                              )}
                             </Badge>
                             {v.is_in_port ? (
                               <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs">

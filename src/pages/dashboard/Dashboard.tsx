@@ -169,7 +169,7 @@ export default function Dashboard() {
       color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-50/70 dark:bg-emerald-950/20",
       border: "border-emerald-200 dark:border-emerald-900/60",
-      onClick: () => navigate("/visits/activate"),
+      onClick: () => navigate("/visits/history"),
     },
     {
       label: t("dashboard.stat_crew_onboard", "Kru Kapal di Galangan (On-Board)"),
@@ -257,29 +257,20 @@ export default function Dashboard() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate("/visits/activate")}
+            onClick={() => navigate("/visits/history")}
             className="h-9 gap-1.5 text-xs"
           >
             <UserCheck className="h-4 w-4 text-emerald-600" />
-            {t("dashboard.active_visits", "Kunjungan Aktif")}
+            {t("dashboard.visit_history", "Riwayat Kunjungan")}
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate("/vessels/arrivals")}
+            onClick={() => navigate("/vessel-arrivals")}
             className="h-9 gap-1.5 text-xs"
           >
             <Ship className="h-4 w-4 text-blue-600" />
             {t("dashboard.vessel_arrivals", "Kedatangan Kapal / Kru")}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate("/visits/reprint")}
-            className="h-9 gap-1.5 text-xs"
-          >
-            <Printer className="h-4 w-4 text-zinc-600" />
-            {t("dashboard.reprint_ticket", "Cetak Ulang Tiket")}
           </Button>
         </div>
       </div>
@@ -617,7 +608,7 @@ export default function Dashboard() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate("/visits/activate")}
+            onClick={() => navigate("/visits/history")}
             className="h-8 gap-1 text-xs"
           >
             {t("dashboard.view_all_active", "Lihat Semua Kunjungan Aktif")}
@@ -725,7 +716,7 @@ export default function Dashboard() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate("/visits/activate")}
+                          onClick={() => navigate("/visits/history")}
                           className="h-7 px-2 text-[11px]"
                         >
                           {t("dashboard.manage", "Kelola")}

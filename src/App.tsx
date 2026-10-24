@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider } from "./context/AuthContext"
 import { ThemeProvider } from "./context/ThemeContext"
 import { I18nProvider } from "./context/I18nContext"
@@ -9,12 +9,11 @@ import { permissionFor, type GuardedPath } from "./lib/routePermissions"
 
 import Login from "./pages/Login"
 import CreateVisit from "./pages/visits/CreateVisit"
-import ActiveVisits from "./pages/visits/ActiveVisits"
+import VisitHistory from "./pages/visits/VisitHistory"
 import VisitorReport from "./pages/reports/VisitorReport"
 import VesselReport from "./pages/reports/VesselReport"
 import CrewReport from "./pages/reports/CrewReport"
 import PrintVisit from "./pages/visits/PrintVisit"
-import Reprint from "./pages/visits/Reprint"
 import Locations from "./pages/master/Locations"
 import Staffs from "./pages/master/Staffs"
 import Cards from "./pages/master/Cards"
@@ -81,9 +80,17 @@ function App() {
               {/* Unguarded on purpose: refused users are sent here. */}
               <Route index element={<Dashboard />} />
 
-              {guarded("/visits/activate", <ActiveVisits />)}
+              {guarded("/visits/history", <VisitHistory />)}
               {guarded("/visits/create", <CreateVisit />)}
-              {guarded("/visits/reprint", <Reprint />)}
+              {/* Legacy routes redirected to unified Visit History page */}
+              <Route
+                path="visits/activate"
+                element={<Navigate to="/visits/history" replace />}
+              />
+              <Route
+                path="visits/reprint"
+                element={<Navigate to="/visits/history" replace />}
+              />
               {guarded("/reports/visits", <VisitorReport />)}
               {guarded("/reports/vessels", <VesselReport />)}
               {guarded("/reports/crew", <CrewReport />)}

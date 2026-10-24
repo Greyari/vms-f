@@ -46,6 +46,7 @@ export default function PrintVisit() {
   const [visit, setVisit] = useState<any>(location.state?.visit || null)
   const [loading, setLoading] = useState<boolean>(!location.state?.visit)
   const hasPrintedRef = useRef(false)
+  const hasLoggedReprintRef = useRef(false)
 
   const handlePrintNow = () => {
     hasPrintedRef.current = true
@@ -67,6 +68,21 @@ export default function PrintVisit() {
   }, [visit, configReady])
 
   useEffect(() => {
+    // If navigated as a reprint from VisitHistory, call /visits/:id/print so ActivityLogger records the reprint
+    if (location.state?.isReprint && id && !hasLoggedReprintRef.current) {
+      hasLoggedReprintRef.current = true
+      api
+        .get(`/visits/${id}/print`)
+        .then((res) => {
+          const visitData = res.data?.visit || res.data?.data || res.data
+          if (visitData) setVisit(visitData)
+        })
+        .catch((err) => {
+          console.error("Failed to log reprint:", err)
+        })
+      return
+    }
+
     if (visit) return
 
     // Fallback: fetch pass data from API when directly navigated or refreshed
@@ -80,23 +96,23 @@ export default function PrintVisit() {
         })
         .catch((err) => {
           console.error("Failed to fetch visit pass for print:", err)
-          toast.error("Gagal memuat tiket pass kunjungan.")
+          toast.error(t("visit_history.pass_fetch_error", "Gagal memuat tiket pass kunjungan."))
         })
         .finally(() => {
           setLoading(false)
         })
     } else {
-      toast.error("Nomor tiket tidak valid!")
-      navigate("/visits/activate")
+      toast.error(t("visit_history.invalid_ticket", "Nomor tiket tidak valid!"))
+      navigate("/visits/history")
     }
-  }, [id, navigate])
+  }, [id, navigate, location.state?.isReprint])
 
   if (loading) {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-50 font-sans dark:bg-zinc-950">
         <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
         <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-          {t("reprint.loading_pass", "Memuat data pass pengunjung...")}
+          {t("visit_history.loading_pass", "Memuat data pass pengunjung...")}
         </p>
       </div>
     )
@@ -106,13 +122,13 @@ export default function PrintVisit() {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-10 text-center font-sans">
         <p className="text-base font-semibold text-red-600">
-          {t("reprint.pass_not_found", "Data tiket pass tidak ditemukan.")}
+          {t("visit_history.pass_not_found", "Data tiket pass tidak ditemukan.")}
         </p>
         <Link
-          to="/visits/activate"
+          to="/visits/history"
           className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800"
         >
-          Kembali ke Kunjungan Aktif
+          {t("visit_history.back_to_history", "Kembali ke Riwayat Kunjungan")}
         </Link>
       </div>
     )
@@ -202,6 +218,7 @@ export default function PrintVisit() {
           </h2>
           <p className="font-mono text-sm leading-tight font-black tracking-widest text-black">
             NO: {ticketNo}
+            {visit.checked_out_at ? " • [SELESAI / COMPLETED]" : ""}
           </p>
         </div>
 
@@ -332,21 +349,21 @@ export default function PrintVisit() {
           className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Printer className="h-4 w-4" />
-          {t("reprint.print_now", "Print Pass Now")}
+          {t("visit_history.print_now", "Cetak Pass Sekarang")}
         </button>
         <button
           onClick={() => navigate("/visits/create")}
           className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
         >
           <PlusCircle className="h-4 w-4" />
-          {t("reprint.add_new_visit", "Add New Visit")}
+          {t("visit_history.add_new_visit", "Tambah Kunjungan Baru")}
         </button>
         <button
-          onClick={() => navigate("/visits/activate")}
+          onClick={() => navigate("/visits/history")}
           className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
         >
           <ArrowLeft className="h-4 w-4" />
-          {t("reprint.back_active", "Back to Active Visits")}
+          {t("visit_history.back_to_history", "Kembali ke Riwayat Kunjungan")}
         </button>
       </div>
     </div>

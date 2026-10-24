@@ -156,7 +156,8 @@ describe('VesselArrivalDetailModal', () => {
       expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
     })
 
-    const checkOutBtn = screen.getByRole('button', { name: /^check-out kru$/i })
+    const checkOutBtns = screen.getAllByRole('button', { name: /^check-out kru$/i })
+    const checkOutBtn = checkOutBtns.find((b) => !b.hasAttribute('disabled'))!
     fireEvent.click(checkOutBtn)
 
     await waitFor(() => {
@@ -184,8 +185,8 @@ describe('VesselArrivalDetailModal', () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText(/filter kru/i)).toBeInTheDocument()
-      expect(screen.getAllByText(/Check-In \(Masuk\)/i).length).toBeGreaterThan(0)
-      expect(screen.getAllByText(/Check-Out \(Turun\)/i).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/^Check-In$/i).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/^Check-Out$/i).length).toBeGreaterThan(0)
     })
 
     // Filter specifically for Budi Santoso (crew-1)

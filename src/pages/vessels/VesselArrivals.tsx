@@ -323,8 +323,8 @@ export default function VesselArrivals() {
               <TableRow>
                 <TableHead className="w-12 text-center">{t("vessel_arrivals.col_no", "No")}</TableHead>
                 <TableHead>{t("vessel_arrivals.col_vessel_imo", "Nama Kapal & Kode IMO")}</TableHead>
-                <TableHead>{t("vessel_arrivals.col_sign_in", "Kedatangan (Sign-In)")}</TableHead>
-                <TableHead>{t("vessel_arrivals.col_sign_out", "Keberangkatan (Sign-Out)")}</TableHead>
+                <TableHead>{t("vessel_arrivals.col_sign_in", "Kedatangan (Check-In)")}</TableHead>
+                <TableHead>{t("vessel_arrivals.col_sign_out", "Keberangkatan (Check-Out)")}</TableHead>
                 <TableHead>{t("vessel_arrivals.col_captain", "Nakhoda / Captain")}</TableHead>
                 <TableHead className="text-center">{t("vessel_arrivals.col_crew", "Kru Sandar")}</TableHead>
                 <TableHead>{t("vessel_arrivals.col_agent", "Agen")}</TableHead>
@@ -396,15 +396,19 @@ export default function VesselArrivals() {
                         <div className="flex flex-col items-center gap-1">
                           <Badge variant="outline" className="flex items-center gap-1 mx-auto w-fit text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800">
                             <Users className="h-3 w-3" />
-                            {arrival.active_crew_count ?? arrival.checked_in_crew_count ?? arrival.crew_count ?? 0} {t("vessel_arrivals.crew_count_label", "Kru")}
+                            {t(
+                              "vessel_arrivals.crew_active_completed_counter",
+                              "{{active}} aktif, {{completed}} selesai",
+                              {
+                                active:
+                                  arrival.active_crew_count ??
+                                  arrival.checked_in_crew_count ??
+                                  arrival.crew_count ??
+                                  0,
+                                completed: arrival.completed_crew_count ?? 0,
+                              }
+                            )}
                           </Badge>
-                          {typeof arrival.completed_crew_count === "number" && arrival.completed_crew_count > 0 && (
-                            <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
-                              {t("vessel_arrivals.completed_crew_count", "{{count}} Selesai", {
-                                count: arrival.completed_crew_count,
-                              })}
-                            </span>
-                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-xs text-zinc-600 dark:text-zinc-400">
@@ -441,7 +445,7 @@ export default function VesselArrivals() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              title="Sign-Out Keberangkatan"
+                              title={t("vessel_arrivals.btn_checkout_vessel_title", "Check-Out Kapal")}
                               onClick={() => {
                                 setSelectedArrivalForSignOut(arrival)
                                 setSignOutModalOpen(true)

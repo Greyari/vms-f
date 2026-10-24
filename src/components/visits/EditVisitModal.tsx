@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react"
-import { useTranslation } from "@/context/I18nContext"
+import { useState, useEffect, useMemo } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useTranslation } from "@/context/I18nContext"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -10,497 +12,451 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Loader2, Ship } from "lucide-react"
-import SearchableLocationSelect from "@/components/common/SearchableLocationSelect"
+import {
+  Loader2,
+  Pencil,
+  Save,
+  AlertTriangle,
+  UserCheck,
+} from "lucide-react"
+import {
+  type VisitFormValues,
+  useVisitMasterData,
+  VisitFormFields,
+  resetCreateVisitCache,
+} from "@/components/visits/VisitFormShared"
 
-interface CardRef {
+export interface EditableVisit {
   id: number | string
-  card_no: string
-  status?: string
-}
-
-interface LocationRef {
-  id: number | string
-  name: string
-  code?: string | null
-  type?: string | null
-  vessel_type?: string | null
-  call_sign?: string | null
-  flag?: string | null
-  port?: string | null
-  captain?: string | null
-  pic?: string | null
-}
-
-interface StaffRef {
-  id: number | string
-  staff_id?: string
-  name: string
-  department?: string
-  company?: string
-  address?: string
-  gender?: string
+  ticket_number?: string | null
+  legacy_registration_no?: string | null
+  visitor_cards?: { id?: number | string; card_no?: string }[]
+  visitor?: {
+    id?: number | string
+    visitor_no?: number | string | null
+    name: string
+    id_type?: string | null
+    id_number?: string | null
+    company?: string | null
+    visitor_type?: string | null
+    occupation?: string | null
+    is_blacklisted?: boolean | number
+    blacklist_reason?: string | null
+  } | null
+  visitor_name?: string | null
+  visitor_company?: string | null
+  location_id?: number | string | null
+  location_name?: string | null
+  location?: {
+    id?: number | string
+    name: string
+    code?: string | null
+    type?: string | null
+    vessel_type?: string | null
+    captain?: string | null
+    pic?: string | null
+  } | null
+  staff_id?: number | string | null
+  host_name?: string | null
+  staff?: {
+    id?: number | string
+    name: string
+    staff_id?: string | null
+    company?: string | null
+  } | null
+  purpose?: string | null
+  vehicle_no?: string | null
+  vehicle_plate?: string | null
+  vehicle_card_id?: number | string | null
+  vehicle_card?: { id?: number | string; card_no?: string } | null
+  checked_out_at?: string | null
+  time_out?: string | null
 }
 
 export interface EditVisitModalProps {
-  visit: Record<string, any> | null
+  visit: EditableVisit | null
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
 }
 
 export default function EditVisitModal({
-
   visit,
   isOpen,
   onClose,
   onSuccess,
 }: EditVisitModalProps) {
   const { t } = useTranslation()
-  const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  // Master data
-  const [locations, setLocations] = useState<LocationRef[]>([])
-  const [staffList, setStaffList] = useState<StaffRef[]>([])
-  const [cardList, setCardList] = useState<CardRef[]>([])
-  const [vehicleCards, setVehicleCards] = useState<CardRef[]>([])
+  const heldVisitorCards = useMemo(
+    () =>
+      (visit?.visitor_cards ?? [])
+        .filter((c) => c.id !== undefined && c.card_no)
+        .map((c) => ({
+          id: String(c.id),
+          card_no: String(c.card_no),
+        })),
+    [visit?.visitor_cards]
+  )
 
-  // Form states
-  const [form, setForm] = useState<{
-    location_id: string
-    is_custom_host: boolean
-    staff_id: string
-    host_name: string
-    visitor_company: string
-    purpose: string
-    vehicle_plate: string
-    card_ids: string[]
-    vehicle_card_id: string
-  }>({
-    location_id: "",
-    is_custom_host: false,
-    staff_id: "",
-    host_name: "",
-    visitor_company: "",
-    purpose: "",
-    vehicle_plate: "",
-    card_ids: [],
-    vehicle_card_id: "",
-  })
-
-  useEffect(() => {
-    if (!isOpen || !visit) return
-
-    // Pre-populate form from current visit
-    const currentCardIds = (visit.visitor_cards || []).map((c: any) =>
-      c.id ? c.id.toString() : ""
-    ).filter(Boolean)
-
-    const isCustom = !visit.staff_id && Boolean(visit.host_name)
-
-    setForm({
-      location_id: visit.location_id ? visit.location_id.toString() : "",
-      is_custom_host: isCustom,
-      staff_id: visit.staff_id ? visit.staff_id.toString() : "",
-      host_name: visit.host_name || "",
-      visitor_company:
-        visit.visitor_company || visit.visitor?.company || "",
-      purpose: visit.purpose || "",
-      vehicle_plate: visit.vehicle_plate || "",
-      card_ids: currentCardIds,
-      vehicle_card_id: visit.vehicle_card_id
-        ? visit.vehicle_card_id.toString()
-        : "",
-    })
-
-    // Fetch master data (cards must include currently used cards)
-    const loadMasterData = async () => {
-      setLoading(true)
-      try {
-        const [locRes, staffRes, cardRes, vehicleRes] = await Promise.all([
-          api.get("/locations", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
-          api.get("/staffs", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
-          api.get("/cards", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
-          api.get("/vehicle-cards", { params: { per_page: 1000 } }).catch(() => ({ data: [] })),
-        ])
-
-        const locData = Array.isArray(locRes.data)
-          ? locRes.data
-          : locRes.data?.data || []
-        setLocations(locData)
-
-        const staffData = Array.isArray(staffRes.data)
-          ? staffRes.data
-          : staffRes.data?.data || []
-        setStaffList(staffData)
-
-        // Cards: include available cards OR cards assigned to this visit
-        const rawCards = Array.isArray(cardRes.data)
-          ? cardRes.data
-          : cardRes.data?.data || []
-        const currentCardIdSet = new Set(
-          (visit.visitor_cards || []).map((c: any) =>
-            c.id ? c.id.toString() : ""
-          )
-        )
-        const relevantCards = rawCards.filter(
-          (c: CardRef) =>
-            c.status === "available" ||
-            currentCardIdSet.has(c.id.toString())
-        )
-        setCardList(relevantCards)
-
-        // Vehicle cards
-        const rawVehicles = Array.isArray(vehicleRes.data)
-          ? vehicleRes.data
-          : vehicleRes.data?.data || []
-        const relevantVehicles = rawVehicles.filter(
-          (c: CardRef) =>
-            c.status === "available" ||
-            (visit.vehicle_card_id &&
-              c.id.toString() === visit.vehicle_card_id.toString())
-        )
-        setVehicleCards(relevantVehicles)
-      } catch (err) {
-        console.error("Failed to load options for edit visit", err)
-      } finally {
-        setLoading(false)
+  const heldVehicleCard = useMemo(() => {
+    if (visit?.vehicle_card?.id && visit?.vehicle_card?.card_no) {
+      return {
+        id: String(visit.vehicle_card.id),
+        card_no: String(visit.vehicle_card.card_no),
       }
     }
+    if (visit?.vehicle_card_id) {
+      return {
+        id: String(visit.vehicle_card_id),
+        card_no: `#${visit.vehicle_card_id}`,
+      }
+    }
+    return null
+  }, [visit?.vehicle_card, visit?.vehicle_card_id])
 
-    loadMasterData()
-  }, [isOpen, visit])
+  // Always bypass stale card cache on Edit open so available cards are fresh
+  useEffect(() => {
+    if (isOpen) {
+      resetCreateVisitCache()
+    }
+  }, [isOpen])
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+  const {
+    loadingMaster,
+    locations,
+    staffList,
+    cardList,
+    vehicleList,
+    purposes,
+  } = useVisitMasterData({
+    enabled: isOpen && Boolean(visit),
+    heldVisitorCards,
+    heldVehicleCard,
+  })
+
+  const [form, setForm] = useState<VisitFormValues>({
+    location_id: "",
+    purpose: "",
+    staff_id: "",
+    card_ids: [],
+    vehicle_card_id: "",
+    vehicle_no: "",
+    visitor_company: "",
+  })
+
+  const setField = <K extends keyof VisitFormValues>(
+    k: K,
+    v: VisitFormValues[K]
+  ) => setForm((p) => ({ ...p, [k]: v }))
+
+  // Pre-populate form when visit changes or modal opens
+  useEffect(() => {
+    if (!visit || !isOpen) return
+
+    const locId = visit.location_id ?? visit.location?.id ?? ""
+    const stfId = visit.staff_id ?? visit.staff?.id ?? ""
+    const vCardId = visit.vehicle_card?.id ?? visit.vehicle_card_id ?? ""
+    const cIds = (visit.visitor_cards ?? []).map((c) => String(c.id))
+    const plate = visit.vehicle_no ?? visit.vehicle_plate ?? ""
+    const company = visit.visitor_company ?? visit.visitor?.company ?? ""
+
+    setForm({
+      location_id: locId ? String(locId) : "",
+      purpose: visit.purpose ?? "",
+      staff_id: stfId ? String(stfId) : "",
+      card_ids: cIds,
+      vehicle_card_id: vCardId ? String(vCardId) : "",
+      vehicle_no: plate,
+      visitor_company: company,
+    })
+  }, [visit, isOpen])
+
+  // Fallback matching by name if location_id or staff_id wasn't stored on legacy records
+  useEffect(() => {
+    if (!visit || !isOpen) return
+    setForm((prev) => {
+      let nextLocId = prev.location_id
+      let nextStaffId = prev.staff_id
+
+      if (!nextLocId && visit.location_name && locations.length > 0) {
+        const matchedLoc = locations.find(
+          (l) =>
+            l.name.trim().toLowerCase() ===
+            visit.location_name!.trim().toLowerCase()
+        )
+        if (matchedLoc) nextLocId = String(matchedLoc.id)
+      }
+
+      if (!nextStaffId && visit.host_name && staffList.length > 0) {
+        const matchedStaff = staffList.find(
+          (s) =>
+            s.name.trim().toLowerCase() ===
+            visit.host_name!.trim().toLowerCase()
+        )
+        if (matchedStaff) nextStaffId = String(matchedStaff.id)
+      }
+
+      if (nextLocId === prev.location_id && nextStaffId === prev.staff_id) {
+        return prev
+      }
+      return {
+        ...prev,
+        location_id: nextLocId,
+        staff_id: nextStaffId,
+      }
+    })
+  }, [visit, isOpen, locations, staffList])
+
+  const isCompleted = Boolean(visit?.checked_out_at || visit?.time_out)
+  const isBlacklisted = Boolean(visit?.visitor?.is_blacklisted)
+
+  const getVisitorTypeLabel = (vType?: string | null) => {
+    if (!vType) return "-"
+    switch (vType) {
+      case "visitor":
+      case "regular":
+        return t("create_visit.type_visitor", "Pengunjung umum")
+      case "crew":
+        return t("create_visit.type_crew", "Kru kapal")
+      case "temp_worker":
+      case "contractor":
+        return t("create_visit.type_temp_worker", "Tenaga kerja sementara")
+      case "supplier":
+        return t("create_visit.type_supplier", "Pemasok / vendor")
+      case "others":
+        return t("create_visit.type_others", "Lainnya")
+      default:
+        return vType
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!visit) return
 
+    if (isCompleted) {
+      toast.error(
+        t(
+          "visit_history.cannot_edit_completed",
+          "Kunjungan sudah selesai, tidak bisa diedit."
+        )
+      )
+      onClose()
+      return
+    }
+
+    if (isBlacklisted) {
+      toast.error(
+        t(
+          "create_visit.toast_visitor_blacklisted",
+          "Pengunjung ini masuk blacklist."
+        )
+      )
+      return
+    }
+
+    if (!form.location_id) {
+      toast.error(
+        t("create_visit.toast_select_location", "Pilih lokasi / kapal tujuan.")
+      )
+      return
+    }
+    if (!form.purpose.trim()) {
+      toast.error(
+        t("create_visit.toast_enter_purpose", "Isi tujuan kunjungan.")
+      )
+      return
+    }
+
     setSubmitting(true)
     try {
-      const payload: Record<string, any> = {
-        location_id: form.location_id
-          ? /^\d+$/.test(form.location_id)
-            ? Number(form.location_id)
-            : form.location_id
-          : undefined,
-        visitor_company: form.visitor_company.trim(),
+      const payload: Record<string, unknown> = {
+        location_id: form.location_id,
         purpose: form.purpose.trim(),
-        vehicle_plate: form.vehicle_plate.trim() || undefined,
+        visitor_company: (form.visitor_company ?? "").trim(),
         card_ids: form.card_ids,
-        vehicle_card_id: form.vehicle_card_id
-          ? /^\d+$/.test(form.vehicle_card_id)
-            ? Number(form.vehicle_card_id)
-            : form.vehicle_card_id
-          : null,
+        vehicle_no: form.vehicle_no.trim() ? form.vehicle_no.trim().toUpperCase() : null,
+        vehicle_card_id: form.vehicle_card_id ? form.vehicle_card_id : null,
       }
 
-      if (form.is_custom_host) {
-        payload.host_name = form.host_name.trim() || "Visitor Host"
-        payload.staff_id = null
-      } else {
+      if (form.staff_id) {
         payload.staff_id = form.staff_id
-          ? /^\d+$/.test(form.staff_id)
-            ? Number(form.staff_id)
-            : form.staff_id
-          : null
-        payload.host_name =
-          staffList.find((s) => s.id.toString() === form.staff_id)?.name ||
-          undefined
       }
 
       await api.put(`/visits/${visit.id}`, payload)
-      toast.success(t("reprint.modal_toast_success", "Data kunjungan berhasil diperbarui"))
+      toast.success(
+        t(
+          "visit_history.edit_success",
+          "Data kunjungan berhasil diperbarui."
+        )
+      )
       onSuccess()
       onClose()
-    } catch (err: any) {
-      console.error("Failed to update open visit", err)
-      const status = err.response?.status
-      const msg =
-        err.response?.data?.message || t("reprint.modal_toast_failed", "Gagal memperbarui kunjungan terbuka")
+    } catch (err: unknown) {
+      const errorObj = err as {
+        response?: { status?: number; data?: { message?: string } }
+      }
+      const status = errorObj?.response?.status
+      const message = errorObj?.response?.data?.message
 
-      toast.error(msg)
-      if (status === 422) {
-        // If visit has already been checked out, close the modal
-        onClose()
+      if (status === 422 && message) {
+        toast.error(message)
+        if (
+          message.toLowerCase().includes("ditutup") ||
+          message.toLowerCase().includes("checked out") ||
+          message.toLowerCase().includes("selesai")
+        ) {
+          onSuccess()
+          onClose()
+        }
+      } else {
+        toast.error(
+          message ||
+            t(
+              "visit_history.edit_failed",
+              "Gagal menyimpan perubahan kunjungan."
+            )
+        )
       }
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (!visit) return null
-
-  const selectedLocation =
-    locations.find((loc) => String(loc.id) === String(form.location_id)) || null
-  const isSelectedLocationVessel =
-    Boolean(selectedLocation?.type) && selectedLocation?.type !== "location"
+  const visitorName =
+    visit?.visitor?.name || visit?.visitor_name || "-"
+  const visitorIdType = (visit?.visitor?.id_type || "KTP").toUpperCase()
+  const visitorIdNumber = visit?.visitor?.id_number || "-"
+  const ticketDisplay =
+    visit?.ticket_number || visit?.legacy_registration_no || `#${visit?.id}`
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl md:max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t("reprint.modal_edit_title", "Edit Kunjungan Terbuka")}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+            <Pencil className="h-4 w-4 text-blue-600" />
+            {t("visit_history.edit_modal_title", "Edit Kunjungan Terbuka")}
+            <Badge variant="outline" className="ml-2 font-mono text-xs">
+              {ticketDisplay}
+            </Badge>
+          </DialogTitle>
           <DialogDescription>
-            Tiket #{visit.ticket_number || visit.legacy_registration_no || visit.id} —{" "}
-            {visit.visitor?.name}
+            {t(
+              "visit_history.edit_modal_subtitle",
+              "Perbarui tujuan, host, kartu pengunjung, kartu kendaraan, atau plat kendaraan untuk kunjungan aktif ini."
+            )}
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
-          <div className="flex h-40 items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+        {isBlacklisted && (
+          <div className="flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-3.5 text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+            <div className="text-xs">
+              <p className="font-semibold">
+                {t(
+                  "create_visit.banner_blacklist_title",
+                  "Pengunjung masuk blacklist"
+                )}
+              </p>
+              {visit?.visitor?.blacklist_reason && (
+                <p className="mt-0.5">{visit.visitor.blacklist_reason}</p>
+              )}
+            </div>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 py-2">
-            {/* Location */}
-            <div className="space-y-1.5">
-              <Label htmlFor="location_id">{t("reprint.modal_location_label", "Lokasi / Kapal")}</Label>
-              <SearchableLocationSelect
-                id="location_id"
-                name="location_id"
-                ariaLabel="Lokasi / Kapal"
-                options={locations}
-                value={form.location_id}
-                onChange={(val) =>
-                  setForm((prev) => ({ ...prev, location_id: val }))
-                }
-                placeholder="-- Cari & Pilih Lokasi / Kapal --"
-                searchPlaceholder="Cari nama lokasi/kapal, IMO No, Captain, atau PIC..."
-                required
-                className="h-9"
-              />
-              {selectedLocation && isSelectedLocationVessel && (
-                <div className="mt-2 rounded-md border border-blue-200 bg-blue-50/50 dark:border-blue-900/60 dark:bg-blue-950/20 p-2.5 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between border-b border-blue-200/70 dark:border-blue-800/70 pb-1">
-                    <span className="font-semibold text-blue-900 dark:text-blue-200 flex items-center gap-1">
-                      <Ship className="h-3.5 w-3.5" />
-                      {selectedLocation.name} (IMO: {selectedLocation.code || "-"})
-                    </span>
-                    <span className="text-[11px] font-medium text-blue-700 dark:text-blue-300">
-                      {selectedLocation.vessel_type || selectedLocation.type}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap gap-3 text-zinc-700 dark:text-zinc-300">
-                      <span>
-                        Captain: <strong>{selectedLocation.captain || "-"}</strong>
-                      </span>
-                      <span>
-                        Note/PIC: <strong>{selectedLocation.pic || "-"}</strong>
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {selectedLocation.captain && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setForm((prev) => ({
-                              ...prev,
-                              is_custom_host: true,
-                              staff_id: "",
-                              host_name: selectedLocation.captain || "",
-                            }))
-                          }
-                          className="h-6 px-2 text-[11px]"
-                        >
-                          + Captain sbg Host
-                        </Button>
-                      )}
-                      {selectedLocation.pic && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setForm((prev) => ({
-                              ...prev,
-                              is_custom_host: true,
-                              staff_id: "",
-                              host_name: selectedLocation.pic || "",
-                            }))
-                          }
-                          className="h-6 px-2 text-[11px]"
-                        >
-                          + PIC sbg Host
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Host: Staff or Custom */}
-            <div className="space-y-2 rounded-md border border-zinc-200 p-3 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold uppercase text-zinc-500">
-                  Host Destination
-                </Label>
-                <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={form.is_custom_host}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        is_custom_host: e.target.checked,
-                      }))
-                    }
-                    className="rounded border-zinc-300"
-                  />
-                  <span>Custom Host</span>
-                </label>
-              </div>
-
-              {!form.is_custom_host ? (
-                <div className="min-w-0 space-y-1">
-                  <Label htmlFor="staff_id" className="text-xs">
-                    Staf Host
-                  </Label>
-                  <select
-                    id="staff_id"
-                    name="staff_id"
-                    value={form.staff_id}
-                    onChange={handleChange}
-                    className="flex h-9 w-full min-w-0 max-w-full truncate rounded-md border border-zinc-200 bg-transparent px-3 py-1.5 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
-                  >
-                    <option value="">{t("reprint.modal_select_staff", "-- Pilih Staf --")}</option>
-                    {staffList.map((s) => {
-                      const rawDetails = [s.staff_id, s.company, s.address || s.department].filter(Boolean).join(" - ")
-                      const details = rawDetails.length > 45 ? `${rawDetails.slice(0, 45)}...` : rawDetails
-                      return (
-                        <option key={s.id} value={s.id}>
-                          {s.name} {details ? `(${details})` : ""}
-                        </option>
-                      )
-                    })}
-                  </select>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <Label htmlFor="host_name" className="text-xs">
-                    Nama Custom Host
-                  </Label>
-                  <Input
-                    id="host_name"
-                    name="host_name"
-                    value={form.host_name}
-                    onChange={handleChange}
-                    placeholder={t("reprint.modal_custom_host_placeholder", "Nama personil / departemen...")}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Company */}
-            <div className="space-y-1.5">
-              <Label htmlFor="visitor_company">{t("reprint.modal_company_label", "Perusahaan / Instansi (Company)")}</Label>
-              <Input
-                id="visitor_company"
-                name="visitor_company"
-                value={form.visitor_company}
-                onChange={handleChange}
-                placeholder={t("reprint.modal_company_placeholder", "Perusahaan tamu...")}
-              />
-            </div>
-
-            {/* Purpose */}
-            <div className="space-y-1.5">
-              <Label htmlFor="purpose">{t("reprint.modal_purpose_label", "Keperluan / Purpose of Visit")}</Label>
-              <Input
-                id="purpose"
-                name="purpose"
-                value={form.purpose}
-                onChange={handleChange}
-                required
-                placeholder={t("reprint.modal_purpose_placeholder", "Keperluan kunjungan...")}
-              />
-            </div>
-
-            {/* Card Swap / Assignment */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="card_select">{t("reprint.modal_visitor_card_label", "Kartu Visitor (Opsional)")}</Label>
-                <select
-                  id="card_select"
-                  value={form.card_ids[0] || ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      card_ids: e.target.value ? [e.target.value] : [],
-                    }))
-                  }
-                  className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1.5 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
-                >
-                  <option value="">{t("reprint.modal_no_card", "Tidak Ada / Pilih Kartu")}</option>
-                  {cardList.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.card_no} {c.status === "available" ? "(Tersedia)" : "(Sedang Dipakai)"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="vehicle_card_id">{t("reprint.modal_vehicle_card_label", "Kartu Kendaraan")}</Label>
-                <select
-                  id="vehicle_card_id"
-                  name="vehicle_card_id"
-                  value={form.vehicle_card_id}
-                  onChange={handleChange}
-                  className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1.5 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
-                >
-                  <option value="">Tidak Ada</option>
-                  {vehicleCards.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.card_no}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Vehicle Plate */}
-            <div className="space-y-1.5">
-              <Label htmlFor="vehicle_plate">{t("reprint.modal_vehicle_plate_label", "Plat Nomor Kendaraan")}</Label>
-              <Input
-                id="vehicle_plate"
-                name="vehicle_plate"
-                value={form.vehicle_plate}
-                onChange={handleChange}
-                placeholder="e.g. BP 1234 XY"
-              />
-            </div>
-
-            <DialogFooter className="pt-2 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={submitting}
-              >
-                Batal
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {submitting ? t("reprint.modal_saving", "Menyimpan...") : t("reprint.modal_save_changes", "Simpan Perubahan")}
-              </Button>
-            </DialogFooter>
-          </form>
         )}
+
+        {/* Ringkasan Identitas Pengunjung (Langkah 1 - Terkunci saat Edit) */}
+        {visit && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                <UserCheck className="h-4 w-4 text-emerald-600" />
+                <span>
+                  {t(
+                    "visit_history.visitor_identity_title",
+                    "Identitas Pengunjung"
+                  )}
+                </span>
+              </div>
+              <Badge variant="outline" className="text-xs uppercase">
+                {getVisitorTypeLabel(visit.visitor?.visitor_type)}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div>
+                <span className="text-zinc-500 block">
+                  {t("create_visit.summary_name", "Nama")}
+                </span>
+                <span className="font-semibold uppercase text-zinc-900 dark:text-zinc-100">
+                  {visitorName}
+                </span>
+              </div>
+              <div>
+                <span className="text-zinc-500 block">
+                  {t("create_visit.summary_id", "ID")}
+                </span>
+                <span className="font-mono font-semibold uppercase text-zinc-900 dark:text-zinc-100">
+                  {visitorIdType} {visitorIdNumber}
+                </span>
+              </div>
+              <div>
+                <span className="text-zinc-500 block">
+                  {t("create_visit.summary_company", "Perusahaan")}
+                </span>
+                <span className="font-semibold uppercase text-zinc-900 dark:text-zinc-100">
+                  {form.visitor_company || visit.visitor_company || visit.visitor?.company || "-"}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5 pt-1">
+          <VisitFormFields
+            mode="edit"
+            form={form}
+            onChangeField={setField}
+            locations={locations}
+            staffList={staffList}
+            cardList={cardList}
+            vehicleList={vehicleList}
+            purposes={purposes}
+            loadingMaster={loadingMaster}
+            disabled={submitting || isCompleted || isBlacklisted}
+            heldVisitorCards={heldVisitorCards}
+          />
+
+          <DialogFooter className="gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={submitting}
+            >
+              {t("common.cancel", "Batal")}
+            </Button>
+            <Button
+              type="submit"
+              disabled={submitting || loadingMaster || isCompleted || isBlacklisted}
+              className="gap-2"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t("common.saving", "Menyimpan...")}
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  {t("common.save_changes", "Simpan Perubahan")}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

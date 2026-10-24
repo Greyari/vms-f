@@ -55,8 +55,9 @@ describe("AppLayout RBAC Navigation", () => {
     // Allowed gate menus
     expect(screen.getByText("Dashboard")).toBeInTheDocument()
     expect(screen.getByText("Add Visit")).toBeInTheDocument()
-    expect(screen.getByText("Active Visitors")).toBeInTheDocument()
-    expect(screen.getByText("Reprint Pass")).toBeInTheDocument()
+    expect(screen.getByText("Visit History")).toBeInTheDocument()
+    expect(screen.queryByText("Active Visitors")).not.toBeInTheDocument()
+    expect(screen.queryByText("Reprint Pass")).not.toBeInTheDocument()
 
     // Disallowed menus must NOT be in document
     expect(screen.queryByText("Report")).not.toBeInTheDocument()
