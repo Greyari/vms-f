@@ -232,5 +232,136 @@ describe('VesselArrivalDetailModal', () => {
       expect(screen.getByText('Ahmad Pelaut')).toBeInTheDocument()
     })
   })
+
+  it('allows checking in a checked-out crew member via Check-In Kru button', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: {
+        ...mockDetail,
+        crew: mockDetail.crew.map((c) =>
+          c.id === 'crew-2' ? { ...c, pivot: { ...c.pivot, status: 'checked_in' } } : c
+        ),
+      },
+    })
+
+    render(
+      <VesselArrivalDetailModal
+        open={true}
+        onClose={mockOnClose}
+        arrivalId="uuid-arrival-1"
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Ahmad Pelaut')).toBeInTheDocument()
+    })
+
+    // Click "History Kru Selesai" to find Ahmad Pelaut (who is checked_out)
+    const historyBtn = screen.getByRole('button', { name: /history kru selesai/i })
+    fireEvent.click(historyBtn)
+
+    await waitFor(() => {
+      expect(screen.getByText('Ahmad Pelaut')).toBeInTheDocument()
+    })
+
+    // The Check-In button for Ahmad Pelaut should be enabled and clickable
+    const checkInBtn = screen.getByRole('button', { name: /check-in kru/i })
+    expect(checkInBtn).not.toBeDisabled()
+    fireEvent.click(checkInBtn)
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        '/vessel-arrivals/uuid-arrival-1/crew/check-in',
+        expect.objectContaining({ crew_ids: ['crew-2'] })
+      )
+    })
+  })
+
+  it('triggers export of crew logs to Excel when export button is clicked', async () => {
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url.includes('/crew-logs/export')) {
+        return Promise.resolve({ data: new Blob(['fake-excel-data']) })
+      }
+      return Promise.resolve({ data: mockDetail })
+    })
+
+    render(
+      <VesselArrivalDetailModal
+        open={true}
+        onClose={mockOnClose}
+        arrivalId="uuid-arrival-1"
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
+    })
+
+    // Switch to Riwayat Log tab
+    fireEvent.click(screen.getByRole('button', { name: /riwayat log keluar-masuk kru/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /ekspor log/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /ekspor log/i }))
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith(
+        '/vessel-arrivals/uuid-arrival-1/crew-logs/export',
+        expect.objectContaining({ responseType: 'blob' })
+      )
+    })
+  })
+
+  it('synthesizes historical crew from logs who were removed/detached from manifest', async () => {
+    const detailWithDetachedCrew = {
+      ...mockDetail,
+      crew: [mockDetail.crew[0]], // only Budi Santoso in manifest
+      crew_logs: [
+        {
+          id: 'log-detached-1',
+          vessel_arrival_id: 'uuid-arrival-1',
+          visitor_id: 'crew-detached-99',
+          action: 'check_out',
+          source: 'vessel_signon',
+          performed_by_name: 'Admin',
+          notes: 'Dilepas dari manifest kedatangan kapal',
+          logged_at: '2026-09-22 14:00:00',
+          visitor: {
+            id: 'crew-detached-99',
+            visitor_no: 99999,
+            name: 'Kru Yang Dilepas',
+            id_type: 'ktp',
+            id_number: '217109999999',
+            occupation: 'Oiler',
+            nationality: 'Indonesia',
+          },
+        },
+      ],
+    }
+
+    vi.mocked(api.get).mockResolvedValueOnce({ data: detailWithDetachedCrew })
+
+    render(
+      <VesselArrivalDetailModal
+        open={true}
+        onClose={mockOnClose}
+        arrivalId="uuid-arrival-1"
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
+    })
+
+    // Switch to History Kru Selesai
+    const historyBtn = screen.getByRole('button', { name: /history kru selesai/i })
+    fireEvent.click(historyBtn)
+
+    await waitFor(() => {
+      expect(screen.getByText('Kru Yang Dilepas')).toBeInTheDocument()
+      expect(screen.getByText(/dilepas dari manifest kedatangan kapal/i)).toBeInTheDocument()
+    })
+  })
 })
 

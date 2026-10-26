@@ -38,6 +38,8 @@ import {
   X,
   CheckSquare,
   Square,
+  FileDown,
+  Clock,
 } from "lucide-react"
 import CrewSelectionDialog from "./CrewSelectionDialog"
 import CrewPersonPanelModal from "./CrewPersonPanelModal"
@@ -56,6 +58,8 @@ interface CrewMember {
   seaman_book_no?: string | null
   pivot?: {
     id?: string
+    vessel_arrival_id?: string
+    visitor_id?: string
     status?: "checked_in" | "checked_out" | string
     checked_in_at?: string | null
     checked_out_at?: string | null
@@ -81,6 +85,10 @@ export interface CrewLogEntry {
     id_type?: string | null
     id_number?: string | null
     occupation?: string | null
+    nationality?: string | null
+    seaman_book_no?: string | null
+    certificate_no?: string | null
+    company?: string | null
   } | null
 }
 
@@ -152,10 +160,11 @@ export default function VesselArrivalDetailModal({
 
   // Tabs & Log filters
   const [activeTab, setActiveTab] = useState<"manifest" | "logs">("manifest")
-  const [crewSubTab, setCrewSubTab] = useState<"all" | "active" | "history">("all")
+  const [crewSubTab, setCrewSubTab] = useState<"all" | "active" | "expected" | "history">("all")
   const [selectedCrewFilter, setSelectedCrewFilter] = useState<string>("")
   const [selectedActionFilter, setSelectedActionFilter] = useState<string>("")
   const [actionNote, setActionNote] = useState<string>("")
+  const [exportLogLoading, setExportLogLoading] = useState(false)
 
   // Bulk selection & Person Panel
   const [selectedCrewIds, setSelectedCrewIds] = useState<Set<string>>(new Set())
@@ -260,70 +269,6 @@ export default function VesselArrivalDetailModal({
   }
 
   const isInPort = detail && !detail.sign_out_date
-  const checkedInCrew = (detail?.crew || []).filter(
-    (c) => c.pivot?.status !== "checked_out"
-  )
-  const checkedOutCrew = (detail?.crew || []).filter(
-    (c) => c.pivot?.status === "checked_out"
-  )
-
-  const sortedCrew = useMemo(() => {
-    if (!detail?.crew) return []
-    return [...detail.crew].sort((a, b) => {
-      const aOut = a.pivot?.status === "checked_out" ? 1 : 0
-      const bOut = b.pivot?.status === "checked_out" ? 1 : 0
-      if (aOut !== bOut) return aOut - bOut
-      return a.name.localeCompare(b.name)
-    })
-  }, [detail?.crew])
-
-  const filteredCrew = useMemo(() => {
-    if (!sortedCrew) return []
-    if (crewSubTab === "active") {
-      return sortedCrew.filter((c) => c.pivot?.status !== "checked_out")
-    }
-    if (crewSubTab === "history") {
-      return sortedCrew.filter((c) => c.pivot?.status === "checked_out")
-    }
-    return sortedCrew
-  }, [sortedCrew, crewSubTab])
-
-  const toggleSelectCrew = (crewId: string) => {
-    setSelectedCrewIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(crewId)) {
-        next.delete(crewId)
-      } else {
-        next.add(crewId)
-      }
-      return next
-    })
-  }
-
-  const toggleSelectAll = () => {
-    const selectableCrew = filteredCrew.filter((c) => c.pivot?.status !== "checked_out")
-    if (selectableCrew.length === 0) return
-    const allSelected = selectableCrew.every((c) => selectedCrewIds.has(c.id))
-    if (allSelected) {
-      setSelectedCrewIds(new Set())
-    } else {
-      setSelectedCrewIds(new Set(selectableCrew.map((c) => c.id)))
-    }
-  }
-
-  const handleBulkCheckIn = async () => {
-    const ids = Array.from(selectedCrewIds)
-    if (ids.length === 0) return
-    await handleCrewCheckIn(ids)
-    setSelectedCrewIds(new Set())
-  }
-
-  const handleBulkCheckOut = async () => {
-    const ids = Array.from(selectedCrewIds)
-    if (ids.length === 0) return
-    await handleCrewCheckOut(ids)
-    setSelectedCrewIds(new Set())
-  }
 
   // Synthesize fallback logs from crew pivot timestamps if crew_logs is not provided
   const allCrewLogs = useMemo<CrewLogEntry[]>(() => {
@@ -378,6 +323,153 @@ export default function VesselArrivalDetailModal({
         new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime()
     )
   }, [detail])
+
+  // Synthesize complete crew list (combines current manifest and any crew who was ever logged on this arrival)
+  const allCrewList = useMemo<CrewMember[]>(() => {
+    const map = new Map<string, CrewMember>()
+
+    // 1. Existing crew on arrival manifest
+    for (const c of detail?.crew || []) {
+      map.set(c.id, { ...c })
+    }
+
+    // 2. Synthesize crew who were logged on this arrival but might have been detached/removed from manifest
+    for (const log of allCrewLogs) {
+      if (log.visitor_id && !map.has(log.visitor_id) && log.visitor) {
+        map.set(log.visitor_id, {
+          id: log.visitor.id,
+          visitor_no: log.visitor.visitor_no ? String(log.visitor.visitor_no) : null,
+          name: log.visitor.name,
+          id_type: log.visitor.id_type || "ktp",
+          id_number: log.visitor.id_number || "-",
+          occupation: log.visitor.occupation,
+          nationality: log.visitor.nationality,
+          seaman_book_no: log.visitor.seaman_book_no,
+          certificate_no: log.visitor.certificate_no,
+          pivot: {
+            vessel_arrival_id: detail?.id,
+            visitor_id: log.visitor.id,
+            status: "checked_out",
+            checked_in_at: null,
+            checked_out_at: log.logged_at,
+            notes: log.notes || "Dilepas dari manifest kedatangan kapal",
+          },
+        })
+      }
+    }
+
+    return Array.from(map.values())
+  }, [detail?.crew, detail?.id, allCrewLogs])
+
+  const activeCrew = useMemo(() => {
+    return allCrewList.filter((c) => c.pivot?.status === "checked_in")
+  }, [allCrewList])
+
+  const expectedCrew = useMemo(() => {
+    return allCrewList.filter((c) => c.pivot?.status === "expected")
+  }, [allCrewList])
+
+  const historyCrew = useMemo(() => {
+    return allCrewList.filter((c) => c.pivot?.status === "checked_out")
+  }, [allCrewList])
+
+  // Compatibility aliases
+  const checkedInCrew = activeCrew
+  const checkedOutCrew = historyCrew
+
+  const sortedCrew = useMemo(() => {
+    return [...allCrewList].sort((a, b) => {
+      const aRank = a.pivot?.status === "checked_in" ? 1 : (a.pivot?.status === "expected" ? 2 : 3)
+      const bRank = b.pivot?.status === "checked_in" ? 1 : (b.pivot?.status === "expected" ? 2 : 3)
+      if (aRank !== bRank) return aRank - bRank
+      return (a.name || "").localeCompare(b.name || "")
+    })
+  }, [allCrewList])
+
+  const filteredCrew = useMemo(() => {
+    if (crewSubTab === "active") {
+      return activeCrew
+    }
+    if (crewSubTab === "expected") {
+      return expectedCrew
+    }
+    if (crewSubTab === "history") {
+      return historyCrew
+    }
+    return sortedCrew
+  }, [crewSubTab, activeCrew, expectedCrew, historyCrew, sortedCrew])
+
+  const toggleSelectCrew = (crewId: string) => {
+    setSelectedCrewIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(crewId)) {
+        next.delete(crewId)
+      } else {
+        next.add(crewId)
+      }
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (filteredCrew.length === 0) return
+    const allSelected = filteredCrew.every((c) => selectedCrewIds.has(c.id))
+    if (allSelected) {
+      setSelectedCrewIds(new Set())
+    } else {
+      setSelectedCrewIds(new Set(filteredCrew.map((c) => c.id)))
+    }
+  }
+
+  const handleBulkCheckIn = async () => {
+    const ids = Array.from(selectedCrewIds)
+    if (ids.length === 0) return
+    await handleCrewCheckIn(ids)
+    setSelectedCrewIds(new Set())
+  }
+
+  const handleBulkCheckOut = async () => {
+    const ids = Array.from(selectedCrewIds)
+    if (ids.length === 0) return
+    await handleCrewCheckOut(ids)
+    setSelectedCrewIds(new Set())
+  }
+
+  const handleExportCrewLogs = async () => {
+    if (!detail?.id) return
+    setExportLogLoading(true)
+    try {
+      const params: Record<string, any> = {}
+      if (selectedCrewFilter) params.visitor_id = selectedCrewFilter
+      if (selectedActionFilter) params.action = selectedActionFilter
+
+      const res = await api.get(`/vessel-arrivals/${detail.id}/crew-logs/export`, {
+        params,
+        responseType: "blob",
+      })
+
+      const blob = new Blob([res.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      const vesselSlug = (detail.vessel_name || "kapal").toLowerCase().replace(/[^a-z0-9]+/g, "-")
+      const dateStr = new Date().toISOString().split("T")[0]
+      link.download = `log-kru-${vesselSlug}-${dateStr}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      toast.success(t("vesselArrivals.export_logs_success", "Log riwayat kru kapal berhasil diekspor."))
+    } catch (err: any) {
+      console.error(err)
+      toast.error(t("vesselArrivals.export_logs_error", "Gagal mengekspor riwayat log kru."))
+    } finally {
+      setExportLogLoading(false)
+    }
+  }
 
   const filteredCrewLogs = useMemo(() => {
     return allCrewLogs.filter((log) => {
@@ -670,45 +762,57 @@ export default function VesselArrivalDetailModal({
 
               {activeTab === "manifest" ? (
                 <div className="space-y-2.5">
-                  {/* Sub-filter: Semua Kru | Kru Terdaftar / Aktif | History Kru Selesai */}
-                  <div className="flex items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg w-fit text-xs">
+                  {/* Sub-filter: Kru Terdaftar / Aktif | Belum Check-In | History Kru Selesai | Semua Kru */}
+                  <div className="flex flex-wrap items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setCrewSubTab("active")}
+                      className={`px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                        crewSubTab === "active"
+                          ? "bg-emerald-600 text-white shadow-xs font-semibold"
+                          : "text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400"
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                      {t("vesselArrivals.filter_crew_active", "Kru Terdaftar / Aktif")} ({activeCrew.length})
+                    </button>
+                    {expectedCrew.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setCrewSubTab("expected")}
+                        className={`px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                          crewSubTab === "expected"
+                            ? "bg-amber-600 text-white shadow-xs font-semibold"
+                            : "text-amber-700 hover:bg-amber-50 dark:text-amber-400"
+                        }`}
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        {t("vesselArrivals.filter_crew_expected", "Belum Check-In")} ({expectedCrew.length})
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setCrewSubTab("history")}
+                      className={`px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                        crewSubTab === "history"
+                          ? "bg-zinc-700 text-white shadow-xs font-semibold"
+                          : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400"
+                      }`}
+                    >
+                      <History className="w-3.5 h-3.5" />
+                      {t("vesselArrivals.filter_crew_history", "History Kru Selesai")} ({historyCrew.length})
+                    </button>
                     <button
                       type="button"
                       onClick={() => setCrewSubTab("all")}
-                      className={`px-2.5 py-1 rounded font-medium transition-colors cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer ${
                         crewSubTab === "all"
-                          ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                          ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold"
                           : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400"
                       }`}
                     >
                       {t("vesselArrivals.filter_crew_all", "Semua Kru")} ({sortedCrew.length})
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setCrewSubTab("active")}
-                      className={`px-2.5 py-1 rounded font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-                        crewSubTab === "active"
-                          ? "bg-emerald-600 text-white shadow-xs"
-                          : "text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400"
-                      }`}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                      {t("vesselArrivals.filter_crew_active", "Kru Terdaftar / Aktif")} ({checkedInCrew.length})
-                    </button>
-                    {checkedOutCrew.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setCrewSubTab("history")}
-                        className={`px-2.5 py-1 rounded font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-                          crewSubTab === "history"
-                            ? "bg-zinc-700 text-white shadow-xs"
-                            : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400"
-                        }`}
-                      >
-                        <History className="w-3 h-3" />
-                        {t("vesselArrivals.filter_crew_history", "History Kru Selesai")} ({checkedOutCrew.length})
-                      </button>
-                    )}
                   </div>
 
                   <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-x-auto">
@@ -724,7 +828,7 @@ export default function VesselArrivalDetailModal({
                             >
                               {filteredCrew &&
                               filteredCrew.length > 0 &&
-                              selectedCrewIds.size === filteredCrew.filter((c) => c.pivot?.status !== "checked_out").length &&
+                              selectedCrewIds.size === filteredCrew.length &&
                               selectedCrewIds.size > 0 ? (
                                 <CheckSquare className="h-4 w-4 text-blue-600" />
                               ) : (
@@ -753,6 +857,8 @@ export default function VesselArrivalDetailModal({
                           </TableRow>
                         ) : (
                           filteredCrew.map((member, idx) => {
+                          const isCheckedIn =
+                            member.pivot?.status === "checked_in"
                           const isCheckedOut =
                             member.pivot?.status === "checked_out"
                           const isExpected =
@@ -768,20 +874,15 @@ export default function VesselArrivalDetailModal({
                               key={member.id}
                               className={`transition-colors ${
                                 isCheckedOut
-                                  ? "opacity-65 bg-zinc-50/60 dark:bg-zinc-900/40 text-zinc-500"
+                                  ? "opacity-75 bg-zinc-50/60 dark:bg-zinc-900/40 text-zinc-500"
                                   : "hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50"
                               }`}
                             >
                               <TableCell className="text-center">
                                 <button
                                   type="button"
-                                  disabled={isCheckedOut}
-                                  onClick={() => !isCheckedOut && toggleSelectCrew(member.id)}
-                                  className={`p-1 transition-colors ${
-                                    isCheckedOut
-                                      ? "cursor-not-allowed opacity-40"
-                                      : "hover:text-blue-600 cursor-pointer"
-                                  }`}
+                                  onClick={() => toggleSelectCrew(member.id)}
+                                  className="p-1 hover:text-blue-600 cursor-pointer transition-colors"
                                 >
                                   {isSelected ? (
                                     <CheckSquare className="h-4 w-4 text-blue-600" />
@@ -905,39 +1006,7 @@ export default function VesselArrivalDetailModal({
                                   {t("vesselArrivals.btn_log", "Log")} ({memberLogCount})
                                 </Button>
 
-                                {isCheckedOut ? (
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled
-                                    className="h-7 text-xs opacity-45 cursor-not-allowed"
-                                    title={t("vesselArrivals.tooltip_already_checked_out", "Kru sudah Check-Out")}
-                                  >
-                                    <LogOut className="h-3 w-3 mr-1" />
-                                    {t("vesselArrivals.btn_checkout_crew", "Check-Out Kru")}
-                                  </Button>
-                                ) : isExpected ? (
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={isBusy}
-                                    onClick={() =>
-                                      handleCrewCheckIn([member.id])
-                                    }
-                                    className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
-                                  >
-                                    {isBusy ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <>
-                                        <LogIn className="h-3 w-3 mr-1" />
-                                        {t("vesselArrivals.btn_checkin_crew", "Check-In Kru")}
-                                      </>
-                                    )}
-                                  </Button>
-                                ) : (
+                                {isCheckedIn ? (
                                   <Button
                                     type="button"
                                     variant="outline"
@@ -954,6 +1023,26 @@ export default function VesselArrivalDetailModal({
                                       <>
                                         <LogOut className="h-3 w-3 mr-1" />
                                         {t("vesselArrivals.btn_checkout_crew", "Check-Out Kru")}
+                                      </>
+                                    )}
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={isBusy}
+                                    onClick={() =>
+                                      handleCrewCheckIn([member.id])
+                                    }
+                                    className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
+                                  >
+                                    {isBusy ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <>
+                                        <LogIn className="h-3 w-3 mr-1" />
+                                        {t("vesselArrivals.btn_checkin_crew", "Check-In Kru")}
                                       </>
                                     )}
                                   </Button>
@@ -981,8 +1070,8 @@ export default function VesselArrivalDetailModal({
                         onChange={(e) => setSelectedCrewFilter(e.target.value)}
                         className="h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs dark:border-zinc-700 dark:bg-zinc-900"
                       >
-                        <option value="">{t("vesselArrivals.filter_all_crew", "Semua Kru")} ({detail.crew?.length || 0})</option>
-                        {(detail.crew || []).map((c) => (
+                        <option value="">{t("vesselArrivals.filter_all_crew", "Semua Kru")} ({allCrewList.length})</option>
+                        {allCrewList.map((c) => (
                           <option key={c.id} value={c.id}>
                             {c.name} ({c.id_number})
                           </option>
@@ -1020,8 +1109,25 @@ export default function VesselArrivalDetailModal({
                       )}
                     </div>
 
-                    <div className="text-xs text-zinc-500">
-                      {t("vesselArrivals.showing_logs_count", "Menampilkan {{count}} aktivitas log", { count: filteredCrewLogs.length })}
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs text-zinc-500 mr-1">
+                        {t("vesselArrivals.showing_logs_count", "Menampilkan {{count}} aktivitas log", { count: filteredCrewLogs.length })}
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={exportLogLoading || allCrewLogs.length === 0}
+                        onClick={handleExportCrewLogs}
+                        className="h-8 gap-1.5 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
+                      >
+                        {exportLogLoading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <FileDown className="h-3.5 w-3.5" />
+                        )}
+                        {t("vesselArrivals.btn_export_logs", "Ekspor Log (.xlsx)")}
+                      </Button>
                     </div>
                   </div>
 
