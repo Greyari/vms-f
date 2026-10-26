@@ -12,6 +12,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Table,
   TableBody,
   TableCell,
@@ -34,6 +44,7 @@ import {
   LogIn,
   LogOut,
   UserPlus,
+  UserMinus,
   History,
   X,
   CheckSquare,
@@ -158,6 +169,11 @@ export default function VesselArrivalDetailModal({
   const [processingCrewId, setProcessingCrewId] = useState<string | null>(null)
   const [addCrewOpen, setAddCrewOpen] = useState(false)
 
+  // Detach dialog
+  const [detachDialogOpen, setDetachDialogOpen] = useState(false)
+  const [crewToDetach, setCrewToDetach] = useState<CrewMember | null>(null)
+  const [detaching, setDetaching] = useState(false)
+
   // Tabs & Log filters
   const [activeTab, setActiveTab] = useState<"manifest" | "logs">("manifest")
   const [crewSubTab, setCrewSubTab] = useState<"all" | "active" | "expected" | "history">("all")
@@ -268,6 +284,40 @@ export default function VesselArrivalDetailModal({
     }
   }
 
+  const handleCrewDetach = async () => {
+    if (!detail || !crewToDetach) return
+    setDetaching(true)
+    try {
+      const payload: Record<string, any> = {
+        visitor_id: crewToDetach.id,
+      }
+      if (actionNote.trim()) {
+        payload.notes = actionNote.trim()
+      }
+      const res = await api.post(
+        `/vessel-arrivals/${detail.id}/crew/detach`,
+        payload
+      )
+      setDetail(res.data)
+      setActionNote("")
+      toast.success(
+        t("vesselArrivals.crew_detached_success", "Kru {{name}} berhasil dilepas dari penugasan kapal.", {
+          name: crewToDetach.name,
+        })
+      )
+      setDetachDialogOpen(false)
+      setCrewToDetach(null)
+      onUpdated?.()
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message ||
+          t("vesselArrivals.crew_detached_error", "Gagal melepas kru dari kapal.")
+      )
+    } finally {
+      setDetaching(false)
+    }
+  }
+
   const isInPort = detail && !detail.sign_out_date
 
   // Synthesize fallback logs from crew pivot timestamps if crew_logs is not provided
@@ -349,7 +399,7 @@ export default function VesselArrivalDetailModal({
           pivot: {
             vessel_arrival_id: detail?.id,
             visitor_id: log.visitor.id,
-            status: "checked_out",
+            status: "detached",
             checked_in_at: null,
             checked_out_at: log.logged_at,
             notes: log.notes || "Dilepas dari manifest kedatangan kapal",
@@ -370,7 +420,9 @@ export default function VesselArrivalDetailModal({
   }, [allCrewList])
 
   const historyCrew = useMemo(() => {
-    return allCrewList.filter((c) => c.pivot?.status === "checked_out")
+    return allCrewList.filter(
+      (c) => c.pivot?.status === "checked_out" || c.pivot?.status === "detached"
+    )
   }, [allCrewList])
 
   // Compatibility aliases
@@ -379,8 +431,14 @@ export default function VesselArrivalDetailModal({
 
   const sortedCrew = useMemo(() => {
     return [...allCrewList].sort((a, b) => {
-      const aRank = a.pivot?.status === "checked_in" ? 1 : (a.pivot?.status === "expected" ? 2 : 3)
-      const bRank = b.pivot?.status === "checked_in" ? 1 : (b.pivot?.status === "expected" ? 2 : 3)
+      const getRank = (status?: string) => {
+        if (status === "checked_in") return 1
+        if (status === "expected") return 2
+        if (status === "checked_out") return 3
+        return 4
+      }
+      const aRank = getRank(a.pivot?.status)
+      const bRank = getRank(b.pivot?.status)
       if (aRank !== bRank) return aRank - bRank
       return (a.name || "").localeCompare(b.name || "")
     })
@@ -861,6 +919,8 @@ export default function VesselArrivalDetailModal({
                             member.pivot?.status === "checked_in"
                           const isCheckedOut =
                             member.pivot?.status === "checked_out"
+                          const isDetached =
+                            member.pivot?.status === "detached"
                           const isExpected =
                             member.pivot?.status === "expected"
                           const isBusy = processingCrewId === member.id
@@ -873,7 +933,7 @@ export default function VesselArrivalDetailModal({
                             <TableRow
                               key={member.id}
                               className={`transition-colors ${
-                                isCheckedOut
+                                isCheckedOut || isDetached
                                   ? "opacity-75 bg-zinc-50/60 dark:bg-zinc-900/40 text-zinc-500"
                                   : "hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50"
                               }`}
@@ -936,7 +996,29 @@ export default function VesselArrivalDetailModal({
                                 )}
                               </TableCell>
                               <TableCell>
-                                {isCheckedOut ? (
+                                {isDetached ? (
+                                  <div className="space-y-0.5">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-300"
+                                    >
+                                      {t("vesselArrivals.status_detached", "Dilepas dari Kapal")}
+                                    </Badge>
+                                    {member.pivot?.checked_out_at && (
+                                      <div className="text-[11px] text-zinc-500">
+                                        {t("vesselArrivals.detached_label", "Dilepas")}:{" "}
+                                        {formatTimestamp(
+                                          member.pivot.checked_out_at
+                                        )}
+                                      </div>
+                                    )}
+                                    {member.pivot?.notes && (
+                                      <div className="text-[11px] text-zinc-400 italic">
+                                        {member.pivot.notes}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : isCheckedOut ? (
                                   <div className="space-y-0.5">
                                     <Badge
                                       variant="secondary"
@@ -1006,7 +1088,7 @@ export default function VesselArrivalDetailModal({
                                   {t("vesselArrivals.btn_log", "Log")} ({memberLogCount})
                                 </Button>
 
-                                {isCheckedIn ? (
+                                {isCheckedIn && (
                                   <Button
                                     type="button"
                                     variant="outline"
@@ -1026,7 +1108,9 @@ export default function VesselArrivalDetailModal({
                                       </>
                                     )}
                                   </Button>
-                                ) : (
+                                )}
+
+                                {(isCheckedOut || isExpected) && (
                                   <Button
                                     type="button"
                                     variant="outline"
@@ -1045,6 +1129,24 @@ export default function VesselArrivalDetailModal({
                                         {t("vesselArrivals.btn_checkin_crew", "Check-In Kru")}
                                       </>
                                     )}
+                                  </Button>
+                                )}
+
+                                {!isDetached && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={isBusy}
+                                    onClick={() => {
+                                      setCrewToDetach(member)
+                                      setDetachDialogOpen(true)
+                                    }}
+                                    title={t("vesselArrivals.detach_tooltip", "Lepas kru dari kapal ini agar dapat ditugaskan ke kapal lain")}
+                                    className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800"
+                                  >
+                                    <UserMinus className="h-3 w-3 mr-1" />
+                                    {t("vesselArrivals.btn_detach_crew", "Lepas Kru")}
                                   </Button>
                                 )}
                               </TableCell>
@@ -1265,6 +1367,49 @@ export default function VesselArrivalDetailModal({
             onUpdated?.()
           }}
         />
+
+        <AlertDialog open={detachDialogOpen} onOpenChange={setDetachDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <UserMinus className="h-5 w-5" />
+                {t("vesselArrivals.detach_dialog_title", "Lepas Kru dari Penugasan Kapal")}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <span className="block">
+                  {t(
+                    "vesselArrivals.detach_dialog_desc",
+                    "Apakah Anda yakin ingin melepas kru {{name}} dari kapal {{vessel}}? Kru akan dihapus dari penugasan kapal ini dan riwayatnya akan tetap tersimpan di Riwayat Log, sehingga kru dapat ditugaskan ke kapal lain.",
+                    {
+                      name: crewToDetach?.name || "",
+                      vessel: detail?.vessel_name || "",
+                    }
+                  )}
+                </span>
+                <span className="block text-xs text-amber-600 dark:text-amber-400 font-medium">
+                  {t("vesselArrivals.detach_dialog_note", "Catatan: Status penugasan kru di kapal ini akan diakhiri dan dicatat di log audit.")}
+                </span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={detaching}>
+                {t("common.cancel", "Batal")}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleCrewDetach}
+                disabled={detaching}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {detaching ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                ) : (
+                  <UserMinus className="h-4 w-4 mr-1.5" />
+                )}
+                {t("vesselArrivals.btn_confirm_detach", "Lepas dari Kapal")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   )

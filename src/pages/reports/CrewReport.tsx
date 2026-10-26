@@ -36,6 +36,8 @@ import {
   CheckCircle2,
   Clock,
   LogOut,
+  LogIn,
+  History,
   FileCheck,
 } from "lucide-react"
 import CrewPersonPanelModal from "@/components/vessels/CrewPersonPanelModal"
@@ -44,11 +46,15 @@ export interface CrewPlacementItem {
   id: string
   vessel_arrival_id: string
   visitor_id: string
-  status: "expected" | "checked_in" | "checked_out" | string
-  checked_in_at: string | null
-  checked_out_at: string | null
+  status?: "expected" | "checked_in" | "checked_out" | string
+  checked_in_at?: string | null
+  checked_out_at?: string | null
+  action?: "check_in" | "check_out" | string
+  source?: string | null
+  performed_by_name?: string | null
+  logged_at?: string | null
   notes: string | null
-  created_at: string
+  created_at?: string
   visitor?: {
     id: string
     visitor_no?: number | string | null
@@ -86,8 +92,23 @@ export interface CrewPlacementItem {
 
 const ALL = "all"
 
+const getSourceLabel = (source?: string | null, t?: (key: string, fallback: string) => string): string => {
+  switch (source) {
+    case "visit_checkin":
+      return t ? t("vesselArrivals.source_visit_checkin", "Tambah Kunjungan (Gate)") : "Tambah Kunjungan (Gate)"
+    case "vessel_signon":
+      return t ? t("vesselArrivals.source_vessel_signon", "Manifest Kedatangan") : "Manifest Kedatangan"
+    case "vessel_signout":
+      return t ? t("vesselArrivals.source_vessel_signout", "Check-Out Kapal") : "Check-Out Kapal"
+    case "manual":
+    default:
+      return t ? t("vesselArrivals.source_manual", "Check-In/Out Manual") : "Check-In/Out Manual"
+  }
+}
+
 export default function CrewReport() {
   const { t } = useTranslation()
+  const [mode, setMode] = useState<"placements" | "history">("placements")
   const [loading, setLoading] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
   const [exportPdfLoading, setExportPdfLoading] = useState(false)
@@ -97,6 +118,7 @@ export default function CrewReport() {
   const [search, setSearch] = useState("")
   const [vesselName, setVesselName] = useState("")
   const [status, setStatus] = useState("all")
+  const [action, setAction] = useState("all")
   const [nationality, setNationality] = useState("")
   const [company, setCompany] = useState("")
   const [dateFrom, setDateFrom] = useState("")
@@ -115,10 +137,11 @@ export default function CrewReport() {
   const [personPanelOpen, setPersonPanelOpen] = useState(false)
 
   const fetchCrewReport = useCallback(
-    async (filters: Record<string, any>, targetPage: number) => {
+    async (currentMode: string, filters: Record<string, any>, targetPage: number) => {
       setLoading(true)
       try {
         const params: Record<string, any> = {
+          mode: currentMode,
           page: targetPage,
           per_page: perPage,
           ...filters,
@@ -148,8 +171,8 @@ export default function CrewReport() {
   )
 
   useEffect(() => {
-    fetchCrewReport(appliedFilters, page)
-  }, [appliedFilters, page, fetchCrewReport])
+    fetchCrewReport(mode, appliedFilters, page)
+  }, [mode, appliedFilters, page, fetchCrewReport])
 
   const handleApplyFilter = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -157,7 +180,11 @@ export default function CrewReport() {
 
     if (search.trim()) newFilters.search = search.trim()
     if (vesselName.trim()) newFilters.vessel_name = vesselName.trim()
-    if (status && status !== "all") newFilters.status = status
+    if (mode === "history") {
+      if (action && action !== "all") newFilters.action = action
+    } else {
+      if (status && status !== "all") newFilters.status = status
+    }
     if (nationality.trim()) newFilters.nationality = nationality.trim()
     if (company.trim()) newFilters.company = company.trim()
     if (dateFrom) newFilters.date_from = dateFrom
@@ -171,6 +198,7 @@ export default function CrewReport() {
     setSearch("")
     setVesselName("")
     setStatus("all")
+    setAction("all")
     setNationality("")
     setCompany("")
     setDateFrom("")
@@ -183,7 +211,7 @@ export default function CrewReport() {
     setExportLoading(true)
     try {
       const res = await api.get("/reports/crew/export", {
-        params: appliedFilters,
+        params: { mode, ...appliedFilters },
         responseType: "blob",
       })
 
@@ -194,7 +222,9 @@ export default function CrewReport() {
       const link = document.createElement("a")
       link.href = url
       const dateStr = new Date().toISOString().split("T")[0]
-      link.download = `vessel-crew-report-${dateStr}.xlsx`
+      link.download = mode === "history"
+        ? `vessel-crew-history-report-${dateStr}.xlsx`
+        : `vessel-crew-report-${dateStr}.xlsx`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -213,7 +243,7 @@ export default function CrewReport() {
     setExportPdfLoading(true)
     try {
       const res = await api.get("/reports/crew/pdf", {
-        params: appliedFilters,
+        params: { mode, ...appliedFilters },
         responseType: "blob",
       })
 
@@ -222,7 +252,9 @@ export default function CrewReport() {
       const link = document.createElement("a")
       link.href = url
       const dateStr = new Date().toISOString().split("T")[0]
-      link.download = `vessel-crew-report-${dateStr}.pdf`
+      link.download = mode === "history"
+        ? `vessel-crew-history-report-${dateStr}.pdf`
+        : `vessel-crew-report-${dateStr}.pdf`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -275,13 +307,22 @@ export default function CrewReport() {
     let checkedIn = 0
     let checkedOut = 0
     let expected = 0
+    let logCheckIn = 0
+    let logCheckOut = 0
+
     records.forEach((r) => {
-      if (r.status === "checked_in") checkedIn++
-      else if (r.status === "checked_out") checkedOut++
-      else if (r.status === "expected") expected++
+      if (mode === "history") {
+        if (r.action === "check_in") logCheckIn++
+        else if (r.action === "check_out") logCheckOut++
+      } else {
+        if (r.status === "checked_in") checkedIn++
+        else if (r.status === "checked_out") checkedOut++
+        else if (r.status === "expected") expected++
+      }
     })
-    return { checkedIn, checkedOut, expected }
-  }, [records])
+
+    return { checkedIn, checkedOut, expected, logCheckIn, logCheckOut }
+  }, [records, mode])
 
   return (
     <div className="space-y-6">
@@ -332,23 +373,74 @@ export default function CrewReport() {
         </div>
       </div>
 
+      {/* Mode Switcher */}
+      <div className="flex items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-xs w-fit">
+        <button
+          type="button"
+          onClick={() => {
+            setMode("placements")
+            setPage(1)
+          }}
+          className={`px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+            mode === "placements"
+              ? "bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs font-semibold"
+              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400"
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          {t("crew_report.mode_placements", "Penempatan Kru Kapal")}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setMode("history")
+            setPage(1)
+          }}
+          className={`px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+            mode === "history"
+              ? "bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs font-semibold"
+              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400"
+          }`}
+        >
+          <History className="w-3.5 h-3.5" />
+          {t("crew_report.mode_history", "Riwayat Lengkap Log & Aktivitas Kru")}
+        </button>
+      </div>
+
       {/* Quick Summary Pill Bar */}
       <div className="flex flex-wrap items-center gap-3">
         <Badge variant="outline" className="text-xs px-3 py-1 font-semibold border-zinc-200 dark:border-zinc-700">
-          {t("crew_report.total_crew_shown", "Total Data")}: <strong>{total}</strong>
+          {mode === "history"
+            ? t("crew_report.total_logs_shown", "Total Log Aktivitas")
+            : t("crew_report.total_crew_shown", "Total Data")}: <strong>{total}</strong>
         </Badge>
-        <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs px-3 py-1">
-          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-          {t("crew_report.active_onboard", "Di Kapal (Halaman ini)")}: <strong>{stats.checkedIn}</strong>
-        </Badge>
-        <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-300 text-xs px-3 py-1">
-          <Clock className="h-3.5 w-3.5 mr-1" />
-          {t("crew_report.expected_count", "Belum Check-In")}: <strong>{stats.expected}</strong>
-        </Badge>
-        <Badge variant="secondary" className="text-xs px-3 py-1 text-zinc-500">
-          <LogOut className="h-3.5 w-3.5 mr-1" />
-          {t("crew_report.checked_out_count", "Sudah Turun")}: <strong>{stats.checkedOut}</strong>
-        </Badge>
+        {mode === "history" ? (
+          <>
+            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs px-3 py-1">
+              <LogIn className="h-3.5 w-3.5 mr-1" />
+              {t("crew_report.log_checkin_count", "Aktivitas Check-In (Halaman ini)")}: <strong>{stats.logCheckIn}</strong>
+            </Badge>
+            <Badge variant="secondary" className="text-xs px-3 py-1 text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300">
+              <LogOut className="h-3.5 w-3.5 mr-1" />
+              {t("crew_report.log_checkout_count", "Aktivitas Check-Out (Halaman ini)")}: <strong>{stats.logCheckOut}</strong>
+            </Badge>
+          </>
+        ) : (
+          <>
+            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs px-3 py-1">
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+              {t("crew_report.active_onboard", "Di Kapal (Halaman ini)")}: <strong>{stats.checkedIn}</strong>
+            </Badge>
+            <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-300 text-xs px-3 py-1">
+              <Clock className="h-3.5 w-3.5 mr-1" />
+              {t("crew_report.expected_count", "Belum Check-In")}: <strong>{stats.expected}</strong>
+            </Badge>
+            <Badge variant="secondary" className="text-xs px-3 py-1 text-zinc-500">
+              <LogOut className="h-3.5 w-3.5 mr-1" />
+              {t("crew_report.checked_out_count", "Sudah Turun")}: <strong>{stats.checkedOut}</strong>
+            </Badge>
+          </>
+        )}
       </div>
 
       {/* Filter Box */}
@@ -388,21 +480,37 @@ export default function CrewReport() {
               </div>
             </div>
 
-            {/* Status Penempatan */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t("crew_report.status_label", "Status Penempatan")}</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder={t("common.all", "Semua")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>{t("crew_report.status_all", "Semua Status")}</SelectItem>
-                  <SelectItem value="checked_in">{t("crew_report.status_checked_in", "Di Kapal (Checked-In)")}</SelectItem>
-                  <SelectItem value="expected">{t("crew_report.status_expected", "Belum Check-In (Expected)")}</SelectItem>
-                  <SelectItem value="checked_out">{t("crew_report.status_checked_out", "Sudah Turun (Checked-Out)")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Status Penempatan / Aksi Log */}
+            {mode === "history" ? (
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t("crew_report.action_label", "Aksi In-Out")}</Label>
+                <Select value={action} onValueChange={setAction}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder={t("common.all", "Semua")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>{t("crew_report.action_all", "Semua Aksi")}</SelectItem>
+                    <SelectItem value="check_in">{t("crew_report.action_check_in", "Check-In")}</SelectItem>
+                    <SelectItem value="check_out">{t("crew_report.action_check_out", "Check-Out")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t("crew_report.status_label", "Status Penempatan")}</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder={t("common.all", "Semua")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>{t("crew_report.status_all", "Semua Status")}</SelectItem>
+                    <SelectItem value="checked_in">{t("crew_report.status_checked_in", "Di Kapal (Checked-In)")}</SelectItem>
+                    <SelectItem value="expected">{t("crew_report.status_expected", "Belum Check-In (Expected)")}</SelectItem>
+                    <SelectItem value="checked_out">{t("crew_report.status_checked_out", "Sudah Turun (Checked-Out)")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Kebangsaan */}
             <div className="space-y-1.5">
@@ -474,16 +582,29 @@ export default function CrewReport() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
-              <TableRow>
-                <TableHead className="w-12 text-center">No</TableHead>
-                <TableHead>{t("crew_report.col_crew_name", "Nama Kru & Identitas")}</TableHead>
-                <TableHead>{t("crew_report.col_occupation", "Jabatan & Bangsa")}</TableHead>
-                <TableHead>{t("crew_report.col_seaman_book", "Buku Pelaut / Sertifikat")}</TableHead>
-                <TableHead>{t("crew_report.col_vessel", "Kapal & Rute")}</TableHead>
-                <TableHead>{t("crew_report.col_status", "Status Penempatan")}</TableHead>
-                <TableHead>{t("crew_report.col_timestamps", "Waktu Check-In / Out")}</TableHead>
-                <TableHead>{t("crew_report.col_notes", "Keterangan")}</TableHead>
-              </TableRow>
+              {mode === "history" ? (
+                <TableRow>
+                  <TableHead className="w-12 text-center">No</TableHead>
+                  <TableHead>{t("crew_report.col_activity_time", "Waktu Aktivitas")}</TableHead>
+                  <TableHead>{t("crew_report.col_crew_name", "Nama Kru & Identitas")}</TableHead>
+                  <TableHead>{t("crew_report.col_occupation", "Jabatan & Bangsa")}</TableHead>
+                  <TableHead>{t("crew_report.col_vessel", "Kapal Ditugaskan")}</TableHead>
+                  <TableHead>{t("crew_report.col_action", "Aksi In-Out")}</TableHead>
+                  <TableHead>{t("crew_report.col_officer", "Petugas & Sumber")}</TableHead>
+                  <TableHead>{t("crew_report.col_notes", "Keterangan")}</TableHead>
+                </TableRow>
+              ) : (
+                <TableRow>
+                  <TableHead className="w-12 text-center">No</TableHead>
+                  <TableHead>{t("crew_report.col_crew_name", "Nama Kru & Identitas")}</TableHead>
+                  <TableHead>{t("crew_report.col_occupation", "Jabatan & Bangsa")}</TableHead>
+                  <TableHead>{t("crew_report.col_seaman_book", "Buku Pelaut / Sertifikat")}</TableHead>
+                  <TableHead>{t("crew_report.col_vessel", "Kapal & Rute")}</TableHead>
+                  <TableHead>{t("crew_report.col_status", "Status Penempatan")}</TableHead>
+                  <TableHead>{t("crew_report.col_timestamps", "Waktu Check-In / Out")}</TableHead>
+                  <TableHead>{t("crew_report.col_notes", "Keterangan")}</TableHead>
+                </TableRow>
+              )}
             </TableHeader>
             <TableBody>
               {loading ? (
@@ -498,9 +619,93 @@ export default function CrewReport() {
               ) : records.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="h-40 text-center text-zinc-500 text-sm">
-                    {t("crew_report.no_records", "Tidak ada data kru kapal yang cocok dengan filter yang dipilih.")}
+                    {mode === "history"
+                      ? t("crew_report.no_logs_records", "Tidak ada riwayat log aktivitas kru yang cocok dengan filter yang dipilih.")
+                      : t("crew_report.no_records", "Tidak ada data kru kapal yang cocok dengan filter yang dipilih.")}
                   </TableCell>
                 </TableRow>
+              ) : mode === "history" ? (
+                records.map((item, index) => {
+                  const isCheckIn = item.action === "check_in"
+                  const crew = item.visitor
+                  const arrival = item.vessel_arrival
+
+                  return (
+                    <TableRow
+                      key={item.id}
+                      className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-colors"
+                    >
+                      <TableCell className="text-center text-xs text-zinc-400">
+                        {(page - 1) * perPage + index + 1}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs whitespace-nowrap">
+                        {formatTimestamp(item.logged_at)}
+                      </TableCell>
+                      <TableCell>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (crew?.id) {
+                              setSelectedVisitorId(crew.id)
+                              setPersonPanelOpen(true)
+                            }
+                          }}
+                          className="text-left group cursor-pointer"
+                        >
+                          <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 transition-colors underline-offset-2 group-hover:underline">
+                            {crew?.name || "-"}
+                          </div>
+                          <div className="text-xs text-zinc-500">
+                            {crew?.visitor_no ? `No: ${crew.visitor_no} • ` : ""}
+                            {crew?.id_type ? `${crew.id_type.toUpperCase()}: ${crew.id_number}` : ""}
+                          </div>
+                          {crew?.company && (
+                            <div className="text-[11px] text-zinc-400">
+                              {crew.company}
+                            </div>
+                          )}
+                        </button>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-medium">{crew?.occupation || "-"}</div>
+                        <div className="text-xs text-zinc-500">{crew?.nationality || "-"}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-semibold text-sm flex items-center gap-1.5 text-zinc-900 dark:text-zinc-100">
+                          <Ship className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                          {arrival?.vessel_name || "-"}
+                        </div>
+                        <div className="text-xs text-zinc-500">
+                          {arrival?.vessel?.code ? `IMO: ${arrival.vessel.code}` : ""}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {isCheckIn ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs">
+                            <LogIn className="h-3 w-3 mr-1" />
+                            {t("crew_report.action_check_in", "Check-In")}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 text-xs">
+                            <LogOut className="h-3 w-3 mr-1" />
+                            {t("crew_report.action_check_out", "Check-Out")}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs text-zinc-700 dark:text-zinc-300 font-medium">
+                          {item.performed_by_name || t("vesselArrivals.default_officer", "Petugas Security")}
+                        </div>
+                        <div className="text-[11px] text-zinc-400">
+                          {getSourceLabel(item.source, t)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs text-zinc-500 max-w-xs truncate">
+                        {item.notes || "-"}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
               ) : (
                 records.map((item, index) => {
                   const isCheckedIn = item.status === "checked_in"
@@ -656,7 +861,7 @@ export default function CrewReport() {
           setSelectedVisitorId(null)
         }}
         visitorId={selectedVisitorId}
-        onActionComplete={() => fetchCrewReport(appliedFilters, page)}
+        onActionComplete={() => fetchCrewReport(mode, appliedFilters, page)}
       />
     </div>
   )

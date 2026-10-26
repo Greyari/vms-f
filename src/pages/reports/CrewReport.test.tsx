@@ -148,4 +148,72 @@ describe('CrewReport Page', () => {
       )
     })
   })
+
+  it('switches to history mode and fetches crew logs', async () => {
+    const sampleLogResponse = {
+      data: [
+        {
+          id: 'log-1',
+          vessel_arrival_id: 'va-1',
+          visitor_id: 'vis-1',
+          action: 'check_in',
+          source: 'manual',
+          performed_by_name: 'Security Officer',
+          notes: 'Daftar penugasan baru',
+          logged_at: '2026-10-01T09:00:00.000Z',
+          visitor: {
+            id: 'vis-1',
+            visitor_no: 300001,
+            name: 'Ahmad Pelaut',
+            id_type: 'passport',
+            id_number: 'P99887766',
+            nationality: 'Indonesia',
+            occupation: 'Chief Engineer',
+          },
+          vessel_arrival: {
+            id: 'va-1',
+            vessel_name: 'MV. OCEAN VOYAGER',
+          },
+        },
+      ],
+      current_page: 1,
+      last_page: 1,
+      total: 1,
+    }
+
+    vi.mocked(api.get).mockImplementation(async (url: string, config?: any) => {
+      if (url === '/reports/crew') {
+        if (config?.params?.mode === 'history') {
+          return { data: sampleLogResponse }
+        }
+        return { data: sampleCrewResponse }
+      }
+      return { data: {} }
+    })
+
+    render(
+      <MemoryRouter>
+        <CrewReport />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Ahmad Pelaut')).toBeInTheDocument()
+    })
+
+    // Click history mode tab
+    const historyBtn = screen.getByRole('button', { name: /Riwayat Lengkap Log & Aktivitas Kru/i })
+    fireEvent.click(historyBtn)
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith(
+        '/reports/crew',
+        expect.objectContaining({
+          params: expect.objectContaining({ mode: 'history' }),
+        })
+      )
+      expect(screen.getByText('Security Officer')).toBeInTheDocument()
+      expect(screen.getByText('Daftar penugasan baru')).toBeInTheDocument()
+    })
+  })
 })

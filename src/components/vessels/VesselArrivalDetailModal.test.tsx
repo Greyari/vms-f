@@ -363,5 +363,44 @@ describe('VesselArrivalDetailModal', () => {
       expect(screen.getByText(/dilepas dari manifest kedatangan kapal/i)).toBeInTheDocument()
     })
   })
+
+  it('opens confirmation and calls detach endpoint when Lepas Kru is confirmed', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: {
+        ...mockDetail,
+        crew: mockDetail.crew.filter((c) => c.id !== 'crew-1'),
+      },
+    })
+
+    render(
+      <VesselArrivalDetailModal
+        open={true}
+        onClose={mockOnClose}
+        arrivalId="uuid-arrival-1"
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
+    })
+
+    const detachBtns = screen.getAllByRole('button', { name: /lepas kru/i })
+    expect(detachBtns.length).toBeGreaterThan(0)
+    fireEvent.click(detachBtns[0])
+
+    await waitFor(() => {
+      expect(screen.getByText(/lepas kru dari penugasan kapal/i)).toBeInTheDocument()
+    })
+
+    const confirmBtn = screen.getByRole('button', { name: /lepas dari kapal/i })
+    fireEvent.click(confirmBtn)
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        '/vessel-arrivals/uuid-arrival-1/crew/detach',
+        expect.objectContaining({ visitor_id: 'crew-1' })
+      )
+    })
+  })
 })
 
