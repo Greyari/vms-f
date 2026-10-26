@@ -152,6 +152,7 @@ export default function VesselArrivalDetailModal({
 
   // Tabs & Log filters
   const [activeTab, setActiveTab] = useState<"manifest" | "logs">("manifest")
+  const [crewSubTab, setCrewSubTab] = useState<"all" | "active" | "history">("all")
   const [selectedCrewFilter, setSelectedCrewFilter] = useState<string>("")
   const [selectedActionFilter, setSelectedActionFilter] = useState<string>("")
   const [actionNote, setActionNote] = useState<string>("")
@@ -165,6 +166,7 @@ export default function VesselArrivalDetailModal({
     if (!open || !arrivalId) {
       setDetail(null)
       setActiveTab("manifest")
+      setCrewSubTab("all")
       setSelectedCrewFilter("")
       setSelectedActionFilter("")
       setActionNote("")
@@ -275,6 +277,16 @@ export default function VesselArrivalDetailModal({
     })
   }, [detail?.crew])
 
+  const filteredCrew = useMemo(() => {
+    if (!sortedCrew) return []
+    if (crewSubTab === "active") {
+      return sortedCrew.filter((c) => c.pivot?.status !== "checked_out")
+    }
+    if (crewSubTab === "history") {
+      return sortedCrew.filter((c) => c.pivot?.status === "checked_out")
+    }
+    return sortedCrew
+  }, [sortedCrew, crewSubTab])
 
   const toggleSelectCrew = (crewId: string) => {
     setSelectedCrewIds((prev) => {
@@ -289,11 +301,13 @@ export default function VesselArrivalDetailModal({
   }
 
   const toggleSelectAll = () => {
-    if (!checkedInCrew || checkedInCrew.length === 0) return
-    if (selectedCrewIds.size === checkedInCrew.length) {
+    const selectableCrew = filteredCrew.filter((c) => c.pivot?.status !== "checked_out")
+    if (selectableCrew.length === 0) return
+    const allSelected = selectableCrew.every((c) => selectedCrewIds.has(c.id))
+    if (allSelected) {
       setSelectedCrewIds(new Set())
     } else {
-      setSelectedCrewIds(new Set(checkedInCrew.map((c) => c.id)))
+      setSelectedCrewIds(new Set(selectableCrew.map((c) => c.id)))
     }
   }
 
@@ -655,47 +669,90 @@ export default function VesselArrivalDetailModal({
               )}
 
               {activeTab === "manifest" ? (
-                <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-zinc-50 dark:bg-zinc-800">
-                      <TableRow>
-                        <TableHead className="w-10 text-center">
-                          <button
-                            type="button"
-                            onClick={toggleSelectAll}
-                            className="p-1 hover:text-blue-600 transition-colors"
-                            title={t("vesselArrivals.select_all_title", "Pilih semua")}
-                          >
-                            {detail.crew &&
-                            detail.crew.length > 0 &&
-                            selectedCrewIds.size === detail.crew.length ? (
-                              <CheckSquare className="h-4 w-4 text-blue-600" />
-                            ) : (
-                              <Square className="h-4 w-4 text-zinc-400" />
-                            )}
-                          </button>
-                        </TableHead>
-                        <TableHead className="w-10 text-center">{t("vesselArrivals.col_no", "No")}</TableHead>
-                        <TableHead>{t("vesselArrivals.col_crew_name_id", "Nama Kru & ID")}</TableHead>
-                        <TableHead>{t("vesselArrivals.col_occupation", "Jabatan")}</TableHead>
-                        <TableHead>{t("vesselArrivals.col_nationality", "Kebangsaan")}</TableHead>
-                        <TableHead>{t("vesselArrivals.col_seaman_cert", "Buku Pelaut & Sertifikat")}</TableHead>
-                        <TableHead>{t("vesselArrivals.col_status_checkin_out", "Status Check-In / Check-Out")}</TableHead>
-                        <TableHead className="text-right">{t("vesselArrivals.col_crew_actions", "Aksi Kru")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {!sortedCrew || sortedCrew.length === 0 ? (
+                <div className="space-y-2.5">
+                  {/* Sub-filter: Semua Kru | Kru Terdaftar / Aktif | History Kru Selesai */}
+                  <div className="flex items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg w-fit text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setCrewSubTab("all")}
+                      className={`px-2.5 py-1 rounded font-medium transition-colors cursor-pointer ${
+                        crewSubTab === "all"
+                          ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                          : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400"
+                      }`}
+                    >
+                      {t("vesselArrivals.filter_crew_all", "Semua Kru")} ({sortedCrew.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCrewSubTab("active")}
+                      className={`px-2.5 py-1 rounded font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                        crewSubTab === "active"
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400"
+                      }`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      {t("vesselArrivals.filter_crew_active", "Kru Terdaftar / Aktif")} ({checkedInCrew.length})
+                    </button>
+                    {checkedOutCrew.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setCrewSubTab("history")}
+                        className={`px-2.5 py-1 rounded font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                          crewSubTab === "history"
+                            ? "bg-zinc-700 text-white shadow-xs"
+                            : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400"
+                        }`}
+                      >
+                        <History className="w-3 h-3" />
+                        {t("vesselArrivals.filter_crew_history", "History Kru Selesai")} ({checkedOutCrew.length})
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-x-auto">
+                    <Table>
+                      <TableHeader className="bg-zinc-50 dark:bg-zinc-800">
                         <TableRow>
-                          <TableCell
-                            colSpan={8}
-                            className="h-24 text-center text-zinc-500 text-sm"
-                          >
-                            {t("vesselArrivals.no_crew_recorded", "Belum ada kru yang tercatat pada transaksi kedatangan ini.")}
-                          </TableCell>
+                          <TableHead className="w-10 text-center">
+                            <button
+                              type="button"
+                              onClick={toggleSelectAll}
+                              className="p-1 hover:text-blue-600 transition-colors"
+                              title={t("vesselArrivals.select_all_title", "Pilih semua")}
+                            >
+                              {filteredCrew &&
+                              filteredCrew.length > 0 &&
+                              selectedCrewIds.size === filteredCrew.filter((c) => c.pivot?.status !== "checked_out").length &&
+                              selectedCrewIds.size > 0 ? (
+                                <CheckSquare className="h-4 w-4 text-blue-600" />
+                              ) : (
+                                <Square className="h-4 w-4 text-zinc-400" />
+                              )}
+                            </button>
+                          </TableHead>
+                          <TableHead className="w-10 text-center">{t("vesselArrivals.col_no", "No")}</TableHead>
+                          <TableHead>{t("vesselArrivals.col_crew_name_id", "Nama Kru & ID")}</TableHead>
+                          <TableHead>{t("vesselArrivals.col_occupation", "Jabatan")}</TableHead>
+                          <TableHead>{t("vesselArrivals.col_nationality", "Kebangsaan")}</TableHead>
+                          <TableHead>{t("vesselArrivals.col_seaman_cert", "Buku Pelaut & Sertifikat")}</TableHead>
+                          <TableHead>{t("vesselArrivals.col_status_checkin_out", "Status Check-In / Check-Out")}</TableHead>
+                          <TableHead className="text-right">{t("vesselArrivals.col_crew_actions", "Aksi Kru")}</TableHead>
                         </TableRow>
-                      ) : (
-                        sortedCrew.map((member, idx) => {
+                      </TableHeader>
+                      <TableBody>
+                        {!filteredCrew || filteredCrew.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={8}
+                              className="h-24 text-center text-zinc-500 text-sm"
+                            >
+                              {t("vesselArrivals.no_crew_recorded", "Belum ada kru yang tercatat pada transaksi kedatangan ini.")}
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          filteredCrew.map((member, idx) => {
                           const isCheckedOut =
                             member.pivot?.status === "checked_out"
                           const isExpected =
@@ -909,6 +966,7 @@ export default function VesselArrivalDetailModal({
                     </TableBody>
                   </Table>
                 </div>
+              </div>
               ) : (
                 <div className="space-y-3">
                   {/* Filter Bar untuk Riwayat Log Kru */}

@@ -199,5 +199,38 @@ describe('VesselArrivalDetailModal', () => {
       expect(screen.queryByText('Ahmad Pelaut')).not.toBeInTheDocument()
     })
   })
+
+  it('filters crew manifest by Kru Terdaftar / Aktif and History Kru Selesai sub-tabs', async () => {
+    render(
+      <VesselArrivalDetailModal
+        open={true}
+        onClose={mockOnClose}
+        arrivalId="uuid-arrival-1"
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
+      expect(screen.getByText('Ahmad Pelaut')).toBeInTheDocument()
+    })
+
+    // Click "Kru Terdaftar / Aktif" sub-tab button
+    const activeBtn = screen.getByRole('button', { name: /kru terdaftar \/ aktif/i })
+    fireEvent.click(activeBtn)
+
+    await waitFor(() => {
+      expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
+      expect(screen.queryByText('Ahmad Pelaut')).not.toBeInTheDocument()
+    })
+
+    // Click "History Kru Selesai" sub-tab button
+    const historyBtn = screen.getByRole('button', { name: /history kru selesai/i })
+    fireEvent.click(historyBtn)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Budi Santoso')).not.toBeInTheDocument()
+      expect(screen.getByText('Ahmad Pelaut')).toBeInTheDocument()
+    })
+  })
 })
 

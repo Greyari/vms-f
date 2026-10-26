@@ -466,10 +466,11 @@ export default function VisitorReport() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL}>{t("common.all", "Semua Tipe")}</SelectItem>
-                  <SelectItem value="regular">Regular</SelectItem>
-                  <SelectItem value="contractor">Contractor</SelectItem>
-                  <SelectItem value="crew">Crew</SelectItem>
-                  <SelectItem value="vip">VIP</SelectItem>
+                  <SelectItem value="visitor">{t("visitors.opt_type_regular", "Pengunjung Umum (Regular)")}</SelectItem>
+                  <SelectItem value="crew">{t("visitors.opt_type_crew", "Crew (Kru Kapal)")}</SelectItem>
+                  <SelectItem value="temporary_worker">{t("visitors.opt_type_contractor", "Tenaga Kerja Sementara / Kontraktor")}</SelectItem>
+                  <SelectItem value="supplier">{t("visitors.opt_type_supplier", "Supplier / Vendor")}</SelectItem>
+                  <SelectItem value="others">{t("visitors.opt_type_others", "Lainnya")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
