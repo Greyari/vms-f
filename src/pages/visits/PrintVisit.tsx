@@ -241,6 +241,9 @@ export default function PrintVisit() {
             </Field>
             <Field label="HOST PERSON">
               {visit.host_name || visit.staff?.name || "-"}
+              {(visit.host_occupation || visit.staff?.occupation)
+                ? ` (${visit.host_occupation || visit.staff?.occupation})`
+                : ""}
             </Field>
             <Field label="ID CARDS">
               {cardsText}
@@ -329,7 +332,9 @@ export default function PrintVisit() {
             <div className="border-t-2 border-black pt-1 font-bold text-black">
               {visit.host_name || visit.staff?.name || "-"}
             </div>
-            <div className="text-[10px] font-bold text-black">Host / Staff Dikunjungi</div>
+            <div className="text-[10px] font-bold text-black">
+              {visit.host_occupation || visit.staff?.occupation ? `${visit.host_occupation || visit.staff?.occupation} · Host` : "Host / Staff Dikunjungi"}
+            </div>
           </div>
           <div>
             <div className="h-8" />

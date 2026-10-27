@@ -287,19 +287,78 @@ export default function CreateVisit() {
   const [blacklistReason, setBlacklistReason] = useState("")
   const [globalEntries, setGlobalEntries] = useState<GlobalBlacklistHit[]>([])
 
+  // Caching Section 2 (Destination & Host) in sessionStorage
+  const CACHE_DESTINATION_KEY = "vms_last_destination_host"
+
+  const loadCachedDestination = (): { location_id: string; purpose: string; staff_id: string } => {
+    try {
+      const raw = sessionStorage.getItem(CACHE_DESTINATION_KEY)
+      if (!raw) return { location_id: "", purpose: "", staff_id: "" }
+      const parsed = JSON.parse(raw)
+      return {
+        location_id: typeof parsed.location_id === "string" ? parsed.location_id : "",
+        purpose: typeof parsed.purpose === "string" ? parsed.purpose : "",
+        staff_id: typeof parsed.staff_id === "string" ? parsed.staff_id : "",
+      }
+    } catch {
+      return { location_id: "", purpose: "", staff_id: "" }
+    }
+  }
+
+  const saveCachedDestination = (data: { location_id: string; purpose: string; staff_id: string }) => {
+    try {
+      sessionStorage.setItem(CACHE_DESTINATION_KEY, JSON.stringify(data))
+    } catch {
+      // ignore
+    }
+  }
+
+  const clearCachedDestination = () => {
+    try {
+      sessionStorage.removeItem(CACHE_DESTINATION_KEY)
+    } catch {
+      // ignore
+    }
+  }
+
   // Langkah 2 & 3
-  const [form, setForm] = useState<VisitFormValues>({
-    location_id: "",
-    purpose: "",
-    staff_id: "",
-    card_ids: [],
-    vehicle_card_id: "",
-    vehicle_no: "",
+  const [form, setForm] = useState<VisitFormValues>(() => {
+    const cached = loadCachedDestination()
+    return {
+      location_id: cached.location_id,
+      purpose: cached.purpose,
+      staff_id: cached.staff_id,
+      card_ids: [],
+      vehicle_card_id: "",
+      vehicle_no: "",
+    }
   })
   const setField = <K extends keyof VisitFormValues>(
     k: K,
     v: VisitFormValues[K]
-  ) => setForm((p) => ({ ...p, [k]: v }))
+  ) => {
+    setForm((p) => {
+      const updated = { ...p, [k]: v }
+      if (k === "location_id" || k === "purpose" || k === "staff_id") {
+        saveCachedDestination({
+          location_id: updated.location_id,
+          purpose: updated.purpose,
+          staff_id: updated.staff_id,
+        })
+      }
+      return updated
+    })
+  }
+
+  const handleResetDestination = () => {
+    clearCachedDestination()
+    setForm((p) => ({
+      ...p,
+      location_id: "",
+      purpose: "",
+      staff_id: "",
+    }))
+  }
 
   // Dialog
   const [conflictOpen, setConflictOpen] = useState(false)
@@ -928,6 +987,7 @@ export default function CreateVisit() {
           mode="create"
           form={form}
           onChangeField={setField}
+          onResetDestination={handleResetDestination}
           locations={locations}
           staffList={staffList}
           cardList={cardList}
@@ -985,7 +1045,7 @@ export default function CreateVisit() {
       <Dialog open={conflictOpen} onOpenChange={setConflictOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-amber-600">
+            <DialogTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-5 w-5" />{" "}
               {t("create_visit.conflict_title", "Kunjungan lama masih terbuka")}
             </DialogTitle>
@@ -1011,7 +1071,7 @@ export default function CreateVisit() {
                 setConflictOpen(false)
                 submitVisit(true)
               }}
-              className="bg-amber-600 text-white hover:bg-amber-700"
+              className="bg-red-600 text-white hover:bg-red-700"
             >
               {t(
                 "create_visit.close_and_checkin",

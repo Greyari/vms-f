@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import api from "@/lib/axios"
 import { useTranslation } from "@/context/I18nContext"
 
@@ -39,15 +39,44 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Columns3,
+  RotateCcw,
 } from "lucide-react"
 import MasterImportDialog from "@/components/master/MasterImportDialog"
 import MasterExportModal from "@/components/master/MasterExportModal"
 import { MASTER_ENTITIES } from "@/config/masterEntities"
 
+export type StaffColumnKey =
+  | "occupation"
+  | "staff_id"
+  | "department"
+  | "gender"
+  | "address"
+  | "company"
+  | "status"
+
+export const DEFAULT_VISIBLE_COLUMNS: StaffColumnKey[] = [
+  "occupation",
+  "company",
+  "status",
+]
+
+export const ALL_OPTIONAL_COLUMNS: StaffColumnKey[] = [
+  "occupation",
+  "staff_id",
+  "department",
+  "gender",
+  "address",
+  "company",
+  "status",
+]
+
 interface Staff {
   id: string
   staff_id: string
   name: string
+  department?: string
+  occupation?: string
   company?: string
   gender?: string
   address?: string
@@ -57,6 +86,97 @@ interface Staff {
 
 export default function Staffs() {
   const { t } = useTranslation()
+
+  // Column visibility state persisted per user in localStorage
+  const userKey = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("user")
+      if (raw) {
+        const u = JSON.parse(raw)
+        return u?.id || u?.username || "default"
+      }
+    } catch {
+      // ignore
+    }
+    return "default"
+  }, [])
+
+  const storageKey = useMemo(
+    () => `vms_staffs_columns_${userKey}`,
+    [userKey]
+  )
+
+  const [visibleColumns, setVisibleColumns] = useState<StaffColumnKey[]>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter((col): col is StaffColumnKey =>
+            ALL_OPTIONAL_COLUMNS.includes(col as StaffColumnKey)
+          )
+          return valid
+        }
+      }
+    } catch {
+      // Fallback to default
+    }
+    return DEFAULT_VISIBLE_COLUMNS
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(visibleColumns))
+    } catch {
+      // Ignore storage errors
+    }
+  }, [storageKey, visibleColumns])
+
+  const [columnMenuOpen, setColumnMenuOpen] = useState(false)
+  const columnMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        columnMenuRef.current &&
+        !columnMenuRef.current.contains(e.target as Node)
+      ) {
+        setColumnMenuOpen(false)
+      }
+    }
+    if (columnMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [columnMenuOpen])
+
+  const toggleColumn = (col: StaffColumnKey) => {
+    setVisibleColumns((prev) =>
+      prev.includes(col) ? prev.filter((c) => c !== col) : [...prev, col]
+    )
+  }
+
+  const resetColumnsToDefault = () => {
+    setVisibleColumns(DEFAULT_VISIBLE_COLUMNS)
+  }
+
+  const isColVisible = (col: StaffColumnKey) => visibleColumns.includes(col)
+
+  const columnDefinitions: {
+    key: StaffColumnKey
+    label: string
+  }[] = [
+    { key: "occupation", label: t("staffs.col_occupation", "JABATAN") },
+    { key: "staff_id", label: t("staffs.col_staff_no", "STAFF NO / NIK") },
+    { key: "department", label: t("staffs.col_department", "DEPARTEMEN") },
+    { key: "gender", label: t("staffs.col_gender", "GENDER") },
+    { key: "address", label: t("staffs.col_address", "ADDRESS / ROLE") },
+    { key: "company", label: t("staffs.col_company", "COMPANY") },
+    { key: "status", label: t("staffs.col_status", "STATUS") },
+  ]
+
+  const totalColSpan = 3 + visibleColumns.length
+
   const [staffs, setStaffs] = useState<Staff[]>([])
   const [trashedStaffs, setTrashedStaffs] = useState<Staff[]>([])
   const [loading, setLoading] = useState(false)
@@ -79,6 +199,8 @@ export default function Staffs() {
     id: null as string | null,
     staff_id: "",
     name: "",
+    department: "",
+    occupation: "",
     company: "",
     gender: "",
     address: "",
@@ -157,6 +279,8 @@ export default function Staffs() {
         id: staff.id,
         staff_id: staff.staff_id || "",
         name: staff.name || "",
+        department: staff.department || "",
+        occupation: staff.occupation || "",
         company: staff.company || "",
         gender: normalizeGender(staff.gender),
         address: staff.address || "",
@@ -167,6 +291,8 @@ export default function Staffs() {
         id: null,
         staff_id: "",
         name: "",
+        department: "",
+        occupation: "",
         company: "",
         gender: "",
         address: "",
@@ -241,6 +367,74 @@ export default function Staffs() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {/* Column Picker Dropdown */}
+          <div className="relative" ref={columnMenuRef}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="staff-column-picker-trigger"
+              onClick={() => setColumnMenuOpen((o) => !o)}
+              className="cursor-pointer gap-1.5 h-9"
+            >
+              <Columns3 className="h-4 w-4" />
+              <span>{t("staffs.columns_btn", "Kolom")}</span>
+              <Badge
+                variant="secondary"
+                className="ml-0.5 px-1.5 py-0 text-[10px]"
+              >
+                {visibleColumns.length + 3}
+              </Badge>
+            </Button>
+
+            {columnMenuOpen && (
+              <div className="absolute right-0 z-50 mt-2 w-64 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="mb-2 flex items-center justify-between border-b border-zinc-100 pb-2 dark:border-zinc-800">
+                  <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                    {t("staffs.columns_menu_title", "Tampilkan Kolom")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={resetColumnsToDefault}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline dark:text-blue-400 cursor-pointer"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    {t("staffs.columns_reset", "Reset ke default")}
+                  </button>
+                </div>
+
+                <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
+                  {columnDefinitions.map((col) => {
+                    const checked = isColVisible(col.key)
+                    return (
+                      <label
+                        key={col.key}
+                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleColumn(col.key)}
+                          className="h-3.5 w-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500"
+                        />
+                        <span className="text-zinc-700 dark:text-zinc-200">
+                          {col.label}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+
+                <div className="mt-2 border-t border-zinc-100 pt-2 text-[10px] text-zinc-500 dark:border-zinc-800">
+                  {t(
+                    "staffs.columns_locked_note",
+                    "Kolom No, Nama, dan Aksi selalu tampil."
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <Button
             variant="outline"
             onClick={() => setExportModalOpen(true)}
@@ -320,25 +514,41 @@ export default function Staffs() {
               <TableRow>
                 <TableHead className="w-12 text-center">{t("staffs.col_no", "NO")}</TableHead>
                 <TableHead>{t("staffs.col_name", "NAME")}</TableHead>
-                <TableHead>{t("staffs.col_staff_no", "STAFF NO")}</TableHead>
-                <TableHead>{t("staffs.col_gender", "GENDER")}</TableHead>
-                <TableHead>{t("staffs.col_address", "ADDRESS")}</TableHead>
-                <TableHead>{t("staffs.col_company", "COMPANY")}</TableHead>
-                <TableHead>{t("staffs.col_status", "TYPE")}</TableHead>
+                {isColVisible("occupation") && (
+                  <TableHead>{t("staffs.col_occupation", "JABATAN")}</TableHead>
+                )}
+                {isColVisible("staff_id") && (
+                  <TableHead>{t("staffs.col_staff_no", "STAFF NO")}</TableHead>
+                )}
+                {isColVisible("department") && (
+                  <TableHead>{t("staffs.col_department", "DEPARTEMEN")}</TableHead>
+                )}
+                {isColVisible("gender") && (
+                  <TableHead>{t("staffs.col_gender", "GENDER")}</TableHead>
+                )}
+                {isColVisible("address") && (
+                  <TableHead>{t("staffs.col_address", "ADDRESS")}</TableHead>
+                )}
+                {isColVisible("company") && (
+                  <TableHead>{t("staffs.col_company", "COMPANY")}</TableHead>
+                )}
+                {isColVisible("status") && (
+                  <TableHead>{t("staffs.col_status", "TYPE")}</TableHead>
+                )}
                 <TableHead className="text-right">{t("staffs.col_actions", "AKSI")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && staffs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center">
+                  <TableCell colSpan={totalColSpan} className="h-24 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
                   </TableCell>
                 </TableRow>
               ) : staffs.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={totalColSpan}
                     className="h-24 text-center text-zinc-500"
                   >
                     {t("staffs.empty_text", "Data staf tidak ditemukan.")}
@@ -356,23 +566,49 @@ export default function Staffs() {
                     <TableCell className="font-semibold text-zinc-900 dark:text-zinc-100">
                       {staff.name}
                     </TableCell>
-                    <TableCell className="font-mono font-medium">
-                      {staff.staff_id}
-                    </TableCell>
-                    <TableCell>{staff.gender === "M" || staff.gender === "Male" ? t("common.male", "Laki-laki (M)") : staff.gender === "F" || staff.gender === "Female" ? t("common.female", "Perempuan (F)") : staff.gender || "-"}</TableCell>
-                    <TableCell>{staff.address || "-"}</TableCell>
-                    <TableCell>{staff.company || "-"}</TableCell>
-                    <TableCell>
-                      {staff.is_active ? (
-                        <Badge variant="outline" className="border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
-                          {t("common.active", "Active")}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-zinc-500/30 bg-zinc-50 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
-                          {t("common.inactive", "Inactive")}
-                        </Badge>
-                      )}
-                    </TableCell>
+                    {isColVisible("occupation") && (
+                      <TableCell className="font-medium text-blue-600 dark:text-blue-400">
+                        {staff.occupation || "-"}
+                      </TableCell>
+                    )}
+                    {isColVisible("staff_id") && (
+                      <TableCell className="font-mono font-medium">
+                        {staff.staff_id}
+                      </TableCell>
+                    )}
+                    {isColVisible("department") && (
+                      <TableCell className="text-zinc-600 dark:text-zinc-300">
+                        {staff.department || "-"}
+                      </TableCell>
+                    )}
+                    {isColVisible("gender") && (
+                      <TableCell>
+                        {staff.gender === "M" || staff.gender === "Male"
+                          ? t("common.male", "Laki-laki (M)")
+                          : staff.gender === "F" || staff.gender === "Female"
+                          ? t("common.female", "Perempuan (F)")
+                          : staff.gender || "-"}
+                      </TableCell>
+                    )}
+                    {isColVisible("address") && (
+                      <TableCell>{staff.address || "-"}</TableCell>
+                    )}
+                    {isColVisible("company") && (
+                      <TableCell>{staff.company || "-"}</TableCell>
+                    )}
+                    {isColVisible("status") && (
+                      <TableCell>
+                        {staff.is_active ? (
+                          <Badge variant="outline" className="border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                            {t("common.active", "Active")}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-zinc-500/30 bg-zinc-50 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                            {t("common.inactive", "Inactive")}
+                          </Badge>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell className="space-x-2 text-right">
                       <Button
                         variant="outline"
@@ -462,6 +698,26 @@ export default function Staffs() {
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
+                <Label htmlFor="form_occupation">{t("staffs.field_occupation", "Jabatan / Occupation")}</Label>
+                <Input
+                  id="form_occupation"
+                  value={form.occupation}
+                  onChange={(e) => setForm({ ...form, occupation: e.target.value })}
+                  placeholder={t("staffs.occupation_placeholder", "Contoh: Manager HSE, Supervisor Fabrikasi")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="form_department">{t("staffs.field_department", "Departemen")}</Label>
+                <Input
+                  id="form_department"
+                  value={form.department}
+                  onChange={(e) => setForm({ ...form, department: e.target.value })}
+                  placeholder={t("staffs.department_placeholder", "Contoh: HSE, Production, HRD")}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
                 <Label htmlFor="form_company">{t("staffs.col_company", "Perusahaan")}</Label>
                 <Input
                   id="form_company"
@@ -538,6 +794,8 @@ export default function Staffs() {
         columns={[
           { key: "staff_id", label: t("staffs.field_staff_id", "Staff ID / NIK") },
           { key: "name", label: t("staffs.col_name", "Nama Lengkap") },
+          { key: "occupation", label: t("staffs.col_occupation", "Jabatan") },
+          { key: "department", label: t("staffs.field_department", "Departemen") },
           { key: "company", label: t("staffs.col_company", "Perusahaan") },
           { key: "gender", label: t("staffs.col_gender", "Gender") },
           { key: "address", label: t("staffs.col_address", "Alamat") },

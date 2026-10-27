@@ -123,12 +123,6 @@ export default function Login() {
           >
             {loading ? t('auth.signing_in', 'Authenticating...') : t('auth.sign_in', 'Sign In')}
           </button>
-
-          <p className="text-center text-xs text-zinc-500 mt-4">
-            {t('auth.security_hint', '(Security Default: SEC001 / password123)')}
-            <br />
-            {t('auth.admin_hint', '(Admin Default: admin@vms.local / password123)')}
-          </p>
         </form>
       </div>
     </div>

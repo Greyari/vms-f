@@ -115,7 +115,7 @@ describe('VisitorReport Page', () => {
 
       expect(screen.getByText('26/09/00002')).toBeInTheDocument()
       expect(screen.getByText('Siti Rahma')).toBeInTheDocument()
-      expect(screen.getByText('17:00')).toBeInTheDocument()
+      expect(screen.getByText(/17:00/)).toBeInTheDocument()
     })
   })
 

@@ -3,6 +3,7 @@ import { toast } from "sonner"
 import api from "@/lib/axios"
 import { useTranslation } from "@/context/I18nContext"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -11,6 +12,7 @@ import {
   Building2,
   CreditCard,
   Ship,
+  RotateCcw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -36,6 +38,7 @@ export interface StaffItem {
   staff_id?: string
   name: string
   department?: string
+  occupation?: string
   address?: string
   company?: string
   is_active?: boolean | number
@@ -710,6 +713,7 @@ export interface VisitFormFieldsProps {
   locationInputRef?: React.Ref<HTMLInputElement>
   purposeInputRef?: React.Ref<HTMLInputElement>
   heldVisitorCards?: Array<{ id: number | string; card_no: string }>
+  onResetDestination?: () => void
 }
 
 export function VisitFormFields({
@@ -726,6 +730,7 @@ export function VisitFormFields({
   locationInputRef,
   purposeInputRef,
   heldVisitorCards = [],
+  onResetDestination,
 }: VisitFormFieldsProps) {
   const { t, formatNumber } = useTranslation()
 
@@ -758,7 +763,7 @@ export function VisitFormFields({
       staffList.map((s) => ({
         value: String(s.id),
         label: s.name,
-        sub: [s.staff_id, s.company, s.address || s.department]
+        sub: [s.staff_id, s.occupation, s.department || s.company, s.address]
           .filter(Boolean)
           .join(" · "),
       })),
@@ -801,6 +806,11 @@ export function VisitFormFields({
     [vehicleList]
   )
 
+  const selectedStaff = useMemo(
+    () => staffList.find((s) => String(s.id) === String(form.staff_id)),
+    [staffList, form.staff_id]
+  )
+
   return (
     <fieldset
       disabled={disabled}
@@ -811,9 +821,24 @@ export function VisitFormFields({
     >
       {/* ===== 2. Tujuan & host ===== */}
       <section className={cn(CARD_CLASS, "min-w-0 space-y-4")}>
-        <SectionTitle n={2} icon={Building2}>
-          {t("create_visit.section2_title", "Tujuan & Host")}
-        </SectionTitle>
+        <div className="flex items-center justify-between">
+          <SectionTitle n={2} icon={Building2}>
+            {t("create_visit.section2_title", "Tujuan & Host")}
+          </SectionTitle>
+          {onResetDestination && (form.location_id || form.purpose || form.staff_id) ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onResetDestination}
+              className="h-7 px-2 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+              title={t("create_visit.btn_reset_destination", "Kosongkan tujuan & host")}
+            >
+              <RotateCcw className="mr-1 h-3.5 w-3.5" />
+              {t("common.reset", "Reset")}
+            </Button>
+          ) : null}
+        </div>
 
         {mode === "edit" && (
           <div className="space-y-1.5">
@@ -972,6 +997,13 @@ export function VisitFormFields({
             }
             emptyText={t("create_visit.staff_empty", "Staf tidak ditemukan.")}
           />
+          {selectedStaff && (selectedStaff.occupation || selectedStaff.department) && (
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
+              <span className="rounded bg-blue-50 px-1.5 py-0.5 dark:bg-blue-950/40">
+                {[selectedStaff.occupation, selectedStaff.department].filter(Boolean).join(" · ")}
+              </span>
+            </div>
+          )}
           <p className="text-[11px] text-zinc-500">
             {t(
               "create_visit.host_add_hint",

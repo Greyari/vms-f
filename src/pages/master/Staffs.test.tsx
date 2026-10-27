@@ -42,16 +42,29 @@ describe('Staffs Master Page', () => {
     })
   })
 
-  it('renders staff list with Staff ID, Name, Company, and status', async () => {
+  it('renders staff list with default columns and allows toggling optional columns like Staff ID', async () => {
     render(<Staffs />)
 
     await waitFor(() => {
-      expect(screen.getByText('EMP-001')).toBeInTheDocument()
       expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
       expect(screen.getByText('PT Cemara Intan')).toBeInTheDocument()
-      expect(screen.getByText('EMP-002')).toBeInTheDocument()
       expect(screen.getByText('Siti Aminah')).toBeInTheDocument()
       expect(screen.getByText('PT ASL Shipyard')).toBeInTheDocument()
+    })
+
+    // Staff ID is hidden by default to prevent horizontal scrolling
+    expect(screen.queryByText('EMP-001')).not.toBeInTheDocument()
+
+    // Open Column Picker and toggle STAFF NO
+    const columnPickerTrigger = screen.getByTestId('staff-column-picker-trigger')
+    fireEvent.click(columnPickerTrigger)
+
+    const staffNoCheckbox = screen.getByLabelText(/staff no/i)
+    fireEvent.click(staffNoCheckbox)
+
+    await waitFor(() => {
+      expect(screen.getByText('EMP-001')).toBeInTheDocument()
+      expect(screen.getByText('EMP-002')).toBeInTheDocument()
     })
   })
 

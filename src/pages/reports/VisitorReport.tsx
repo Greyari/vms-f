@@ -50,12 +50,15 @@ export interface VisitReportItem {
   date: string | null
   time_in: string | null
   time_out: string | null
+  checked_in_at?: string | null
   checked_out_at: string | null
   purpose: string | null
   vehicle_no: string | null
   visitor_name?: string | null
   visitor_company?: string | null
   host_name?: string | null
+  host_occupation?: string | null
+  host_department?: string | null
   location_name?: string | null
   location_code?: string | null
   days_open: number
@@ -72,6 +75,8 @@ export interface VisitReportItem {
     id: string
     staff_id: string
     name: string
+    occupation?: string | null
+    department?: string | null
   } | null
   location?: {
     id: string
@@ -81,6 +86,55 @@ export interface VisitReportItem {
   } | null
   visitor_cards?: Array<{ id: string; card_no: string }>
   vehicle_card?: { id: string; card_no: string } | null
+}
+
+export function formatDateTimeFull(
+  dateStr?: string | null,
+  timeStr?: string | null,
+  fullTimestamp?: string | null
+): string {
+  if (fullTimestamp) {
+    try {
+      const parsed = new Date(fullTimestamp.includes("T") ? fullTimestamp : fullTimestamp.replace(" ", "T"))
+      if (!Number.isNaN(parsed.getTime())) {
+        const d = String(parsed.getDate()).padStart(2, "0")
+        const m = String(parsed.getMonth() + 1).padStart(2, "0")
+        const y = parsed.getFullYear()
+        const hh = String(parsed.getHours()).padStart(2, "0")
+        const mm = String(parsed.getMinutes()).padStart(2, "0")
+        const ss = String(parsed.getSeconds()).padStart(2, "0")
+        return `${d}/${m}/${y} ${hh}:${mm}:${ss}`
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  if (dateStr && timeStr) {
+    try {
+      const timeParts = timeStr.trim().split(":")
+      const hh = (timeParts[0] || "00").padStart(2, "0")
+      const mm = (timeParts[1] || "00").padStart(2, "0")
+      const ss = (timeParts[2] || "00").padStart(2, "0")
+
+      const dateParts = dateStr.includes("-") ? dateStr.split("-") : dateStr.split("/")
+      if (dateParts.length === 3) {
+        if (dateParts[0].length === 4) {
+          return `${dateParts[2].padStart(2, "0")}/${dateParts[1].padStart(2, "0")}/${dateParts[0]} ${hh}:${mm}:${ss}`
+        } else {
+          return `${dateParts[0].padStart(2, "0")}/${dateParts[1].padStart(2, "0")}/${dateParts[2]} ${hh}:${mm}:${ss}`
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  if (dateStr) {
+    return dateStr
+  }
+
+  return "-"
 }
 
 const ALL = "__all__"
@@ -540,12 +594,12 @@ export default function VisitorReport() {
             <TableHeader className="bg-zinc-50 dark:bg-zinc-900/50">
               <TableRow>
                 <TableHead className="w-12 text-center">{t("common.no", "No")}</TableHead>
-                <TableHead>{t("visitor_report.col_sign_in", "Tanggal & Jam Masuk")}</TableHead>
+                <TableHead>{t("visitor_report.col_sign_in", "Check-In (Masuk)")}</TableHead>
                 <TableHead>{t("visitor_report.col_ticket", "No. Tiket")}</TableHead>
                 <TableHead>{t("visitor_report.col_visitor", "Pengunjung")}</TableHead>
                 <TableHead>{t("visitor_report.col_company", "Perusahaan")}</TableHead>
-                <TableHead>{t("visitor_report.col_location", "Host / Lokasi")}</TableHead>
-                <TableHead>{t("visitor_report.col_sign_out", "Jam Keluar")}</TableHead>
+                <TableHead>{t("visitor_report.col_location", "Host & Lokasi")}</TableHead>
+                <TableHead>{t("visitor_report.col_sign_out", "Check-Out (Keluar)")}</TableHead>
                 <TableHead>{t("visitor_report.col_cards", "Kartu")}</TableHead>
                 <TableHead>{t("visitor_report.col_vehicle", "Plat")}</TableHead>
                 <TableHead>{t("visitor_report.col_purpose", "Tujuan / Keperluan")}</TableHead>
@@ -577,12 +631,9 @@ export default function VisitorReport() {
                       <TableCell className="text-center text-zinc-500 font-mono">
                         {(page - 1) * perPage + index + 1}
                       </TableCell>
-                      <TableCell>
-                        <div className="font-medium text-zinc-900 dark:text-zinc-100">
-                          {item.date || "-"}
-                        </div>
-                        <div className="text-zinc-500 font-mono text-[11px]">
-                          {item.time_in ? `${item.time_in} WIB` : "-"}
+                      <TableCell className="whitespace-nowrap font-mono text-[11px]">
+                        <div className="font-semibold text-emerald-700 dark:text-emerald-400">
+                          {formatDateTimeFull(item.date, item.time_in, item.checked_in_at)}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -607,21 +658,26 @@ export default function VisitorReport() {
                         {item.visitor_company || item.visitor?.company || "-"}
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">
+                        <div className="font-medium text-zinc-900 dark:text-zinc-100">
                           {item.host_name || item.staff?.name || "-"}
                         </div>
+                        {(item.host_occupation || item.staff?.occupation) && (
+                          <div className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
+                            {item.host_occupation || item.staff?.occupation}
+                          </div>
+                        )}
                         <div className="text-[11px] text-zinc-500">
                           {item.location_name || item.location?.name || "-"}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap font-mono text-[11px]">
                         {isOpen ? (
                           <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400">
                             {t("visitor_report.open_badge", "OPEN")}
                           </Badge>
                         ) : (
-                          <div className="font-mono text-zinc-700 dark:text-zinc-300">
-                            {item.time_out || item.checked_out_at?.split(" ")[1]?.substring(0, 5) || "-"}
+                          <div className="font-semibold text-zinc-700 dark:text-zinc-300">
+                            {formatDateTimeFull(item.date, item.time_out, item.checked_out_at)}
                           </div>
                         )}
                       </TableCell>

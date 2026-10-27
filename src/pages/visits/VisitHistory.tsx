@@ -99,6 +99,7 @@ export interface StaffRef {
   name: string
   department?: string | null
   position?: string | null
+  occupation?: string | null
 }
 
 export interface VisitRecord {
@@ -115,11 +116,14 @@ export interface VisitRecord {
   staff_id?: number | string | null
   staff?: StaffRef | null
   host_name?: string | null
+  host_occupation?: string | null
+  host_department?: string | null
   purpose?: string | null
   date?: string | null
   time_in?: string | null
   time_out?: string | null
   check_in_at?: string | null
+  checked_in_at?: string | null
   days_open?: number
   checked_out_at?: string | null
   vehicle_no?: string | null
@@ -181,6 +185,55 @@ function formatLocalDate(d: Date): string {
   const month = String(d.getMonth() + 1).padStart(2, "0")
   const day = String(d.getDate()).padStart(2, "0")
   return `${year}-${month}-${day}`
+}
+
+export function formatDateTimeFull(
+  dateStr?: string | null,
+  timeStr?: string | null,
+  fullTimestamp?: string | null
+): string {
+  if (fullTimestamp) {
+    try {
+      const parsed = new Date(fullTimestamp.includes("T") ? fullTimestamp : fullTimestamp.replace(" ", "T"))
+      if (!Number.isNaN(parsed.getTime())) {
+        const d = String(parsed.getDate()).padStart(2, "0")
+        const m = String(parsed.getMonth() + 1).padStart(2, "0")
+        const y = parsed.getFullYear()
+        const hh = String(parsed.getHours()).padStart(2, "0")
+        const mm = String(parsed.getMinutes()).padStart(2, "0")
+        const ss = String(parsed.getSeconds()).padStart(2, "0")
+        return `${d}/${m}/${y} ${hh}:${mm}:${ss}`
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  if (dateStr && timeStr) {
+    try {
+      const timeParts = timeStr.trim().split(":")
+      const hh = (timeParts[0] || "00").padStart(2, "0")
+      const mm = (timeParts[1] || "00").padStart(2, "0")
+      const ss = (timeParts[2] || "00").padStart(2, "0")
+
+      const dateParts = dateStr.includes("-") ? dateStr.split("-") : dateStr.split("/")
+      if (dateParts.length === 3) {
+        if (dateParts[0].length === 4) {
+          return `${dateParts[2].padStart(2, "0")}/${dateParts[1].padStart(2, "0")}/${dateParts[0]} ${hh}:${mm}:${ss}`
+        } else {
+          return `${dateParts[0].padStart(2, "0")}/${dateParts[1].padStart(2, "0")}/${dateParts[2]} ${hh}:${mm}:${ss}`
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  if (dateStr) {
+    return dateStr
+  }
+
+  return "-"
 }
 
 function escapeRegExp(str: string): string {
@@ -1407,21 +1460,19 @@ export default function VisitHistory() {
                   const locationName =
                     visit.location_name || visit.location?.name || "-"
                   const hostName = visit.host_name || visit.staff?.name || "-"
-                  const checkInDisplay = [
+                  const hostOccupation = visit.host_occupation || visit.staff?.occupation || null
+                  const checkInDisplay = formatDateTimeFull(
                     visit.date,
-                    visit.time_in ? visit.time_in.slice(0, 5) : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                  const checkOutDisplay = visit.checked_out_at
-                    ? new Date(visit.checked_out_at).toLocaleString("id-ID", {
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : visit.time_out || "-"
+                    visit.time_in,
+                    visit.checked_in_at
+                  )
+                  const checkOutDisplay = visit.checked_out_at || visit.time_out
+                    ? formatDateTimeFull(
+                        visit.date,
+                        visit.time_out,
+                        visit.checked_out_at
+                      )
+                    : "-"
 
                   const daysOpen =
                     typeof visit.days_open === "number" ? visit.days_open : 0
@@ -1598,10 +1649,17 @@ export default function VisitHistory() {
                       {/* Host */}
                       {isColVisible("host") && (
                         <TableCell className="text-zinc-700 dark:text-zinc-300">
-                          <HighlightText
-                            text={hostName}
-                            query={debouncedSearch}
-                          />
+                          <div>
+                            <HighlightText
+                              text={hostName}
+                              query={debouncedSearch}
+                            />
+                          </div>
+                          {hostOccupation && (
+                            <div className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
+                              {hostOccupation}
+                            </div>
+                          )}
                         </TableCell>
                       )}
 
@@ -1828,6 +1886,7 @@ export default function VisitHistory() {
             <span className="text-xs text-zinc-500">
               {t("visit_history.page_indicator", "Halaman {{page}} dari {{total}}", {
                 page: currentPage,
+                current: currentPage,
                 total: lastPage,
               })}
             </span>
@@ -2045,6 +2104,9 @@ export default function VisitHistory() {
                 <p className="mt-0.5 text-xs text-zinc-500">
                   {t("visit_history.col_host", "Staf Host")}:{" "}
                   {detailVisit.host_name || detailVisit.staff?.name || "-"}
+                  {(detailVisit.host_occupation || detailVisit.staff?.occupation)
+                    ? ` (${detailVisit.host_occupation || detailVisit.staff?.occupation})`
+                    : ""}
                 </p>
               </div>
 
@@ -2087,14 +2149,14 @@ export default function VisitHistory() {
                   <span className="font-semibold">
                     {t("visit_history.col_check_in", "Waktu Masuk")}:
                   </span>{" "}
-                  {detailVisit.date || "-"} {detailVisit.time_in || ""}
+                  {formatDateTimeFull(detailVisit.date, detailVisit.time_in, detailVisit.checked_in_at)}
                 </p>
                 <p className="mt-0.5 text-xs text-zinc-700 dark:text-zinc-300">
                   <span className="font-semibold">
                     {t("visit_history.col_check_out", "Waktu Keluar")}:
                   </span>{" "}
-                  {detailVisit.checked_out_at
-                    ? new Date(detailVisit.checked_out_at).toLocaleString("id-ID")
+                  {detailVisit.checked_out_at || detailVisit.time_out
+                    ? formatDateTimeFull(detailVisit.date, detailVisit.time_out, detailVisit.checked_out_at)
                     : "-"}
                 </p>
                 <p className="mt-0.5 text-xs text-zinc-500">
