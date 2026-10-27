@@ -80,6 +80,10 @@ export interface Opt {
   label: string
   sub?: string
   search?: string
+  /** Opsi tetap tampil tapi tidak bisa dipilih (ditandai merah). */
+  disabled?: boolean
+  /** Label kecil di kanan opsi, mis. "IN USE". */
+  badge?: string
 }
 
 type Row = { opt: Opt | null }
@@ -183,11 +187,27 @@ export function filterOptions(options: Opt[], q: string): Opt[] {
 }
 
 /**
- * Shared card availability filter used by both CreateVisit and EditVisitModal.
- * Always compares IDs as strings so UUIDs never turn into NaN.
- * - Available cards (status === "available") are always included.
- * - Cards currently held by the visit being edited are also included so they stay selected and can be removed/swapped.
- * - Cards with status !== "available" held by OTHER active visits are strictly excluded.
+ * Kartu dianggap "sedang dipakai" jika statusnya bukan "available".
+ * Kartu yang dipegang kunjungan yang sedang diedit (heldIds) tidak dianggap
+ * dipakai, supaya tetap bisa dipilih / dilepas / ditukar.
+ * ID selalu dibandingkan sebagai string agar UUID aman.
+ */
+export function isCardInUse(
+  card: CardItem,
+  heldIds?: Set<string>
+): boolean {
+  if (heldIds?.has(String(card.id))) return false
+  return card.status !== "available"
+}
+
+export function cardStatusBadge(status: string): string {
+  if (!status || status === "in_use") return "IN USE"
+  return status.replace(/_/g, " ").toUpperCase()
+}
+
+/**
+ * Filter lama (hanya kartu available + kartu yang dipegang kunjungan ini).
+ * Dipertahankan supaya import/test lama tetap jalan.
  */
 export function filterAvailableCards(
   allCards: CardItem[],
@@ -197,7 +217,6 @@ export function filterAvailableCards(
   const seen = new Set<string>()
   const result: CardItem[] = []
 
-  // Ensure currently held cards are included even if not in the first page of /cards
   for (const held of heldCards) {
     const idStr = String(held.id)
     if (!idStr || seen.has(idStr)) continue
@@ -219,6 +238,42 @@ export function filterAvailableCards(
       seen.add(idStr)
       result.push(card)
     }
+  }
+
+  return result
+}
+
+/**
+ * BARU: tampilkan SEMUA kartu (termasuk yang sedang dipakai) supaya bisa
+ * ditandai merah di dropdown. Kartu yang dipegang kunjungan ini dimasukkan
+ * walau tidak ada di halaman pertama /cards.
+ */
+export function withHeldCards(
+  allCards: CardItem[],
+  heldCards: Array<{ id: number | string; card_no: string }> = []
+): CardItem[] {
+  const seen = new Set<string>()
+  const result: CardItem[] = []
+
+  for (const held of heldCards) {
+    const idStr = String(held.id)
+    if (!idStr || seen.has(idStr)) continue
+    const fromMaster = allCards.find((c) => String(c.id) === idStr)
+    seen.add(idStr)
+    result.push(
+      fromMaster ?? {
+        id: held.id,
+        card_no: held.card_no,
+        status: "in_use",
+      }
+    )
+  }
+
+  for (const card of allCards) {
+    const idStr = String(card.id)
+    if (seen.has(idStr)) continue
+    seen.add(idStr)
+    result.push(card)
   }
 
   return result
@@ -335,15 +390,16 @@ export function useVisitMasterData(options?: {
     }
   }, [enabled])
 
+  // SEMUA kartu (yang dipakai ditandai merah di UI, tidak bisa dipilih)
   const cardList = useMemo(
-    () => filterAvailableCards(rawCards, heldVisitorCards),
+    () => withHeldCards(rawCards, heldVisitorCards),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [rawCards, heldVisitorKey]
   )
 
   const vehicleList = useMemo(
     () =>
-      filterAvailableCards(
+      withHeldCards(
         rawVehicleCards,
         heldVehicleCard ? [heldVehicleCard] : []
       ),
@@ -403,6 +459,8 @@ export const ROW_BASE = "flex cursor-pointer items-center gap-2 border-l-4 px-3 
 export const ROW_ACTIVE =
   "border-emerald-500 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-950/40"
 export const ROW_IDLE = "border-transparent"
+export const ROW_LOCKED =
+  "cursor-not-allowed border-red-500 bg-red-50 text-red-700 dark:border-red-600 dark:bg-red-950/40 dark:text-red-300"
 export const DROPDOWN =
   "absolute z-40 mt-1 w-full overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
 
@@ -455,7 +513,10 @@ export function SearchSelect({
     const ordered = hasQuery
       ? filtered
       : [...selected, ...options.filter((o) => !value.includes(o.value))]
-    return ordered.slice(0, MAX_VISIBLE_OPTIONS)
+    // Opsi yang bisa dipilih di atas, yang terkunci (merah) di bawah.
+    const free = ordered.filter((o) => !o.disabled)
+    const locked = ordered.filter((o) => o.disabled)
+    return [...free, ...locked].slice(0, MAX_VISIBLE_OPTIONS)
   }, [hasQuery, filtered, selected, options, value])
 
   const rows: Row[] = useMemo(
@@ -483,6 +544,22 @@ export function SearchSelect({
     el?: HTMLInputElement
   ) => {
     const opt = row.opt
+
+    // Opsi terkunci (kartu sedang dipakai) tidak bisa dipilih.
+    // Kalau sudah terlanjur terpilih, tetap boleh dilepas.
+    if (opt?.disabled && !value.includes(opt.value)) {
+      if (how !== "tab") {
+        toast.error(
+          t(
+            "create_visit.toast_option_locked",
+            "{{item}} sedang dipakai. Pilih yang lain.",
+            { item: opt.label }
+          )
+        )
+      }
+      return
+    }
+
     if (!opt) onChange([])
     else if (multiple) {
       onChange(
@@ -609,17 +686,22 @@ export function SearchSelect({
                 const isSel = row.opt
                   ? value.includes(row.opt.value)
                   : value.length === 0
+                const locked = Boolean(row.opt?.disabled) && !isSel
                 return (
                   <div
                     key={row.opt?.value ?? "__none__"}
                     role="option"
                     aria-selected={isSel}
+                    aria-disabled={locked}
                     onMouseDown={(e) => {
                       e.preventDefault()
                       choose(row, "mouse")
                     }}
                     onMouseEnter={() => setActive(i)}
-                    className={cn(ROW_BASE, i === active ? ROW_ACTIVE : ROW_IDLE)}
+                    className={cn(
+                      ROW_BASE,
+                      locked ? ROW_LOCKED : i === active ? ROW_ACTIVE : ROW_IDLE
+                    )}
                   >
                     <Check
                       className={cn(
@@ -634,7 +716,12 @@ export function SearchSelect({
                             {row.opt.label}
                           </p>
                           {row.opt.sub && (
-                            <p className="truncate text-[11px] uppercase text-zinc-500">
+                            <p
+                              className={cn(
+                                "truncate text-[11px] uppercase",
+                                locked ? "text-red-500" : "text-zinc-500"
+                              )}
+                            >
                               {row.opt.sub}
                             </p>
                           )}
@@ -643,7 +730,19 @@ export function SearchSelect({
                         <p className="text-xs italic text-zinc-500">{noneLabel}</p>
                       )}
                     </div>
-                    {i === active && canAccept && <EnterBadge />}
+                    {row.opt?.badge && (
+                      <span
+                        className={cn(
+                          "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold",
+                          locked
+                            ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+                            : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                        )}
+                      >
+                        {row.opt.badge}
+                      </span>
+                    )}
+                    {i === active && canAccept && !locked && <EnterBadge />}
                   </div>
                 )
               })
@@ -788,23 +887,50 @@ export function VisitFormFields({
     [heldVisitorCards]
   )
 
+  // Semua kartu tampil; yang sedang dipakai merah + tidak bisa dipilih.
   const cardOptions = useMemo<Opt[]>(
     () =>
-      cardList.map((c) => ({
-        value: String(c.id),
-        label: c.card_no,
-        sub:
-          mode === "edit" && heldIdsSet.has(String(c.id))
-            ? t("visit_history.card_currently_held", "Dipegang kunjungan ini")
-            : undefined,
-      })),
+      cardList.map((c) => {
+        const inUse = isCardInUse(c, heldIdsSet)
+        return {
+          value: String(c.id),
+          label: c.card_no,
+          disabled: inUse,
+          badge: inUse ? cardStatusBadge(c.status) : undefined,
+          sub:
+            mode === "edit" && heldIdsSet.has(String(c.id))
+              ? t("visit_history.card_currently_held", "Dipegang kunjungan ini")
+              : undefined,
+        }
+      }),
     [cardList, mode, heldIdsSet, t]
   )
 
   const vehicleOptions = useMemo<Opt[]>(
-    () => vehicleList.map((c) => ({ value: String(c.id), label: c.card_no })),
-    [vehicleList]
+    () =>
+      vehicleList.map((c) => {
+        const inUse = isCardInUse(c, new Set(form.vehicle_card_id ? [form.vehicle_card_id] : []))
+        return {
+          value: String(c.id),
+          label: c.card_no,
+          disabled: inUse,
+          badge: inUse ? cardStatusBadge(c.status) : undefined,
+        }
+      }),
+    [vehicleList, form.vehicle_card_id]
   )
+
+  const cardAvailableCount = useMemo(
+    () => cardList.filter((c) => !isCardInUse(c, heldIdsSet)).length,
+    [cardList, heldIdsSet]
+  )
+  const cardInUseCount = cardList.length - cardAvailableCount
+
+  const vehicleAvailableCount = useMemo(
+    () => vehicleOptions.filter((o) => !o.disabled).length,
+    [vehicleOptions]
+  )
+  const vehicleInUseCount = vehicleOptions.length - vehicleAvailableCount
 
   const selectedStaff = useMemo(
     () => staffList.find((s) => String(s.id) === String(form.staff_id)),
@@ -1022,20 +1148,36 @@ export function VisitFormFields({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="card_ids" className="text-xs font-semibold">
-              {t(
-                "create_visit.visitor_card_label",
-                "Kartu pengunjung (opsional)"
-              )}
-            </Label>
-            <Badge variant="outline" className="font-mono text-[11px]">
-              {loadingMaster
-                ? t("common.loading", "Memuat...")
+              {mode === "create"
+                ? t(
+                    "create_visit.visitor_card_label_required",
+                    "Kartu pengunjung *"
+                  )
                 : t(
-                    "create_visit.available_cards_count",
-                    "{{count}} tersedia",
-                    { count: formatNumber(cardList.length) }
+                    "create_visit.visitor_card_label",
+                    "Kartu pengunjung (opsional)"
                   )}
-            </Badge>
+            </Label>
+            <div className="flex items-center gap-1.5">
+              <Badge variant="outline" className="font-mono text-[11px]">
+                {loadingMaster
+                  ? t("common.loading", "Memuat...")
+                  : t(
+                      "create_visit.available_cards_count",
+                      "{{count}} tersedia",
+                      { count: formatNumber(cardAvailableCount) }
+                    )}
+              </Badge>
+              {!loadingMaster && cardInUseCount > 0 && (
+                <Badge className="border border-red-300 bg-red-50 font-mono text-[11px] text-red-700 hover:bg-red-50 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                  {t(
+                    "create_visit.in_use_cards_count",
+                    "{{count}} dipakai",
+                    { count: formatNumber(cardInUseCount) }
+                  )}
+                </Badge>
+              )}
+            </div>
           </div>
           <SearchSelect
             id="card_ids"
@@ -1105,8 +1247,17 @@ export function VisitFormFields({
                 : t(
                     "create_visit.vehicle_cards_count",
                     "{{count}} kartu",
-                    { count: formatNumber(vehicleList.length) }
+                    { count: formatNumber(vehicleAvailableCount) }
                   )}
+              {!loadingMaster && vehicleInUseCount > 0 && (
+                <span className="ml-1.5 text-red-600 dark:text-red-400">
+                  {t(
+                    "create_visit.in_use_cards_count",
+                    "{{count}} dipakai",
+                    { count: formatNumber(vehicleInUseCount) }
+                  )}
+                </span>
+              )}
             </span>
           </div>
           <SearchSelect

@@ -302,7 +302,12 @@
     "override_title": "Loloskan satu kunjungan (override supervisor)",
     "override_desc": "Pengunjung ini ada di blacklist global ({{reason}}, didaftarkan {{yard}}). Override hanya berlaku untuk kunjungan ini, tercatat di log aktivitas, dan tidak mencabut entri global.",
     "override_reason_label": "Alasan (minimal 10 karakter)",
-    "override_submit": "Loloskan & check-in"
+    "override_submit": "Loloskan & check-in",
+    "toast_option_locked": "{{item}} sedang dipakai. Pilih yang lain.",
+    "visitor_card_label_required": "Kartu pengunjung *",
+    "in_use_cards_count": "{{count}} dipakai",
+    "toast_select_card": "Pilih kartu akses dulu.",
+    "toast_card_in_use": "Ada kartu yang sedang dipakai. Pilih kartu lain."
   },
   "visitors": {
     "title": "Master Pengunjung (Visitors)",
@@ -429,7 +434,22 @@
     "col_offences": "Pelanggaran (Offences)",
     "col_remark": "Keterangan (Remark)",
     "status_revoked": "Dicabut",
-    "toast_load_failed": "Gagal memuat profil pengunjung"
+    "toast_load_failed": "Gagal memuat profil pengunjung",
+    "placement_assigned_title": "Sedang Ditugaskan di Kapal:",
+    "placement_since": "Check-In sejak {{time}}",
+    "placement_standby": "Tidak Sedang Ditempatkan di Kapal (Standby / Off-Duty)",
+    "status_standby": "Standby",
+    "crew_movement_logs_title": "Riwayat Pergerakan Kru di Kapal (Vessel Crew Logs)",
+    "records_count": "Catatan",
+    "col_log_time": "Waktu Log",
+    "col_activity": "Aktivitas",
+    "col_vessel_name": "Kapal",
+    "col_officer": "Petugas",
+    "col_source": "Sumber",
+    "col_notes": "Catatan",
+    "no_crew_logs": "Belum ada riwayat check-in / check-out kapal untuk kru ini.",
+    "gate_visits_title": "Riwayat Kunjungan Gerbang (Gate Visits)",
+    "visits_history_title": "Riwayat Kunjungan"
   },
   "blacklist": {
     "title": "Daftar Pengunjung Blacklist",
@@ -669,7 +689,12 @@
     "confirm_checkin_title": "Konfirmasi Check-In Kru",
     "confirm_checkin_desc": "Check-In kembali kru {{name}} pada kapal {{vessel}}? Kru akan berstatus Check-In kembali.",
     "search_no_results": "Tidak ditemukan hasil",
-    "search_no_results_desc": "Tidak ada kapal atau kru yang cocok dengan kata kunci \"{{query}}\""
+    "search_no_results_desc": "Tidak ada kapal atau kru yang cocok dengan kata kunci \"{{query}}\"",
+    "cannot_checkin_departed_toast": "Kapal sudah berangkat (Sign-Out). Kru tidak dapat di-check-in.",
+    "departure_date": "Keberangkatan (Sign-Out)",
+    "vessel_already_departed_title": "Kapal Telah Berangkat (Sign-Out)",
+    "vessel_already_departed_desc": "Kapal {{name}} telah Sign-Out pada {{date}}. Kru tidak dapat di-check-in ke kedatangan kapal yang sudah keluar galangan.",
+    "crew_cannot_checkin_departed": "Check-In kru dinonaktifkan karena kapal telah berangkat (Sign-Out)."
   },
   "crew_report": {
     "title": "Laporan & Ekspor Kru Kapal",
@@ -2006,7 +2031,8 @@
     "detach_dialog_title": "Lepas Kru dari Penugasan Kapal",
     "detach_dialog_desc": "Apakah Anda yakin ingin melepas kru {{name}} dari penugasan kapal {{vessel}}? Kru ini akan berstatus 'Detached' dan dapat ditugaskan ke kapal lain di masa mendatang.",
     "detach_dialog_note": "Catatan: Status penugasan kru di kapal ini akan diakhiri dan dicatat di log audit.",
-    "btn_confirm_detach": "Lepas dari Kapal"
+    "btn_confirm_detach": "Lepas dari Kapal",
+    "cannot_checkin_departed": "Kapal sudah berangkat (Sign-Out). Tidak dapat melakukan check-in kru."
   },
   "reportsVisits": {
     "title": "Laporan Kunjungan (Visitor Report)",

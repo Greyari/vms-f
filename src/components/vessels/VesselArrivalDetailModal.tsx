@@ -232,6 +232,15 @@ export default function VesselArrivalDetailModal({
 
   const handleCrewCheckIn = async (crewIds: string[]) => {
     if (!detail || crewIds.length === 0) return
+    if (!isInPort) {
+      toast.error(
+        t(
+          "vesselArrivals.cannot_checkin_departed",
+          "Kapal sudah berangkat (Sign-Out). Tidak dapat melakukan check-in kru."
+        )
+      )
+      return
+    }
     setProcessingCrewId(crewIds[0])
     try {
       const payload: Record<string, any> = {
@@ -766,15 +775,17 @@ export default function VesselArrivalDetailModal({
                       {t("vesselArrivals.btn_checkout_all", "Check-Out Semua Kru")}
                     </Button>
                   )}
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setAddCrewOpen(true)}
-                    className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <UserPlus className="h-3.5 w-3.5 mr-1" />
-                    {t("vesselArrivals.btn_checkin_add_crew", "Check-In / Tambah Kru")}
-                  </Button>
+                  {isInPort && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setAddCrewOpen(true)}
+                      className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <UserPlus className="h-3.5 w-3.5 mr-1" />
+                      {t("vesselArrivals.btn_checkin_add_crew", "Check-In / Tambah Kru")}
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -785,16 +796,18 @@ export default function VesselArrivalDetailModal({
                     {t("vesselArrivals.selected_crew_bar", "Terpilih {{count}} kru", { count: selectedCrewIds.size })}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={handleBulkCheckIn}
-                      className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300"
-                    >
-                      <LogIn className="h-3 w-3 mr-1" />
-                      {t("vesselArrivals.bulk_checkin", "Check-In Terpilih")}
-                    </Button>
+                    {isInPort && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleBulkCheckIn}
+                        className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300"
+                      >
+                        <LogIn className="h-3 w-3 mr-1" />
+                        {t("vesselArrivals.bulk_checkin", "Check-In Terpilih")}
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       size="sm"
@@ -1110,7 +1123,7 @@ export default function VesselArrivalDetailModal({
                                   </Button>
                                 )}
 
-                                {(isCheckedOut || isExpected) && (
+                                {(isCheckedOut || isExpected) && isInPort && (
                                   <Button
                                     type="button"
                                     variant="outline"

@@ -302,7 +302,12 @@
     "override_title": "Authorize a single visit (supervisor override)",
     "override_desc": "This visitor is on the global blacklist ({{reason}}, registered by {{yard}}). This override applies only to this visit, is recorded in the activity log, and does not revoke the global entry.",
     "override_reason_label": "Reason (minimum 10 characters)",
-    "override_submit": "Authorize & check-in"
+    "override_submit": "Authorize & check-in",
+    "toast_option_locked": "{{item}} is currently in use. Please select another.",
+    "visitor_card_label_required": "Visitor card *",
+    "in_use_cards_count": "{{count}} in use",
+    "toast_select_card": "Please select an access card first.",
+    "toast_card_in_use": "A selected card is currently in use. Please select another card."
   },
   "visitors": {
     "title": "Master Visitors",
@@ -429,7 +434,22 @@
     "col_offences": "Offences",
     "col_remark": "Remark",
     "status_revoked": "Revoked",
-    "toast_load_failed": "Failed to load visitor details."
+    "toast_load_failed": "Failed to load visitor details.",
+    "placement_assigned_title": "Currently Assigned to Vessel:",
+    "placement_since": "Checked-in since {{time}}",
+    "placement_standby": "Not Currently Assigned to a Vessel (Standby / Off-Duty)",
+    "status_standby": "Standby",
+    "crew_movement_logs_title": "Vessel Crew Activity History (Crew Logs)",
+    "records_count": "Records",
+    "col_log_time": "Log Timestamp",
+    "col_activity": "Activity",
+    "col_vessel_name": "Vessel",
+    "col_officer": "Officer",
+    "col_source": "Source",
+    "col_notes": "Notes",
+    "no_crew_logs": "No vessel check-in / check-out history for this crew member.",
+    "gate_visits_title": "Gate Visits History",
+    "visits_history_title": "Visit History"
   },
   "blacklist": {
     "title": "Blacklist Directory",
@@ -669,7 +689,12 @@
     "confirm_checkin_title": "Confirm Crew Check-In",
     "confirm_checkin_desc": "Check-In crew member {{name}} back to {{vessel}}?",
     "search_no_results": "Tidak ditemukan hasil",
-    "search_no_results_desc": "Tidak ada kapal atau kru yang cocok dengan kata kunci \"{{query}}\""
+    "search_no_results_desc": "Tidak ada kapal atau kru yang cocok dengan kata kunci \"{{query}}\"",
+    "cannot_checkin_departed_toast": "Vessel has already departed (Signed Out). Crew cannot be checked in.",
+    "departure_date": "Departure (Sign-Out)",
+    "vessel_already_departed_title": "Vessel Has Departed (Sign-Out)",
+    "vessel_already_departed_desc": "Vessel {{name}} has Signed Out on {{date}}. Crew cannot be checked in to a vessel arrival that has already departed.",
+    "crew_cannot_checkin_departed": "Crew Check-In is disabled because the vessel has already departed (Signed Out)."
   },
   "crew_report": {
     "title": "Crew Report & Export",
@@ -2006,7 +2031,8 @@
     "detach_dialog_title": "Detach Crew from Vessel Assignment",
     "detach_dialog_desc": "Are you sure you want to detach crew {{name}} from vessel {{vessel}}? This crew will be marked as 'Detached' and can be assigned to other vessels in the future.",
     "detach_dialog_note": "Note: The crew assignment status on this vessel will be ended and recorded in the audit log.",
-    "btn_confirm_detach": "Detach from Vessel"
+    "btn_confirm_detach": "Detach from Vessel",
+    "cannot_checkin_departed": "Vessel has already departed (Signed Out). Crew cannot be checked in."
   },
   "reportsVisits": {
     "title": "Visitor Report",

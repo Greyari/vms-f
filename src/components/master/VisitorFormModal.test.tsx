@@ -146,12 +146,18 @@ describe('VisitorFormModal Component', () => {
     expect(screen.getByText(/nomor identitas pengunjung blacklist dikunci demi integritas keamanan/i)).toBeInTheDocument()
   })
 
-  it('shows crew fields when visitor_type is crew', async () => {
+  it('shows crew fields and hides phone, email, and address when visitor_type is crew', async () => {
+    vi.mocked(api.post).mockResolvedValue({
+      data: { id: 55, name: 'Sailor Moon' },
+    })
+
+    const handleSuccess = vi.fn()
+
     render(
       <VisitorFormModal
         open={true}
         onOpenChange={vi.fn()}
-        onSuccess={vi.fn()}
+        onSuccess={handleSuccess}
       />
     )
 
@@ -161,6 +167,29 @@ describe('VisitorFormModal Component', () => {
     await waitFor(() => {
       expect(screen.getByLabelText(/nomor sertifikat/i)).toBeInTheDocument()
       expect(screen.getByLabelText(/buku pelaut/i)).toBeInTheDocument()
+      expect(screen.queryByLabelText(/nomor telepon/i)).not.toBeInTheDocument()
+      expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument()
+      expect(screen.queryByLabelText(/alamat domisili/i)).not.toBeInTheDocument()
+    })
+
+    fireEvent.change(screen.getByLabelText(/nama lengkap/i), {
+      target: { value: 'Sailor Moon' },
+    })
+    fireEvent.change(screen.getByLabelText(/nomor identitas/i), {
+      target: { value: '987654321' },
+    })
+
+    const submitButton = screen.getByRole('button', { name: /simpan|daftar/i })
+    fireEvent.click(submitButton)
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/visitors', expect.objectContaining({
+        name: 'Sailor Moon',
+        visitor_type: 'crew',
+        phone: null,
+        email: null,
+        address: null,
+      }))
     })
   })
 })

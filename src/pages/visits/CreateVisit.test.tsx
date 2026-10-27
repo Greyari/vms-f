@@ -475,6 +475,15 @@ describe("CreateVisit Page & Master Data", () => {
       })
       fireEvent.mouseDown(screen.getByText("Budi Santoso"))
 
+      // Select card
+      const cardInput = document.getElementById("card_ids") as HTMLInputElement
+      fireEvent.focus(cardInput)
+      fireEvent.change(cardInput, { target: { value: "V-001" } })
+      await waitFor(() => {
+        expect(screen.getByText("V-001")).toBeInTheDocument()
+      })
+      fireEvent.mouseDown(screen.getByText("V-001"))
+
       // Submit form
       const submitBtn = screen.getByRole("button", {
         name: /simpan & cetak tiket/i,

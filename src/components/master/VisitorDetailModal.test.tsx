@@ -140,4 +140,73 @@ describe('VisitorDetailModal Component', () => {
       expect(screen.getByText(/masih aktif/i)).toBeInTheDocument()
     })
   })
+
+  it('renders standby badge when crew is not currently placed on any vessel', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: {
+        visitor: {
+          ...mockVisitorProfile,
+          vessel: null,
+          vessel_name: null,
+          current_placement: null,
+        },
+      },
+    })
+
+    render(
+      <VisitorDetailModal
+        open={true}
+        onOpenChange={vi.fn()}
+        visitorId={10}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/tidak sedang ditempatkan di kapal/i)).toBeInTheDocument()
+      expect(screen.getByText('Standby')).toBeInTheDocument()
+    })
+  })
+
+  it('renders crew movement logs alongside gate visits in history tab', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: {
+        visitor: {
+          ...mockVisitorProfile,
+          crew_logs: [
+            {
+              id: 'log-1',
+              action: 'check_in',
+              source: 'manual',
+              performed_by_name: 'Officer John',
+              notes: 'Naik kapal shift pagi',
+              logged_at: '2026-10-25 08:00:00',
+              vessel_name: 'MV PACIFIC STAR',
+            },
+          ],
+        },
+      },
+    })
+
+    render(
+      <VisitorDetailModal
+        open={true}
+        onOpenChange={vi.fn()}
+        visitorId={10}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Bambang Sudirman')).toBeInTheDocument()
+    })
+
+    const historyTab = screen.getByRole('tab', { name: /riwayat/i })
+    fireEvent.click(historyTab)
+
+    await waitFor(() => {
+      expect(screen.getByText(/riwayat pergerakan kru di kapal/i)).toBeInTheDocument()
+      expect(screen.getByText('MV PACIFIC STAR')).toBeInTheDocument()
+      expect(screen.getByText('Officer John')).toBeInTheDocument()
+      expect(screen.getByText('Naik kapal shift pagi')).toBeInTheDocument()
+    })
+  })
 })

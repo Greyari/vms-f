@@ -156,7 +156,7 @@ describe("VisitHistory Page", () => {
     })
 
     const savedCols = JSON.parse(
-      localStorage.getItem("vms_visit_history_columns_u-1") || "[]"
+      localStorage.getItem("vms_visit_history_columns_v2_u-1") || "[]"
     )
     expect(savedCols).toContain("host")
   })

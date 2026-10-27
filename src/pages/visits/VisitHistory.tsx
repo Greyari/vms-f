@@ -140,6 +140,7 @@ export interface VisitRecord {
 }
 
 export type OptionalColumnKey =
+  | "check_in_time"
   | "visitor_name"
   | "id_number"
   | "company"
@@ -149,12 +150,12 @@ export type OptionalColumnKey =
   | "purpose"
   | "location"
   | "host"
-  | "check_in_time"
   | "check_out_time"
   | "duration"
   | "created_by"
 
 export const DEFAULT_VISIBLE_COLUMNS: OptionalColumnKey[] = [
+  "check_in_time",
   "visitor_name",
   "card_no",
   "plate_no",
@@ -162,6 +163,7 @@ export const DEFAULT_VISIBLE_COLUMNS: OptionalColumnKey[] = [
 ]
 
 export const ALL_OPTIONAL_COLUMNS: OptionalColumnKey[] = [
+  "check_in_time",
   "visitor_name",
   "id_number",
   "company",
@@ -171,7 +173,6 @@ export const ALL_OPTIONAL_COLUMNS: OptionalColumnKey[] = [
   "purpose",
   "location",
   "host",
-  "check_in_time",
   "check_out_time",
   "duration",
   "created_by",
@@ -370,7 +371,7 @@ export default function VisitHistory() {
 
   // Column visibility state persisted per user in localStorage
   const storageKey = useMemo(
-    () => `vms_visit_history_columns_${user?.id || user?.username || "default"}`,
+    () => `vms_visit_history_columns_v2_${user?.id || user?.username || "default"}`,
     [user?.id, user?.username]
   )
 
@@ -783,6 +784,11 @@ export default function VisitHistory() {
     sortKey?: string
   }[] = [
     {
+      key: "check_in_time",
+      label: t("visit_history.col_check_in", "Waktu Check-In"),
+      sortKey: "date",
+    },
+    {
       key: "visitor_name",
       label: t("visit_history.col_visitor_name", "Nama Pengunjung"),
       sortKey: "visitor_name",
@@ -823,11 +829,6 @@ export default function VisitHistory() {
       key: "host",
       label: t("visit_history.col_host", "Staf Host"),
       sortKey: "host_name",
-    },
-    {
-      key: "check_in_time",
-      label: t("visit_history.col_check_in", "Waktu Check-In"),
-      sortKey: "date",
     },
     {
       key: "check_out_time",
@@ -1266,6 +1267,19 @@ export default function VisitHistory() {
                   />
                 </TableHead>
 
+                {/* Check-In: kolom pertama dari kiri (setelah checkbox) */}
+                {isColVisible("check_in_time") && (
+                  <TableHead
+                    onClick={() => handleSort("date")}
+                    className="cursor-pointer select-none whitespace-nowrap"
+                  >
+                    <div className="flex items-center">
+                      {t("visit_history.col_check_in", "Waktu Masuk")}
+                      {renderSortIcon("date")}
+                    </div>
+                  </TableHead>
+                )}
+
                 {isColVisible("visitor_name") && (
                   <TableHead
                     onClick={() => handleSort("visitor_name")}
@@ -1352,18 +1366,6 @@ export default function VisitHistory() {
                     <div className="flex items-center">
                       {t("visit_history.col_host", "Staf Host")}
                       {renderSortIcon("host_name")}
-                    </div>
-                  </TableHead>
-                )}
-
-                {isColVisible("check_in_time") && (
-                  <TableHead
-                    onClick={() => handleSort("date")}
-                    className="cursor-pointer select-none whitespace-nowrap"
-                  >
-                    <div className="flex items-center">
-                      {t("visit_history.col_check_in", "Waktu Masuk")}
-                      {renderSortIcon("date")}
                     </div>
                   </TableHead>
                 )}
@@ -1501,6 +1503,13 @@ export default function VisitHistory() {
                           className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 disabled:opacity-30 cursor-pointer"
                         />
                       </TableCell>
+
+                      {/* Check-in Time: kolom pertama dari kiri (setelah checkbox) */}
+                      {isColVisible("check_in_time") && (
+                        <TableCell className="font-mono text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
+                          {checkInDisplay || "-"}
+                        </TableCell>
+                      )}
 
                       {/* Visitor Name */}
                       {isColVisible("visitor_name") && (
@@ -1660,13 +1669,6 @@ export default function VisitHistory() {
                               {hostOccupation}
                             </div>
                           )}
-                        </TableCell>
-                      )}
-
-                      {/* Check-in Time */}
-                      {isColVisible("check_in_time") && (
-                        <TableCell className="font-mono text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
-                          {checkInDisplay || "-"}
                         </TableCell>
                       )}
 

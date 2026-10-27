@@ -154,6 +154,15 @@ export default function CrewPersonPanelModal({
   // Handle Check-In
   const handleCheckIn = async () => {
     if (!data?.current_placement?.vessel_arrival_id || !data.visitor.id) return
+    if (data.current_placement.sign_out_date) {
+      toast.error(
+        t(
+          "vessel.cannot_checkin_departed_toast",
+          "Kapal sudah berangkat (Sign-Out). Kru tidak dapat di-check-in."
+        )
+      )
+      return
+    }
     if (data.visitor.is_blacklisted) {
       toast.error(
         t(
@@ -239,6 +248,15 @@ export default function CrewPersonPanelModal({
   // Handle Reactivate
   const handleReactivate = async () => {
     if (!data?.current_placement?.vessel_arrival_id || !data.visitor.id) return
+    if (data.current_placement.sign_out_date) {
+      toast.error(
+        t(
+          "vessel.cannot_checkin_departed_toast",
+          "Kapal sudah berangkat (Sign-Out). Kru tidak dapat di-check-in."
+        )
+      )
+      return
+    }
 
     setActionLoading(true)
     try {
@@ -270,6 +288,7 @@ export default function CrewPersonPanelModal({
 
   const visitor = data?.visitor
   const placement = data?.current_placement
+  const isVesselDeparted = Boolean(placement?.sign_out_date)
   const isCheckedIn = placement?.status === "checked_in"
   const isCheckedOut = placement?.status === "checked_out"
   const isExpected = !placement || placement.status === "expected"
@@ -373,6 +392,12 @@ export default function CrewPersonPanelModal({
                       <span className="font-medium text-foreground">{placement.sign_in_date}</span>
                     </div>
                   )}
+                  {placement.sign_out_date && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">{t("vessel.departure_date", "Keberangkatan (Sign-Out)")}</span>
+                      <span className="font-semibold text-amber-600 dark:text-amber-400">{placement.sign_out_date}</span>
+                    </div>
+                  )}
                   {placement.checked_in_at && (
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">{t("vessel.checked_in_at", "Waktu Check-In")}</span>
@@ -421,6 +446,24 @@ export default function CrewPersonPanelModal({
               )}
             </div>
 
+            {/* Departed Vessel Alert Banner */}
+            {isVesselDeparted && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-50 p-3.5 flex items-start gap-3 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300">
+                <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <div className="text-xs">
+                  <p className="font-bold text-sm">
+                    {t("vessel.vessel_already_departed_title", "Kapal Telah Berangkat (Sign-Out)")}
+                  </p>
+                  <p className="mt-0.5">
+                    {t("vessel.vessel_already_departed_desc", "Kapal {{name}} telah Sign-Out pada {{date}}. Kru tidak dapat di-check-in ke kedatangan kapal yang sudah keluar galangan.", {
+                      name: placement?.vessel_name || "",
+                      date: placement?.sign_out_date || "",
+                    })}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons Section */}
             {placement && (
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
@@ -428,66 +471,76 @@ export default function CrewPersonPanelModal({
                   {t("vessel.action_title", "Aksi Penugasan Kru")}
                 </h4>
 
-                {/* Optional note input */}
-                <div className="space-y-1">
-                  <Label htmlFor="panel-action-note" className="text-xs text-muted-foreground">
-                    {t("vessel.action_notes", "Catatan Petugas (Opsional)")}
-                  </Label>
-                  <Input
-                    id="panel-action-note"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder={t("vessel.note_placeholder", "Contoh: Naik kapal shift malam...")}
-                    className="h-8 text-xs bg-background"
-                  />
-                </div>
+                {isVesselDeparted ? (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-center text-xs text-amber-800 dark:text-amber-300">
+                    <p className="font-medium">
+                      {t("vessel.crew_cannot_checkin_departed", "Check-In kru dinonaktifkan karena kapal telah berangkat (Sign-Out).")}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Optional note input */}
+                    <div className="space-y-1">
+                      <Label htmlFor="panel-action-note" className="text-xs text-muted-foreground">
+                        {t("vessel.action_notes", "Catatan Petugas (Opsional)")}
+                      </Label>
+                      <Input
+                        id="panel-action-note"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder={t("vessel.note_placeholder", "Contoh: Naik kapal shift malam...")}
+                        className="h-8 text-xs bg-background"
+                      />
+                    </div>
 
-                {/* Large Action Button Based on Status */}
-                {isExpected && (
-                  <Button
-                    onClick={handleCheckIn}
-                    disabled={actionLoading || visitor.is_blacklisted}
-                    className="w-full h-12 text-base font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md flex items-center justify-center gap-2"
-                  >
-                    {actionLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="h-5 w-5" />
+                    {/* Large Action Button Based on Status */}
+                    {isExpected && (
+                      <Button
+                        onClick={handleCheckIn}
+                        disabled={actionLoading || visitor.is_blacklisted}
+                        className="w-full h-12 text-base font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md flex items-center justify-center gap-2"
+                      >
+                        {actionLoading ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-5 w-5" />
+                        )}
+                        {t("vessel.btn_check_in", "CHECK-IN KRU")}
+                      </Button>
                     )}
-                    {t("vessel.btn_check_in", "CHECK-IN KRU")}
-                  </Button>
-                )}
 
-                {isCheckedIn && (
-                  <Button
-                    onClick={() => setConfirmCheckOutOpen(true)}
-                    disabled={actionLoading}
-                    variant="destructive"
-                    className="w-full h-12 text-base font-bold shadow-md flex items-center justify-center gap-2"
-                  >
-                    {actionLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <LogOut className="h-5 w-5" />
+                    {isCheckedIn && (
+                      <Button
+                        onClick={() => setConfirmCheckOutOpen(true)}
+                        disabled={actionLoading}
+                        variant="destructive"
+                        className="w-full h-12 text-base font-bold shadow-md flex items-center justify-center gap-2"
+                      >
+                        {actionLoading ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <LogOut className="h-5 w-5" />
+                        )}
+                        {t("vessel.btn_check_out", "CHECK-OUT KRU")}
+                      </Button>
                     )}
-                    {t("vessel.btn_check_out", "CHECK-OUT KRU")}
-                  </Button>
-                )}
 
-                {isCheckedOut && (
-                  <Button
-                    onClick={() => setConfirmReactivateOpen(true)}
-                    disabled={actionLoading || visitor.is_blacklisted}
-                    variant="outline"
-                    className="w-full h-11 text-sm font-bold border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 flex items-center justify-center gap-2"
-                  >
-                    {actionLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="h-4 w-4" />
+                    {isCheckedOut && (
+                      <Button
+                        onClick={() => setConfirmReactivateOpen(true)}
+                        disabled={actionLoading || visitor.is_blacklisted}
+                        variant="outline"
+                        className="w-full h-11 text-sm font-bold border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 flex items-center justify-center gap-2"
+                      >
+                        {actionLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4" />
+                        )}
+                        {t("vessel.btn_check_in", "CHECK-IN KRU")}
+                      </Button>
                     )}
-                    {t("vessel.btn_check_in", "CHECK-IN KRU")}
-                  </Button>
+                  </>
                 )}
               </div>
             )}

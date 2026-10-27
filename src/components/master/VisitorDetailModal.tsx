@@ -31,6 +31,9 @@ import {
   ShieldAlert,
   ShieldCheck,
   CheckCircle2,
+  LogIn,
+  LogOut,
+  Ship,
 } from "lucide-react"
 
 interface VisitRecord {
@@ -58,6 +61,27 @@ interface BlacklistHistoryItem {
   unblacklisted_at?: string | null
 }
 
+interface CurrentPlacement {
+  id: string
+  vessel_arrival_id: string
+  vessel_name?: string
+  vessel_code?: string
+  status: "expected" | "checked_in" | "checked_out" | string
+  checked_in_at?: string
+  sign_in_date?: string
+}
+
+interface CrewLogItem {
+  id: string
+  action: "check_in" | "check_out" | string
+  source?: string
+  performed_by_name?: string
+  notes?: string
+  logged_at?: string
+  vessel_name?: string
+  vessel_arrival_id?: string
+}
+
 interface VisitorProfile {
   id: number | string
   visitor_no?: string | number
@@ -83,6 +107,8 @@ interface VisitorProfile {
   seaman_book_no?: string
   vessel?: { id: number | string; name: string }
   vessel_name?: string
+  current_placement?: CurrentPlacement | null
+  crew_logs?: CrewLogItem[]
   visits?: VisitRecord[]
   blacklists?: BlacklistHistoryItem[]
 }
@@ -103,6 +129,14 @@ export default function VisitorDetailModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<"profile" | "history" | "security">("profile")
+
+  const formatDateTime = (dateStr?: string | null) => {
+    if (!dateStr) return "-"
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return dateStr
+    const pad = (n: number) => String(n).padStart(2, "0")
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  }
 
   const fetchVisitorDetail = useCallback(async () => {
     if (!visitorId) return
@@ -154,6 +188,8 @@ export default function VisitorDetailModal({
         dob: raw.dob || raw.birth_date || "",
         birth_place: raw.birth_place || raw.pob || "",
         birth_date: raw.birth_date || raw.dob || "",
+        current_placement: raw.current_placement ?? null,
+        crew_logs: Array.isArray(raw.crew_logs) ? raw.crew_logs : [],
         visits: visitsList,
         blacklists: Array.isArray(raw.blacklists) ? raw.blacklists : [],
       })
@@ -266,7 +302,12 @@ export default function VisitorDetailModal({
                 }`}
               >
                 <History className="h-4 w-4" />
-                {t("visitors.tab_history", { count: visitor.visits?.length || 0 })}
+                {t("visitors.tab_history", {
+                  count:
+                    visitor.visitor_type === "crew"
+                      ? (visitor.crew_logs?.length || 0) + (visitor.visits?.length || 0)
+                      : (visitor.visits?.length || 0),
+                })}
               </button>
               <button
                 type="button"
@@ -374,12 +415,57 @@ export default function VisitorDetailModal({
 
                 {/* Dokumen Crew / Maritim jika tipe Crew */}
                 {visitor.visitor_type === "crew" && (
-                  <div className="rounded-lg border border-sky-200 bg-sky-50/30 p-4 dark:border-sky-900/40 dark:bg-sky-950/20">
-                    <h4 className="mb-3 flex items-center gap-2 font-semibold text-sky-900 text-sm dark:text-sky-300">
-                      <Anchor className="h-4 w-4 text-sky-600 dark:text-sky-400" />
-                      {t("visitors.section_crew_docs", "Dokumen Maritim & Kru Kapal")}
-                    </h4>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="rounded-lg border border-sky-200 bg-sky-50/30 p-4 dark:border-sky-900/40 dark:bg-sky-950/20 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="flex items-center gap-2 font-semibold text-sky-900 text-sm dark:text-sky-300">
+                        {t("visitors.section_crew_docs", "Dokumen Maritim & Penugasan Kru")}
+                      </h4>
+                    </div>
+
+                    {/* Status Penempatan Real-Time di Kapal */}
+                    {visitor.current_placement || visitor.vessel?.name || visitor.vessel_name ? (
+                      <div className="rounded-lg border border-emerald-300 bg-emerald-50/70 p-3.5 dark:border-emerald-800 dark:bg-emerald-950/40">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-300 font-semibold text-sm">
+                            <Ship className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                            <span>
+                              {t("visitors.placement_assigned_title", "Sedang Ditugaskan di Kapal:")}{" "}
+                              <span className="font-bold underline decoration-emerald-500/40">
+                                {visitor.current_placement?.vessel_name || visitor.vessel?.name || visitor.vessel_name}
+                              </span>
+                              {visitor.current_placement?.vessel_code ? ` (${visitor.current_placement.vessel_code})` : ""}
+                            </span>
+                          </div>
+                          <Badge className="bg-emerald-600 text-white dark:bg-emerald-700 text-xs font-semibold">
+                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                            {visitor.current_placement?.status === "checked_in" || !visitor.current_placement
+                              ? t("vessel.status_checked_in", "Di Kapal (Check-In)")
+                              : t("vessel.status_expected", "Terdaftar (Expected)")}
+                          </Badge>
+                        </div>
+                        {visitor.current_placement?.checked_in_at && (
+                          <p className="mt-1 text-xs text-emerald-700/90 dark:text-emerald-400/90">
+                            {t("visitors.placement_since", "Check-In sejak {{time}}", {
+                              time: formatDateTime(visitor.current_placement.checked_in_at),
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm">
+                            <Anchor className="h-4 w-4 text-zinc-400" />
+                            <span>{t("visitors.placement_standby", "Tidak Sedang Ditempatkan di Kapal (Standby / Off-Duty)")}</span>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {t("visitors.status_standby", "Standby")}
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
                         <p className="text-xs text-muted-foreground">{t("visitors.lbl_cert_no", "Nomor Sertifikat")}</p>
                         <p className="font-mono font-medium text-sm">
@@ -392,12 +478,6 @@ export default function VisitorDetailModal({
                           {visitor.seaman_book_no || "-"}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">{t("visitors.lbl_assigned_vessel", "Kapal Bertugas")}</p>
-                        <p className="font-medium text-sm">
-                          {visitor.vessel?.name || visitor.vessel_name || "-"}
-                        </p>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -406,58 +486,147 @@ export default function VisitorDetailModal({
 
             {/* Tab Content: History */}
             {activeTab === "history" && (
-              <div className="space-y-4 pt-2">
-                <div className="overflow-hidden rounded-md border">
-                  <Table>
-                    <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
-                      <TableRow>
-                        <TableHead>{t("visitors.col_ticket_no", "No. Tiket")}</TableHead>
-                        <TableHead>{t("visitors.col_time_in", "Waktu Masuk")}</TableHead>
-                        <TableHead>{t("visitors.col_time_out", "Waktu Keluar")}</TableHead>
-                        <TableHead>{t("visitors.col_dest_location", "Lokasi Tujuan")}</TableHead>
-                        <TableHead>{t("visitors.col_host_pic", "Host PIC")}</TableHead>
-                        <TableHead>{t("visitors.col_purpose", "Keperluan")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {!visitor.visits || visitor.visits.length === 0 ? (
+              <div className="space-y-6 pt-2">
+                {/* Riwayat Kru di Kapal jika tipe Crew */}
+                {visitor.visitor_type === "crew" && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <h4 className="flex items-center gap-1.5 font-semibold text-sm text-sky-950 dark:text-sky-300">
+                        {t("visitors.crew_movement_logs_title", "Riwayat Pergerakan Kru di Kapal (Vessel Crew Logs)")}
+                      </h4>
+                      <Badge variant="outline" className="text-xs">
+                        {visitor.crew_logs?.length || 0} {t("visitors.records_count", "Catatan")}
+                      </Badge>
+                    </div>
+
+                    <div className="overflow-hidden rounded-md border">
+                      <Table>
+                        <TableHeader className="border-b bg-sky-50/50 dark:bg-sky-950/20">
+                          <TableRow>
+                            <TableHead className="text-xs">{t("visitors.col_log_time", "Waktu Log")}</TableHead>
+                            <TableHead className="text-xs">{t("visitors.col_activity", "Aktivitas")}</TableHead>
+                            <TableHead className="text-xs">{t("visitors.col_vessel_name", "Kapal")}</TableHead>
+                            <TableHead className="text-xs">{t("visitors.col_officer", "Petugas")}</TableHead>
+                            <TableHead className="text-xs">{t("visitors.col_source", "Sumber")}</TableHead>
+                            <TableHead className="text-xs">{t("visitors.col_notes", "Catatan")}</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {!visitor.crew_logs || visitor.crew_logs.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="h-20 text-center text-xs text-muted-foreground">
+                                {t("visitors.no_crew_logs", "Belum ada riwayat check-in / check-out kapal untuk kru ini.")}
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            visitor.crew_logs.map((log) => {
+                              const isCheckIn = log.action === "check_in"
+                              return (
+                                <TableRow key={log.id}>
+                                  <TableCell className="font-mono text-xs whitespace-nowrap">
+                                    {formatDateTime(log.logged_at)}
+                                  </TableCell>
+                                  <TableCell className="text-xs">
+                                    {isCheckIn ? (
+                                      <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300">
+                                        <LogIn className="mr-1 h-3 w-3" />
+                                        CHECK-IN
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-zinc-600 border-zinc-300 dark:border-zinc-700">
+                                        <LogOut className="mr-1 h-3 w-3" />
+                                        CHECK-OUT
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-xs font-semibold">
+                                    {log.vessel_name || "-"}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">
+                                    {log.performed_by_name || "-"}
+                                  </TableCell>
+                                  <TableCell className="text-xs capitalize text-muted-foreground">
+                                    {log.source || "-"}
+                                  </TableCell>
+                                  <TableCell className="text-xs italic text-muted-foreground max-w-[200px] truncate" title={log.notes || ""}>
+                                    {log.notes || "-"}
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Riwayat Kunjungan Gerbang (Gate Visits) */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <h4 className="flex items-center gap-1.5 font-semibold text-sm">
+                      <History className="h-4 w-4 text-primary" />
+                      {visitor.visitor_type === "crew"
+                        ? t("visitors.gate_visits_title", "Riwayat Kunjungan Gerbang (Gate Visits)")
+                        : t("visitors.visits_history_title", "Riwayat Kunjungan")}
+                    </h4>
+                    <Badge variant="outline" className="text-xs">
+                      {visitor.visits?.length || 0} {t("visitors.records_count", "Catatan")}
+                    </Badge>
+                  </div>
+
+                  <div className="overflow-hidden rounded-md border">
+                    <Table>
+                      <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
                         <TableRow>
-                          <TableCell colSpan={6} className="h-24 text-center text-zinc-500">
-                            {t("visitors.no_visits", "Belum ada riwayat kunjungan untuk pengunjung ini.")}
-                          </TableCell>
+                          <TableHead className="text-xs">{t("visitors.col_ticket_no", "No. Tiket")}</TableHead>
+                          <TableHead className="text-xs">{t("visitors.col_time_in", "Waktu Masuk")}</TableHead>
+                          <TableHead className="text-xs">{t("visitors.col_time_out", "Waktu Keluar")}</TableHead>
+                          <TableHead className="text-xs">{t("visitors.col_dest_location", "Lokasi Tujuan")}</TableHead>
+                          <TableHead className="text-xs">{t("visitors.col_host_pic", "Host PIC")}</TableHead>
+                          <TableHead className="text-xs">{t("visitors.col_purpose", "Keperluan")}</TableHead>
                         </TableRow>
-                      ) : (
-                        visitor.visits.map((visit) => (
-                          <TableRow key={visit.id}>
-                            <TableCell className="font-mono text-xs font-medium text-primary">
-                              {visit.ticket_no}
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {visit.check_in_at ? new Date(visit.check_in_at).toLocaleString() : "-"}
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {visit.check_out_at ? (
-                                new Date(visit.check_out_at).toLocaleString()
-                              ) : (
-                                <Badge variant="outline" className="border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
-                                  {t("visitors.still_active", "Masih Aktif")}
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {visit.location?.name || visit.location_name || "-"}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {visit.staff?.name || visit.host_name || "-"}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {visit.purpose || "-"}
+                      </TableHeader>
+                      <TableBody>
+                        {!visitor.visits || visitor.visits.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="h-24 text-center text-zinc-500">
+                              {t("visitors.no_visits", "Belum ada riwayat kunjungan gerbang untuk pengunjung ini.")}
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ) : (
+                          visitor.visits.map((visit) => (
+                            <TableRow key={visit.id}>
+                              <TableCell className="font-mono text-xs font-medium text-primary">
+                                {visit.ticket_no}
+                              </TableCell>
+                              <TableCell className="font-mono text-xs whitespace-nowrap">
+                                {formatDateTime(visit.check_in_at)}
+                              </TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">
+                                {visit.check_out_at ? (
+                                  <span className="font-mono text-xs">{formatDateTime(visit.check_out_at)}</span>
+                                ) : (
+                                  <Badge variant="outline" className="border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                                    {t("visitors.still_active", "Masih Aktif")}
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {visit.location?.name || visit.location_name || "-"}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {visit.staff?.name || visit.host_name || "-"}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {visit.purpose || "-"}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               </div>
             )}

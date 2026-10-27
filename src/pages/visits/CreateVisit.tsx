@@ -38,6 +38,7 @@ import {
   type VisitFormValues,
   unwrap,
   resetCreateVisitCache,
+  isCardInUse,
   useVisitMasterData,
   VisitFormFields,
   SectionTitle,
@@ -385,6 +386,20 @@ export default function CreateVisit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status])
 
+  // Jika kartu yang sudah dipilih ternyata berubah jadi "in use" (data master
+  // ter-refresh), buang dari pilihan supaya tidak terkirim ke backend.
+  useEffect(() => {
+    if (form.card_ids.length === 0) return
+    const stillFree = form.card_ids.filter((id) => {
+      const card = cardList.find((c) => String(c.id) === String(id))
+      return !card || !isCardInUse(card)
+    })
+    if (stillFree.length !== form.card_ids.length) {
+      setForm((p) => ({ ...p, card_ids: stillFree }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardList])
+
   /* ---------- cek pengunjung ---------- */
   const clearResult = () => {
     setVisitor(null)
@@ -505,6 +520,27 @@ export default function CreateVisit() {
     if (!form.staff_id) {
       return toast.error(
         t("create_visit.toast_select_staff_host", "Pilih staf host.")
+      )
+    }
+
+    // BARU: kartu wajib dipilih sebelum request ke backend.
+    // Hapus blok ini kalau kunjungan boleh tanpa kartu.
+    if (form.card_ids.length === 0) {
+      return toast.error(
+        t("create_visit.toast_select_card", "Pilih kartu akses dulu.")
+      )
+    }
+
+    // BARU: tolak kartu yang sedang dipakai.
+    const usedSelected = cardList.filter(
+      (c) => form.card_ids.includes(String(c.id)) && isCardInUse(c)
+    )
+    if (usedSelected.length > 0) {
+      return toast.error(
+        t(
+          "create_visit.toast_card_in_use",
+          "Ada kartu yang sedang dipakai. Pilih kartu lain."
+        )
       )
     }
 
@@ -1012,7 +1048,7 @@ export default function CreateVisit() {
             ) : status === "registered" ? (
               t(
                 "create_visit.footer_status_registered",
-                "Lengkapi tujuan dan host, lalu cetak tiket."
+                "Lengkapi tujuan, host, dan kartu, lalu cetak tiket."
               )
             ) : (
               t(

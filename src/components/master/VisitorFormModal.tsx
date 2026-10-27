@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { AlertCircle, Loader2 } from "lucide-react"
-import SearchableLocationSelect from "@/components/common/SearchableLocationSelect"
 
 interface VisitorFormModalProps {
   open: boolean
@@ -32,17 +31,6 @@ export default function VisitorFormModal({
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [fetchingDetail, setFetchingDetail] = useState(false)
-  const [vessels, setVessels] = useState<
-    Array<{
-      id: string
-      name: string
-      code?: string | null
-      type: string
-      vessel_type?: string | null
-      captain?: string | null
-      pic?: string | null
-    }>
-  >([])
   const isBlacklisted = Boolean(visitor?.is_blacklisted)
 
   const [form, setForm] = useState({
@@ -61,30 +49,7 @@ export default function VisitorFormModal({
     address: "",
     certificate_no: "",
     seaman_book_no: "",
-    vessel_id: "",
   })
-
-  useEffect(() => {
-    if (!open || form.visitor_type !== "crew") return
-    if (typeof api.get !== "function") return
-
-    try {
-      const req = api.get("/locations", { params: { per_page: 1000 } })
-      if (req && typeof req.then === "function") {
-        req
-          .then((res: any) => {
-            const raw = Array.isArray(res?.data) ? res.data : (res?.data?.data ?? [])
-            const onlyVessels = raw.filter((loc: any) => loc.type && loc.type !== "location")
-            setVessels(onlyVessels)
-          })
-          .catch(() => {
-            // Ignore vessel list fetch error
-          })
-      }
-    } catch {
-      // Ignore if api.get is not mocked in unit tests
-    }
-  }, [open, form.visitor_type])
 
   useEffect(() => {
     if (!open) {
@@ -109,7 +74,6 @@ export default function VisitorFormModal({
         address: visitor.address || "",
         certificate_no: visitor.certificate_no || "",
         seaman_book_no: visitor.seaman_book_no || "",
-        vessel_id: visitor.vessel_id || visitor.vessel?.id || "",
       })
 
       // If we have visitor ID and api.get is available, fetch full profile to ensure all details are loaded
@@ -139,7 +103,6 @@ export default function VisitorFormModal({
                     address: data.address ?? prev.address,
                     certificate_no: data.certificate_no ?? prev.certificate_no,
                     seaman_book_no: data.seaman_book_no ?? prev.seaman_book_no,
-                    vessel_id: data.vessel_id ?? data.vessel?.id ?? prev.vessel_id,
                   }))
                 }
               })
@@ -171,7 +134,6 @@ export default function VisitorFormModal({
         address: "",
         certificate_no: "",
         seaman_book_no: "",
-        vessel_id: "",
       })
     }
   }, [open, visitor])
@@ -180,15 +142,16 @@ export default function VisitorFormModal({
     e.preventDefault()
     setLoading(true)
 
+    const isCrew = form.visitor_type === "crew"
     const payload: Record<string, any> = {
       name: form.name.trim(),
       id_type: form.id_type,
       id_number: form.id_number.trim(),
       company: form.company.trim() || null,
       occupation: form.occupation.trim() || null,
-      phone: form.phone.trim() || null,
-      email: form.email.trim() || null,
-      address: form.address.trim() || null,
+      phone: isCrew ? null : (form.phone.trim() || null),
+      email: isCrew ? null : (form.email.trim() || null),
+      address: isCrew ? null : (form.address.trim() || null),
       visitor_type: form.visitor_type === "regular" ? "visitor" : form.visitor_type,
       gender: form.gender || null,
       birth_place: form.birth_place.trim() || null,
@@ -196,10 +159,9 @@ export default function VisitorFormModal({
       nationality: form.nationality.trim() || "Indonesia",
     }
 
-    if (form.visitor_type === "crew") {
+    if (isCrew) {
       payload.certificate_no = form.certificate_no.trim() || null
       payload.seaman_book_no = form.seaman_book_no.trim() || null
-      payload.vessel_id = form.vessel_id || null
     }
 
     try {
@@ -219,8 +181,6 @@ export default function VisitorFormModal({
       setLoading(false)
     }
   }
-
-  const selectedVessel = vessels.find((v) => v.id === form.vessel_id) || null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -251,6 +211,25 @@ export default function VisitorFormModal({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          {/* Tipe Pengunjung: Paling Atas */}
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3.5 space-y-1.5">
+            <Label htmlFor="vfm_visitor_type" className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+              {t("visitors.field_visitor_type", "Tipe Pengunjung *")}
+            </Label>
+            <select
+              id="vfm_visitor_type"
+              value={form.visitor_type}
+              onChange={(e) => setForm({ ...form, visitor_type: e.target.value })}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="visitor">{t("visitors.opt_type_regular", "Pengunjung Umum (Regular)")}</option>
+              <option value="crew">{t("visitors.opt_type_crew", "Crew (Kru Kapal)")}</option>
+              <option value="temporary_worker">{t("visitors.opt_type_contractor", "Tenaga Kerja Sementara / Kontraktor")}</option>
+              <option value="supplier">{t("visitors.opt_type_supplier", "Supplier / Vendor")}</option>
+              <option value="others">{t("visitors.opt_type_others", "Lainnya")}</option>
+            </select>
+          </div>
+
           {/* Section: Identitas Utama */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
@@ -293,7 +272,7 @@ export default function VisitorFormModal({
             </div>
           </div>
 
-          {/* Section: Instansi & Tipe Visitor */}
+          {/* Section: Instansi & Profesi */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="vfm_company">{t("visitors.field_company", "Perusahaan / Instansi")}</Label>
@@ -301,7 +280,7 @@ export default function VisitorFormModal({
                 id="vfm_company"
                 value={form.company}
                 onChange={(e) => setForm({ ...form, company: e.target.value })}
-                placeholder="Nama perusahaan"
+                placeholder={form.visitor_type === "crew" ? "Contoh: PT Pelayaran Samudera" : "Nama perusahaan"}
               />
             </div>
 
@@ -311,50 +290,13 @@ export default function VisitorFormModal({
                 id="vfm_occupation"
                 value={form.occupation}
                 onChange={(e) => setForm({ ...form, occupation: e.target.value })}
-                placeholder={t("visitors.field_occupation_placeholder", "Contoh: Teknisi, Marine Inspector")}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="vfm_visitor_type">{t("visitors.field_visitor_type", "Tipe Pengunjung")}</Label>
-              <select
-                id="vfm_visitor_type"
-                value={form.visitor_type}
-                onChange={(e) => setForm({ ...form, visitor_type: e.target.value })}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                <option value="visitor">{t("visitors.opt_type_regular", "Pengunjung Umum (Regular)")}</option>
-                <option value="crew">{t("visitors.opt_type_crew", "Crew (Kru Kapal)")}</option>
-                <option value="temporary_worker">{t("visitors.opt_type_contractor", "Tenaga Kerja Sementara / Kontraktor")}</option>
-                <option value="supplier">{t("visitors.opt_type_supplier", "Supplier / Vendor")}</option>
-                <option value="others">{t("visitors.opt_type_others", "Lainnya")}</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="vfm_phone">{t("visitors.field_phone", "Nomor Telepon")}</Label>
-              <Input
-                id="vfm_phone"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder={t("visitors.field_phone_placeholder", "Contoh: 081234567890")}
+                placeholder={form.visitor_type === "crew" ? "Contoh: Nahkoda, Mualim I, AB, KKM" : t("visitors.field_occupation_placeholder", "Contoh: Teknisi, Marine Inspector")}
               />
             </div>
           </div>
 
-          {/* Section: Kontak & Biodata Tambahan */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="vfm_email">{t("visitors.field_email", "Email")}</Label>
-              <Input
-                id="vfm_email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder={t("visitors.field_email_placeholder", "nama@email.com")}
-              />
-            </div>
-
+          {/* Section: Biodata Kelahiran & Kewarganegaraan */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="vfm_gender">{t("visitors.field_gender", "Jenis Kelamin")}</Label>
               <select
@@ -368,9 +310,7 @@ export default function VisitorFormModal({
                 <option value="F">{t("common.female", "Perempuan (F)")}</option>
               </select>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="vfm_pob">{t("visitors.field_pob", "Tempat Lahir")}</Label>
               <Input
@@ -402,16 +342,44 @@ export default function VisitorFormModal({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="vfm_address">{t("visitors.field_address", "Alamat Domisili")}</Label>
-            <Textarea
-              id="vfm_address"
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-              placeholder={t("visitors.field_address_placeholder", "Alamat tempat tinggal lengkap...")}
-              rows={2}
-            />
-          </div>
+          {/* Section: Kontak & Alamat Domisili (Hanya untuk Pengunjung Non-Crew) */}
+          {form.visitor_type !== "crew" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="vfm_phone">{t("visitors.field_phone", "Nomor Telepon")}</Label>
+                  <Input
+                    id="vfm_phone"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    placeholder={t("visitors.field_phone_placeholder", "Contoh: 081234567890")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="vfm_email">{t("visitors.field_email", "Email")}</Label>
+                  <Input
+                    id="vfm_email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    placeholder={t("visitors.field_email_placeholder", "nama@email.com")}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="vfm_address">{t("visitors.field_address", "Alamat Domisili")}</Label>
+                <Textarea
+                  id="vfm_address"
+                  value={form.address}
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  placeholder={t("visitors.field_address_placeholder", "Alamat tempat tinggal lengkap...")}
+                  rows={2}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Section: Dokumen Crew Khusus */}
           {form.visitor_type === "crew" && (
@@ -419,35 +387,6 @@ export default function VisitorFormModal({
               <h4 className="font-semibold text-sky-950 text-sm dark:text-sky-300">
                 {t("visitors.crew_docs_title", "Dokumen Kelautan Kru Kapal")}
               </h4>
-              <div className="space-y-2">
-                <Label htmlFor="vfm_vessel_id">{t("visitors.field_vessel", "Kapal Tugas (Vessel)")}</Label>
-                <SearchableLocationSelect
-                  id="vfm_vessel_id"
-                  ariaLabel={t("visitors.field_vessel", "Kapal Tugas (Vessel)")}
-                  options={vessels}
-                  value={form.vessel_id}
-                  onChange={(val) => setForm({ ...form, vessel_id: val })}
-                  placeholder={t("visitors.vessel_placeholder", "-- Cari & Pilih Kapal Tugas (Opsional) --")}
-                  searchPlaceholder={t("visitors.vessel_search_placeholder", "Cari nama kapal, IMO No, Captain, atau PIC...")}
-                  className="h-9 bg-white dark:bg-zinc-900"
-                />
-                {selectedVessel && (
-                  <div className="rounded border border-sky-200 bg-white dark:bg-zinc-900 dark:border-sky-800 p-2 text-xs text-zinc-700 dark:text-zinc-300 flex flex-wrap gap-3">
-                    <span>
-                      IMO: <strong>{selectedVessel.code || "-"}</strong>
-                    </span>
-                    <span>
-                      Tipe: <strong>{selectedVessel.vessel_type || selectedVessel.type}</strong>
-                    </span>
-                    <span>
-                      Captain: <strong>{selectedVessel.captain || "-"}</strong>
-                    </span>
-                    <span>
-                      Note/PIC: <strong>{selectedVessel.pic || "-"}</strong>
-                    </span>
-                  </div>
-                )}
-              </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="vfm_cert">{t("visitors.field_certificate_no", "Nomor Sertifikat")}</Label>
