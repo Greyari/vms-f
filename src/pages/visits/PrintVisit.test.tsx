@@ -166,7 +166,7 @@ describe("PrintVisit Page", () => {
     expect(printSpy).toHaveBeenCalledTimes(2)
   })
 
-  it("prioritizes visit.created_by_name over logged-in user and allows toolbar edit", async () => {
+  it("prioritizes visit.created_by_name over logged-in user and locks it in the pass signature", async () => {
     mockApi(yardConfig)
     const customVisit = {
       ...sampleVisit,
@@ -190,13 +190,6 @@ describe("PrintVisit Page", () => {
       // Must show Grey in signature, not "Petugas Jaga Gerbang"
       expect(screen.getByText("Grey")).toBeInTheDocument()
     })
-
-    const officerInput = screen.getByLabelText(/petugas pencatat/i) as HTMLInputElement
-    expect(officerInput.value).toBe("Grey")
-
-    // Edit officer name to "Grey (Shift Pagi)"
-    fireEvent.change(officerInput, { target: { value: "Grey (Shift Pagi)" } })
-    expect(screen.getByText("Grey (Shift Pagi)")).toBeInTheDocument()
   })
 })
 

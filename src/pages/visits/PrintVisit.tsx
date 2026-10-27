@@ -45,7 +45,6 @@ export default function PrintVisit() {
 
   const [visit, setVisit] = useState<any>(location.state?.visit || null)
   const [loading, setLoading] = useState<boolean>(!location.state?.visit)
-  const [officerName, setOfficerName] = useState<string>("")
   const hasPrintedRef = useRef(false)
   const hasLoggedReprintRef = useRef(false)
 
@@ -108,20 +107,6 @@ export default function PrintVisit() {
     }
   }, [id, navigate, location.state?.isReprint])
 
-  useEffect(() => {
-    if (visit) {
-      const initialOfficer =
-        visit.created_by_name ||
-        visit.creator?.name ||
-        visit.creator?.username ||
-        visit.printed_by ||
-        user?.name ||
-        user?.username ||
-        "Security Duty"
-      setOfficerName((prev) => (prev ? prev : initialOfficer))
-    }
-  }, [visit, user])
-
   if (loading) {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-50 font-sans dark:bg-zinc-950">
@@ -149,15 +134,14 @@ export default function PrintVisit() {
     )
   }
 
-  const defaultOfficer =
+  const officerName =
     visit.created_by_name ||
     visit.creator?.name ||
     visit.creator?.username ||
-    visit.printed_by ||
     user?.name ||
     user?.username ||
+    visit.printed_by ||
     "Security Duty"
-  const displayedOfficer = officerName.trim() || defaultOfficer
   const ticketNo =
     visit.ticket_number || visit.legacy_registration_no || `#${visit.id}`
   const cardsText =
@@ -345,7 +329,7 @@ export default function PrintVisit() {
           <div>
             <div className="h-8" />
             <div className="border-t-2 border-black pt-1 font-bold text-black">
-              {displayedOfficer}
+              {officerName}
             </div>
             <div className="text-[10px] font-bold text-black">Petugas / Security (Pencatat)</div>
           </div>
@@ -368,45 +352,30 @@ export default function PrintVisit() {
         </div>
       </div>
 
-      {/* Kontrol & Tombol Layar (tidak ikut tercetak) */}
-      <div className="mt-6 flex flex-col items-center justify-center gap-3 print:hidden">
-        <div className="flex flex-wrap items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <label htmlFor="officer-name-input" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-            {t("visit_history.officer_in_charge", "Petugas Pencatat:")}
-          </label>
-          <input
-            id="officer-name-input"
-            type="text"
-            value={officerName}
-            onChange={(e) => setOfficerName(e.target.value)}
-            placeholder={t("visit_history.officer_placeholder", "Nama Petugas / Security")}
-            className="h-8 w-64 rounded border border-zinc-300 bg-white px-2.5 text-xs font-semibold text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-          />
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <button
-            onClick={handlePrintNow}
-            disabled={!configReady}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Printer className="h-4 w-4" />
-            {t("visit_history.print_now", "Cetak Pass Sekarang")}
-          </button>
-          <button
-            onClick={() => navigate("/visits/create")}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
-          >
-            <PlusCircle className="h-4 w-4" />
-            {t("visit_history.add_new_visit", "Tambah Kunjungan Baru")}
-          </button>
-          <button
-            onClick={() => navigate("/visits/history")}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t("visit_history.back_to_history", "Kembali ke Riwayat Kunjungan")}
-          </button>
-        </div>
+      {/* Tombol layar (tidak ikut tercetak) */}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3 print:hidden">
+        <button
+          onClick={handlePrintNow}
+          disabled={!configReady}
+          className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Printer className="h-4 w-4" />
+          {t("visit_history.print_now", "Cetak Pass Sekarang")}
+        </button>
+        <button
+          onClick={() => navigate("/visits/create")}
+          className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+        >
+          <PlusCircle className="h-4 w-4" />
+          {t("visit_history.add_new_visit", "Tambah Kunjungan Baru")}
+        </button>
+        <button
+          onClick={() => navigate("/visits/history")}
+          className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t("visit_history.back_to_history", "Kembali ke Riwayat Kunjungan")}
+        </button>
       </div>
     </div>
   )
