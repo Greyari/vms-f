@@ -55,7 +55,141 @@ export interface LogRow {
   created_at: string
 }
 
-const ACTION_LABEL: Record<string, string> = {
+export function formatLogDateTime(raw?: string | null): string {
+  if (!raw) return "-"
+  try {
+    const parsed = new Date(raw.includes("T") ? raw : raw.replace(" ", "T"))
+    if (!Number.isNaN(parsed.getTime())) {
+      const d = String(parsed.getDate()).padStart(2, "0")
+      const m = String(parsed.getMonth() + 1).padStart(2, "0")
+      const y = parsed.getFullYear()
+      const hh = String(parsed.getHours()).padStart(2, "0")
+      const mm = String(parsed.getMinutes()).padStart(2, "0")
+      const ss = String(parsed.getSeconds()).padStart(2, "0")
+      return `${d}/${m}/${y} ${hh}:${mm}:${ss}`
+    }
+  } catch {
+    // fallback
+  }
+  return raw
+}
+
+export function getRelativeTime(raw?: string | null, isIndo = true): string {
+  if (!raw) return ""
+  try {
+    const parsed = new Date(raw.includes("T") ? raw : raw.replace(" ", "T"))
+    if (Number.isNaN(parsed.getTime())) return ""
+    const diffSec = Math.floor((Date.now() - parsed.getTime()) / 1000)
+    if (diffSec < 0) return ""
+    if (diffSec < 45) return isIndo ? "baru saja" : "just now"
+    const diffMin = Math.floor(diffSec / 60)
+    if (diffMin < 60) return isIndo ? `${diffMin} mnt lalu` : `${diffMin}m ago`
+    const diffHr = Math.floor(diffMin / 60)
+    if (diffHr < 24) return isIndo ? `${diffHr} jam lalu` : `${diffHr}h ago`
+    const diffDay = Math.floor(diffHr / 24)
+    if (diffDay < 30) return isIndo ? `${diffDay} hari lalu` : `${diffDay}d ago`
+    return ""
+  } catch {
+    return ""
+  }
+}
+
+const FIELD_LABELS: Record<string, { id: string; en: string }> = {
+  name: { id: "Nama", en: "Name" },
+  visitor_name: { id: "Nama Pengunjung", en: "Visitor Name" },
+  company: { id: "Perusahaan", en: "Company" },
+  visitor_company: { id: "Perusahaan Pengunjung", en: "Visitor Company" },
+  host_name: { id: "Nama Host", en: "Host Name" },
+  host_occupation: { id: "Jabatan Host", en: "Host Occupation" },
+  host_department: { id: "Departemen Host", en: "Host Department" },
+  department: { id: "Departemen", en: "Department" },
+  occupation: { id: "Jabatan / Pekerjaan", en: "Occupation" },
+  location_name: { id: "Tujuan Lokasi", en: "Destination Location" },
+  location_id: { id: "ID Lokasi", en: "Location ID" },
+  purpose: { id: "Keperluan / Tujuan", en: "Purpose" },
+  status: { id: "Status", en: "Status" },
+  ticket_number: { id: "Nomor Tiket", en: "Ticket Number" },
+  card_no: { id: "Nomor Kartu", en: "Card Number" },
+  visitor_cards: { id: "Kartu Pengunjung", en: "Visitor Cards" },
+  vehicle_no: { id: "Nomor Plat Kendaraan", en: "Vehicle Plate Number" },
+  vehicle_card_id: { id: "Kartu Kendaraan", en: "Vehicle Card" },
+  phone: { id: "Nomor Telepon", en: "Phone Number" },
+  email: { id: "Email", en: "Email" },
+  username: { id: "Username", en: "Username" },
+  role: { id: "Peran / Role", en: "Role" },
+  roles: { id: "Daftar Peran", en: "Roles List" },
+  permissions: { id: "Hak Akses", en: "Permissions" },
+  id_type: { id: "Tipe Identitas", en: "ID Type" },
+  id_number: { id: "Nomor Identitas", en: "ID Number" },
+  gender: { id: "Jenis Kelamin", en: "Gender" },
+  nationality: { id: "Kewarganegaraan", en: "Nationality" },
+  vessel_name: { id: "Nama Kapal", en: "Vessel Name" },
+  vessel_id: { id: "ID Kapal", en: "Vessel ID" },
+  date: { id: "Tanggal", en: "Date" },
+  time_in: { id: "Jam Masuk", en: "Time In" },
+  time_out: { id: "Jam Keluar", en: "Time Out" },
+  checked_in_at: { id: "Waktu Check-In", en: "Check-In Time" },
+  checked_out_at: { id: "Waktu Check-Out", en: "Check-Out Time" },
+  created_by: { id: "Dibuat Oleh (ID)", en: "Created By (ID)" },
+  created_by_name: { id: "Petugas Pencatat", en: "Recording Officer" },
+  checked_out_by: { id: "Di-Checkout Oleh (ID)", en: "Checked Out By (ID)" },
+  checked_out_by_name: { id: "Petugas Check-Out", en: "Checkout Officer" },
+  printed_by: { id: "Dicetak Oleh", en: "Printed By" },
+  is_active: { id: "Status Aktif", en: "Active Status" },
+  notes: { id: "Catatan", en: "Notes" },
+  remarks: { id: "Keterangan", en: "Remarks" },
+  reason: { id: "Alasan", en: "Reason" },
+  password: { id: "Kata Sandi", en: "Password" },
+  code: { id: "Kode", en: "Code" },
+}
+
+function getFieldLabel(key: string, isIndo: boolean): { title: string; technical: string } {
+  const item = FIELD_LABELS[key]
+  if (item) {
+    return {
+      title: isIndo ? item.id : item.en,
+      technical: key,
+    }
+  }
+  const humanized = key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+  return {
+    title: humanized,
+    technical: key,
+  }
+}
+
+function renderValue(val: any, t: any) {
+  if (val === null || val === undefined || val === "") {
+    return (
+      <span className="italic text-zinc-400">
+        ({t("logs.empty_val", "Kosong / Tidak diisi")})
+      </span>
+    )
+  }
+  if (typeof val === "boolean") {
+    return (
+      <span className="font-mono font-semibold text-[11px]">
+        {val ? "TRUE (Ya)" : "FALSE (Tidak)"}
+      </span>
+    )
+  }
+  if (typeof val === "object") {
+    return (
+      <pre className="max-h-56 overflow-auto rounded bg-zinc-900/5 p-2 font-mono text-[11px] leading-relaxed text-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-200">
+        {JSON.stringify(val, null, 2)}
+      </pre>
+    )
+  }
+  return (
+    <div className="break-words break-all whitespace-pre-wrap font-sans text-xs">
+      {String(val)}
+    </div>
+  )
+}
+
+const ACTION_LABEL_FALLBACK: Record<string, string> = {
   created: "Created",
   updated: "Updated",
   deleted: "Deleted",
@@ -65,23 +199,12 @@ const ACTION_LABEL: Record<string, string> = {
   login_failed: "Login Failed",
 }
 
-const ACTION_VARIANT: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  created: "default",
-  updated: "secondary",
-  deleted: "destructive",
-  restored: "secondary",
-  login: "outline",
-  logout: "outline",
-  login_failed: "destructive",
-}
-
 const ALL = "__all__"
 
 export default function ActivityLogs() {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
+  const isIndo = language === "id"
+
   const [logs, setLogs] = useState<LogRow[]>([])
   const [loading, setLoading] = useState(false)
   const [subjectTypes, setSubjectTypes] = useState<string[]>([])
@@ -102,8 +225,43 @@ export default function ActivityLogs() {
         return t("logs.action_logout", "Logout")
       case "login_failed":
         return t("logs.action_login_failed", "Login Failed")
+      case "reprinted":
+        return t("logs.action_reprinted", "Cetak Ulang Pass")
+      case "checked_in":
+        return t("logs.action_checked_in", "Check-In")
+      case "checked_out":
+        return t("logs.action_checked_out", "Check-Out")
+      case "blacklisted":
+        return t("logs.action_blacklisted", "Masuk Blacklist")
+      case "unblacklisted":
+        return t("logs.action_unblacklisted", "Dicabut Blacklist")
       default:
-        return action
+        return ACTION_LABEL_FALLBACK[action] || action
+    }
+  }
+
+  const getActionBadgeClass = (action: string) => {
+    switch (action) {
+      case "created":
+      case "checked_in":
+        return "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+      case "updated":
+        return "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+      case "deleted":
+      case "login_failed":
+      case "blacklisted":
+        return "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+      case "restored":
+      case "unblacklisted":
+        return "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+      case "reprinted":
+        return "bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+      case "checked_out":
+        return "bg-orange-50 text-orange-700 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800"
+      case "login":
+      case "logout":
+      default:
+        return "bg-zinc-100 text-zinc-700 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700"
     }
   }
 
@@ -232,7 +390,7 @@ export default function ActivityLogs() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>{t("logs.filter_all_actions", "Semua Aksi")}</SelectItem>
-              {Object.keys(ACTION_LABEL).map((val) => (
+              {Object.keys(ACTION_LABEL_FALLBACK).map((val) => (
                 <SelectItem key={val} value={val}>
                   {getActionLabel(val)}
                 </SelectItem>
@@ -310,32 +468,37 @@ export default function ActivityLogs() {
                 </TableRow>
               ) : (
                 logs.map((log, index) => {
-                  const actorDisplay = log.causer_username
-                    ? `@${log.causer_username}`
-                    : log.causer_email || log.causer_name || t("logs.actor_system", "Sistem")
+                  const actorDisplay = log.causer_name || (log.causer_username ? `@${log.causer_username}` : log.causer_email) || t("logs.actor_system", "Sistem")
 
                   return (
-                    <TableRow key={log.id || index} className="text-xs">
+                    <TableRow key={log.id || index} className="text-xs hover:bg-zinc-50/80 dark:hover:bg-zinc-900/50">
                       <TableCell className="text-center text-zinc-500 font-mono">
                         {(currentPage - 1) * perPage + index + 1}
                       </TableCell>
                       <TableCell className="font-mono text-zinc-700 dark:text-zinc-300">
-                        {log.created_at}
+                        <div className="font-semibold text-xs whitespace-nowrap text-zinc-900 dark:text-zinc-100">
+                          {formatLogDateTime(log.created_at)}
+                        </div>
+                        {getRelativeTime(log.created_at, isIndo) && (
+                          <div className="text-[10px] text-zinc-500 whitespace-nowrap">
+                            ({getRelativeTime(log.created_at, isIndo)})
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium text-zinc-900 dark:text-zinc-100">
+                        <div className="font-semibold text-zinc-900 dark:text-zinc-100">
                           {actorDisplay}
                         </div>
-                        {log.causer_name && log.causer_username && (
-                          <div className="text-[11px] text-zinc-500">
-                            {log.causer_name}
+                        {log.causer_username && (
+                          <div className="text-[11px] font-mono text-zinc-500">
+                            @{log.causer_username}
                           </div>
                         )}
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={ACTION_VARIANT[log.action] ?? "secondary"}
-                          className="capitalize text-[11px]"
+                          variant="outline"
+                          className={`capitalize text-[11px] font-semibold border ${getActionBadgeClass(log.action)}`}
                         >
                           {getActionLabel(log.action)}
                         </Badge>
@@ -362,7 +525,7 @@ export default function ActivityLogs() {
                             setSelectedLog(log)
                             setDetailOpen(true)
                           }}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 cursor-pointer"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -389,7 +552,7 @@ export default function ActivityLogs() {
               size="sm"
               disabled={currentPage <= 1 || loading}
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              className="h-7 w-7 p-0"
+              className="h-7 w-7 p-0 cursor-pointer"
               aria-label={t("common.previous", "Previous Page")}
             >
               <ChevronLeft className="h-3.5 w-3.5" />
@@ -399,7 +562,7 @@ export default function ActivityLogs() {
               size="sm"
               disabled={currentPage >= lastPage || loading}
               onClick={() => setCurrentPage((prev) => prev + 1)}
-              className="h-7 w-7 p-0"
+              className="h-7 w-7 p-0 cursor-pointer"
               aria-label={t("common.next", "Next Page")}
             >
               <ChevronRight className="h-3.5 w-3.5" />
@@ -410,7 +573,7 @@ export default function ActivityLogs() {
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <ShieldAlert className="h-5 w-5 text-blue-600" />
@@ -423,74 +586,137 @@ export default function ActivityLogs() {
 
           {selectedLog && (
             <div className="space-y-4 pt-2 text-xs">
-              <div className="grid grid-cols-2 gap-3 bg-zinc-50 p-3 rounded-md dark:bg-zinc-900">
+              {/* Context Summary Box */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-zinc-50 p-3.5 rounded-lg border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800">
                 <div>
-                  <span className="text-zinc-500">{t("logs.time_occurred", "Waktu Kejadian:")}</span>
-                  <div className="font-mono font-medium">{selectedLog.created_at}</div>
-                </div>
-                <div>
-                  <span className="text-zinc-500">{t("logs.causer_label", "Pelaku (Causer):")}</span>
-                  <div className="font-medium">
-                    {selectedLog.causer_username ? `@${selectedLog.causer_username}` : selectedLog.causer_name || selectedLog.causer_email || t("logs.actor_system", "Sistem")}
+                  <span className="text-[11px] font-medium text-zinc-500">{t("logs.time_occurred", "Waktu Kejadian:")}</span>
+                  <div className="font-mono font-semibold text-zinc-900 dark:text-zinc-100">
+                    {formatLogDateTime(selectedLog.created_at)}
                   </div>
+                  {getRelativeTime(selectedLog.created_at, isIndo) && (
+                    <div className="text-[10px] text-zinc-400">
+                      ({getRelativeTime(selectedLog.created_at, isIndo)})
+                    </div>
+                  )}
                 </div>
                 <div>
-                  <span className="text-zinc-500">{t("logs.action_event", "Aksi / Event:")}</span>
-                  <div>
-                    <Badge variant={ACTION_VARIANT[selectedLog.action] ?? "secondary"} className="text-[10px]">
+                  <span className="text-[11px] font-medium text-zinc-500">{t("logs.causer_label", "Pelaku (Causer):")}</span>
+                  <div className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {selectedLog.causer_name || (selectedLog.causer_username ? `@${selectedLog.causer_username}` : selectedLog.causer_email) || t("logs.actor_system", "Sistem")}
+                  </div>
+                  {selectedLog.causer_username && (
+                    <div className="text-[11px] font-mono text-zinc-500">
+                      @{selectedLog.causer_username}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[11px] font-medium text-zinc-500">{t("logs.action_event", "Aksi / Event:")}</span>
+                  <div className="mt-0.5">
+                    <Badge variant="outline" className={`capitalize text-[11px] font-semibold border ${getActionBadgeClass(selectedLog.action)}`}>
                       {getActionLabel(selectedLog.action)}
                     </Badge>
                   </div>
                 </div>
                 <div>
-                  <span className="text-zinc-500">{t("logs.ip_address", "IP Address:")}</span>
-                  <div className="font-mono">{selectedLog.ip_address || "-"}</div>
+                  <span className="text-[11px] font-medium text-zinc-500">{t("logs.ip_address", "IP Address:")}</span>
+                  <div className="font-mono text-zinc-800 dark:text-zinc-200">{selectedLog.ip_address || "-"}</div>
                 </div>
-                <div className="col-span-2">
-                  <span className="text-zinc-500">{t("logs.subject_label", "Subjek:")}</span>
-                  <div className="font-medium">
-                    {selectedLog.subject_type}: {selectedLog.subject_label || selectedLog.subject_id || "-"}
+                <div className="sm:col-span-2">
+                  <span className="text-[11px] font-medium text-zinc-500">{t("logs.subject_label", "Subjek Data:")}</span>
+                  <div className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {selectedLog.subject_type && (
+                      <span className="font-mono text-blue-600 dark:text-blue-400 mr-1.5">[{selectedLog.subject_type}]</span>
+                    )}
+                    {selectedLog.subject_label || selectedLog.subject_id || "-"}
                   </div>
                 </div>
               </div>
 
-              {/* Old vs New Values */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
-                  <div className="font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
-                    {t("logs.payload_before", "Nilai Sebelumnya (Old Values)")}
-                  </div>
-                  {selectedLog.old_values && Object.keys(selectedLog.old_values).length > 0 ? (
-                    <div className="space-y-1.5 font-mono text-[11px]">
-                      {Object.entries(selectedLog.old_values).map(([k, v]) => (
-                        <div key={k} className="flex justify-between border-b border-zinc-100 py-1 dark:border-zinc-800">
-                          <span className="text-zinc-500">{k}:</span>
-                          <span className="text-red-600 font-medium truncate max-w-[180px]">{String(v)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-zinc-400 italic">{t("logs.no_old_values", "Tidak ada nilai sebelumnya.")}</div>
-                  )}
+              {/* Data Changes: Diff Table */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
+                    {t("logs.changes_heading", "Perubahan Data (Field Changes)")}
+                  </h3>
                 </div>
 
-                <div className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
-                  <div className="font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
-                    {t("logs.payload_after", "Nilai Baru (New Values)")}
-                  </div>
-                  {selectedLog.new_values && Object.keys(selectedLog.new_values).length > 0 ? (
-                    <div className="space-y-1.5 font-mono text-[11px]">
-                      {Object.entries(selectedLog.new_values).map(([k, v]) => (
-                        <div key={k} className="flex justify-between border-b border-zinc-100 py-1 dark:border-zinc-800">
-                          <span className="text-zinc-500">{k}:</span>
-                          <span className="text-emerald-600 font-medium truncate max-w-[180px]">{String(v)}</span>
-                        </div>
-                      ))}
+                {(() => {
+                  const hasOld = selectedLog.old_values && Object.keys(selectedLog.old_values).length > 0
+                  const hasNew = selectedLog.new_values && Object.keys(selectedLog.new_values).length > 0
+
+                  if (!hasOld && !hasNew) {
+                    return (
+                      <div className="rounded-lg border border-dashed border-zinc-200 p-4 text-center text-zinc-500 dark:border-zinc-800">
+                        {t("logs.no_changes_recorded", "Tidak ada perubahan nilai atribut data pada aktivitas ini (aktivitas sesi / non-mutasi).")}
+                      </div>
+                    )
+                  }
+
+                  const keys = Array.from(
+                    new Set([
+                      ...Object.keys(selectedLog.old_values || {}),
+                      ...Object.keys(selectedLog.new_values || {}),
+                    ])
+                  )
+
+                  return (
+                    <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
+                      <div className="grid grid-cols-12 bg-zinc-100 px-3 py-2 text-[11px] font-bold text-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-800">
+                        <div className="col-span-4">{t("logs.col_attribute", "Nama Atribut / Kolom")}</div>
+                        <div className="col-span-4 text-rose-700 dark:text-rose-400">{t("logs.payload_before", "Nilai Sebelumnya (Old Values)")}</div>
+                        <div className="col-span-4 text-emerald-700 dark:text-emerald-400">{t("logs.payload_after", "Nilai Baru (New Values)")}</div>
+                      </div>
+                      <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        {keys.map((k) => {
+                          const oldVal = selectedLog.old_values ? selectedLog.old_values[k] : undefined
+                          const newVal = selectedLog.new_values ? selectedLog.new_values[k] : undefined
+                          const isDifferent = JSON.stringify(oldVal) !== JSON.stringify(newVal)
+                          const label = getFieldLabel(k, isIndo)
+
+                          return (
+                            <div
+                              key={k}
+                              className={`grid grid-cols-12 gap-2 px-3 py-2.5 items-start transition-colors ${
+                                isDifferent ? "bg-amber-50/20 dark:bg-amber-950/10" : ""
+                              }`}
+                            >
+                              {/* Kolom Field Name */}
+                              <div className="col-span-4 pr-1">
+                                <div className="font-semibold text-zinc-900 dark:text-zinc-100">
+                                  {label.title}
+                                </div>
+                                <div className="font-mono text-[10px] text-zinc-400 break-all">
+                                  {label.technical}
+                                </div>
+                              </div>
+                              {/* Kolom Old Value */}
+                              <div className="col-span-4 rounded-md bg-rose-50/70 p-2 text-rose-900 border border-rose-200/50 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-900/40 min-h-[38px]">
+                                {oldVal !== undefined ? (
+                                  renderValue(oldVal, t)
+                                ) : (
+                                  <span className="italic text-zinc-400">
+                                    ({t("logs.not_present", "Tidak ada")})
+                                  </span>
+                                )}
+                              </div>
+                              {/* Kolom New Value */}
+                              <div className="col-span-4 rounded-md bg-emerald-50/70 p-2 text-emerald-900 border border-emerald-200/50 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/40 min-h-[38px]">
+                                {newVal !== undefined ? (
+                                  renderValue(newVal, t)
+                                ) : (
+                                  <span className="italic text-zinc-400">
+                                    ({t("logs.not_present", "Tidak ada")})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-zinc-400 italic">{t("logs.no_new_values", "Tidak ada nilai baru.")}</div>
-                  )}
-                </div>
+                  )
+                })()}
               </div>
 
               <div className="flex justify-end pt-2">

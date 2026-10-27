@@ -106,8 +106,22 @@ describe('ActivityLogs Settings Page', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Detail Log Aktivitas/i)).toBeInTheDocument()
+      expect(screen.getByText(/Perusahaan/i)).toBeInTheDocument()
       expect(screen.getByText(/PT Lama/i)).toBeInTheDocument()
       expect(screen.getByText(/PT Baru/i)).toBeInTheDocument()
+    })
+  })
+
+  it('formats timestamp to DD/MM/YYYY HH:mm:ss in the table', async () => {
+    render(
+      <MemoryRouter>
+        <ActivityLogs />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('24/09/2026 10:00:00')).toBeInTheDocument()
+      expect(screen.getByText('24/09/2026 09:30:00')).toBeInTheDocument()
     })
   })
 

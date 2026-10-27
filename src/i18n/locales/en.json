@@ -1401,7 +1401,17 @@
     "action_updated": "Updated",
     "action_deleted": "Deleted",
     "action_restored": "Restored",
-    "action_login_failed": "Login Failed"
+    "action_login_failed": "Login Failed",
+    "col_attribute": "Attribute / Field Name",
+    "changes_heading": "Data Changes (Field Changes)",
+    "no_changes_recorded": "No field attributes changed in this activity (session or non-mutation activity).",
+    "empty_val": "Empty / Not specified",
+    "not_present": "None",
+    "action_reprinted": "Reprint Pass",
+    "action_checked_in": "Check-In",
+    "action_checked_out": "Check-Out",
+    "action_blacklisted": "Blacklisted",
+    "action_unblacklisted": "Unblacklisted"
   },
   "roles": {
     "title": "Role Management",
@@ -1671,6 +1681,8 @@
     "toast_delete_success": "Visit deleted successfully.",
     "toast_delete_failed": "Failed to delete visit.",
     "print_now": "Print Pass Now",
+    "officer_in_charge": "Recording Officer:",
+    "officer_placeholder": "Officer / Security Name",
     "add_new_visit": "Add New Visit",
     "back_to_history": "Back to Visit History",
     "loading_pass": "Loading visitor pass details...",

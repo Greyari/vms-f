@@ -165,6 +165,39 @@ describe("PrintVisit Page", () => {
     fireEvent.click(printBtn)
     expect(printSpy).toHaveBeenCalledTimes(2)
   })
+
+  it("prioritizes visit.created_by_name over logged-in user and allows toolbar edit", async () => {
+    mockApi(yardConfig)
+    const customVisit = {
+      ...sampleVisit,
+      created_by_name: "Grey",
+      creator: { name: "Grey", username: "grey" },
+    }
+
+    render(
+      <MemoryRouter
+        initialEntries={[
+          { pathname: "/visits/301/print", state: { visit: customVisit } },
+        ]}
+      >
+        <Routes>
+          <Route path="/visits/:id/print" element={<PrintVisit />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      // Must show Grey in signature, not "Petugas Jaga Gerbang"
+      expect(screen.getByText("Grey")).toBeInTheDocument()
+    })
+
+    const officerInput = screen.getByLabelText(/petugas pencatat/i) as HTMLInputElement
+    expect(officerInput.value).toBe("Grey")
+
+    // Edit officer name to "Grey (Shift Pagi)"
+    fireEvent.change(officerInput, { target: { value: "Grey (Shift Pagi)" } })
+    expect(screen.getByText("Grey (Shift Pagi)")).toBeInTheDocument()
+  })
 })
 
 

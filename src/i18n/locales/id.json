@@ -1401,7 +1401,17 @@
     "action_updated": "Updated",
     "action_deleted": "Deleted",
     "action_restored": "Restored",
-    "action_login_failed": "Login Failed"
+    "action_login_failed": "Login Failed",
+    "col_attribute": "Nama Atribut / Kolom",
+    "changes_heading": "Perubahan Data (Field Changes)",
+    "no_changes_recorded": "Tidak ada perubahan nilai atribut data pada aktivitas ini (aktivitas sesi / non-mutasi).",
+    "empty_val": "Kosong / Tidak diisi",
+    "not_present": "Tidak ada",
+    "action_reprinted": "Cetak Ulang Pass",
+    "action_checked_in": "Check-In",
+    "action_checked_out": "Check-Out",
+    "action_blacklisted": "Masuk Blacklist",
+    "action_unblacklisted": "Dicabut Blacklist"
   },
   "roles": {
     "title": "Role Management",
@@ -1671,6 +1681,8 @@
     "toast_delete_success": "Kunjungan berhasil dihapus.",
     "toast_delete_failed": "Gagal menghapus kunjungan.",
     "print_now": "Cetak Pass Sekarang",
+    "officer_in_charge": "Petugas Pencatat:",
+    "officer_placeholder": "Nama Petugas / Security",
     "add_new_visit": "Tambah Kunjungan Baru",
     "back_to_history": "Kembali ke Riwayat Kunjungan",
     "loading_pass": "Memuat data pass pengunjung...",
