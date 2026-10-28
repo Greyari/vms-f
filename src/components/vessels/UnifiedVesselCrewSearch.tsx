@@ -57,6 +57,7 @@ interface UnifiedVesselCrewSearchProps {
   onSelectCrew: (visitorId: string) => void
   inputRef?: React.RefObject<HTMLInputElement | null>
   className?: string
+  resetKey?: number | string
 }
 
 function HighlightText({ text, query }: { text: string; query: string }) {
@@ -90,6 +91,7 @@ export default function UnifiedVesselCrewSearch({
   onSelectCrew,
   inputRef,
   className = "",
+  resetKey,
 }: UnifiedVesselCrewSearchProps) {
   const { t } = useTranslation()
   const [query, setQuery] = useState("")
@@ -100,6 +102,14 @@ export default function UnifiedVesselCrewSearch({
     crew: SearchCrewResult[]
   }>({ vessels: [], crew: [] })
   const [selectedIndex, setSelectedIndex] = useState<number>(-1)
+
+  useEffect(() => {
+    if (resetKey !== undefined && resetKey !== 0) {
+      setQuery("")
+      setResults({ vessels: [], crew: [] })
+      setIsOpen(false)
+    }
+  }, [resetKey])
 
   const internalInputRef = useRef<HTMLInputElement>(null)
   const activeInputRef = inputRef || internalInputRef
@@ -202,6 +212,8 @@ export default function UnifiedVesselCrewSearch({
           onSelectCrew(selected.item.visitor_id)
         }
         setIsOpen(false)
+        setQuery("")
+        setResults({ vessels: [], crew: [] })
       }
     } else if (e.key === "Escape") {
       e.preventDefault()
@@ -402,6 +414,8 @@ export default function UnifiedVesselCrewSearch({
                           onClick={() => {
                             onSelectCrew(c.visitor_id)
                             setIsOpen(false)
+                            setQuery("")
+                            setResults({ vessels: [], crew: [] })
                           }}
                           className={`flex items-center justify-between p-2.5 rounded-md cursor-pointer transition-colors ${
                             isSelected

@@ -583,7 +583,7 @@ export default function VisitorDetailModal({
                           <TableHead className="text-xs">{t("visitors.col_time_in", "Waktu Masuk")}</TableHead>
                           <TableHead className="text-xs">{t("visitors.col_time_out", "Waktu Keluar")}</TableHead>
                           <TableHead className="text-xs">{t("visitors.col_dest_location", "Lokasi Tujuan")}</TableHead>
-                          <TableHead className="text-xs">{t("visitors.col_host_pic", "Host PIC")}</TableHead>
+                          <TableHead className="text-xs">{t("visitors.col_host_pic", "Staf PIC")}</TableHead>
                           <TableHead className="text-xs">{t("visitors.col_purpose", "Keperluan")}</TableHead>
                         </TableRow>
                       </TableHeader>

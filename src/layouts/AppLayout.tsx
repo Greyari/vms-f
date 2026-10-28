@@ -120,7 +120,7 @@ export default function AppLayout() {
         },
         {
           name: t("nav.card_vehicles"),
-          enName: "Card Vehicles",
+          enName: "Vehicle Card",
           path: "/master/vehicle-cards",
           icon: CreditCard,
           show: can("/master/vehicle-cards"),

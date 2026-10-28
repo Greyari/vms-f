@@ -148,7 +148,7 @@ describe("VisitHistory Page", () => {
     })
 
     fireEvent.click(screen.getByTestId("column-picker-trigger"))
-    const hostCheckbox = screen.getByLabelText(/^host$/i)
+    const hostCheckbox = screen.getByLabelText(/staf yang dikunjungi|staff to visit/i)
     fireEvent.click(hostCheckbox)
 
     await waitFor(() => {

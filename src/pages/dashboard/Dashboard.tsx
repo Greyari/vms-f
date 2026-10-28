@@ -635,7 +635,7 @@ export default function Dashboard() {
                   <th className="py-2.5 px-3">{t("dashboard.th_visitor", "Nama Pengunjung & Instansi")}</th>
                   <th className="py-2.5 px-3">{t("dashboard.th_type", "Tipe")}</th>
                   <th className="py-2.5 px-3">{t("dashboard.th_destination", "Tujuan (Lokasi / Kapal)")}</th>
-                  <th className="py-2.5 px-3">{t("dashboard.th_host", "Host PIC / Nakhoda")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_host", "Staf yang Dikunjungi / Nakhoda")}</th>
                   <th className="py-2.5 px-3">{t("dashboard.th_card", "Kartu Akses")}</th>
                   <th className="py-2.5 px-3">{t("dashboard.th_time_in", "Jam Masuk")}</th>
                   <th className="py-2.5 px-3 text-right">{t("dashboard.th_action", "Aksi")}</th>

@@ -85,8 +85,6 @@ export default function VesselReport() {
   const [stayStatus, setStayStatus] = useState("all")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
-  const [crewVisitorNoFrom, setCrewVisitorNoFrom] = useState("")
-  const [crewVisitorNoTo, setCrewVisitorNoTo] = useState("")
 
   const [appliedFilters, setAppliedFilters] = useState<Record<string, any>>({})
 
@@ -142,10 +140,6 @@ export default function VesselReport() {
     if (stayStatus && stayStatus !== "all") newFilters.stay_status = stayStatus
     if (dateFrom) newFilters.date_from = dateFrom
     if (dateTo) newFilters.date_to = dateTo
-    if (mode === "list_ships_with_crew") {
-      if (crewVisitorNoFrom) newFilters.crew_visitor_no_from = crewVisitorNoFrom
-      if (crewVisitorNoTo) newFilters.crew_visitor_no_to = crewVisitorNoTo
-    }
 
     setPage(1)
     setAppliedFilters(newFilters)
@@ -156,8 +150,6 @@ export default function VesselReport() {
     setStayStatus("all")
     setDateFrom("")
     setDateTo("")
-    setCrewVisitorNoFrom("")
-    setCrewVisitorNoTo("")
     setPage(1)
     setAppliedFilters({})
   }
@@ -375,32 +367,6 @@ export default function VesselReport() {
                 className="h-9 text-sm"
               />
             </div>
-
-            {/* Rentang Kru Visitor No (Only for with crew mode) */}
-            {mode === "list_ships_with_crew" && (
-              <>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">{t("vessel_report.crew_no_from", "No. Kru Dari")}</Label>
-                  <Input
-                    type="number"
-                    placeholder="cth. 200000"
-                    value={crewVisitorNoFrom}
-                    onChange={(e) => setCrewVisitorNoFrom(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">{t("vessel_report.crew_no_to", "No. Kru Sampai")}</Label>
-                  <Input
-                    type="number"
-                    placeholder="cth. 200500"
-                    value={crewVisitorNoTo}
-                    onChange={(e) => setCrewVisitorNoTo(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </div>
-              </>
-            )}
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
@@ -601,7 +567,6 @@ export default function VesselReport() {
                         <Table className="border rounded-md">
                           <TableHeader className="bg-zinc-50/50 dark:bg-zinc-900/30">
                             <TableRow className="text-[11px]">
-                              <TableHead className="w-12">{t("crew_report.col_crew_no", "No. Kru")}</TableHead>
                               <TableHead>{t("crew_report.col_crew_name", "Nama Kru")}</TableHead>
                               <TableHead>{t("crew_report.col_id_passport", "No. ID / Paspor")}</TableHead>
                               <TableHead>{t("crew_report.col_gender", "Gender")}</TableHead>
@@ -614,9 +579,6 @@ export default function VesselReport() {
                           <TableBody>
                             {crewList.map((c, ci) => (
                               <TableRow key={c.id || ci} className="text-xs">
-                                <TableCell className="font-mono text-zinc-500">
-                                  {c.visitor_no}
-                                </TableCell>
                                 <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">
                                   {c.name}
                                 </TableCell>

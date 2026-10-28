@@ -827,7 +827,7 @@ export default function VisitHistory() {
     },
     {
       key: "host",
-      label: t("visit_history.col_host", "Staf Host"),
+      label: t("visit_history.col_host", "Staf yang Dikunjungi"),
       sortKey: "host_name",
     },
     {
@@ -953,7 +953,7 @@ export default function VisitHistory() {
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t(
                 "visit_history.search_placeholder",
-                "Cari nama, KTP/ID, PT, no. kartu, plat kendaraan (BP 1234 XY), tujuan, host, lokasi..."
+                "Cari nama, KTP/ID, PT, no. kartu, plat kendaraan (BP 1234 XY), tujuan, staf yang dikunjungi, lokasi..."
               )}
               className="pl-9 pr-8"
               aria-label={t("visit_history.search_aria", "Pencarian kunjungan")}
@@ -1364,7 +1364,7 @@ export default function VisitHistory() {
                     className="cursor-pointer select-none whitespace-nowrap"
                   >
                     <div className="flex items-center">
-                      {t("visit_history.col_host", "Staf Host")}
+                      {t("visit_history.col_host", "Staf yang Dikunjungi")}
                       {renderSortIcon("host_name")}
                     </div>
                   </TableHead>
@@ -2104,7 +2104,7 @@ export default function VisitHistory() {
                     "-"}
                 </p>
                 <p className="mt-0.5 text-xs text-zinc-500">
-                  {t("visit_history.col_host", "Staf Host")}:{" "}
+                  {t("visit_history.col_host", "Staf yang Dikunjungi")}:{" "}
                   {detailVisit.host_name || detailVisit.staff?.name || "-"}
                   {(detailVisit.host_occupation || detailVisit.staff?.occupation)
                     ? ` (${detailVisit.host_occupation || detailVisit.staff?.occupation})`

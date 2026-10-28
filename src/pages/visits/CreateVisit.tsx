@@ -375,12 +375,11 @@ export default function CreateVisit() {
     nameInputRef.current?.focus()
   }, [])
 
-  // Setelah pengunjung terverifikasi, fokus otomatis lanjut ke input berikutnya
+  // Setelah pengunjung terverifikasi, fokus otomatis lanjut ke input lokasi
   useEffect(() => {
     if (status !== "registered") return
     const raf = requestAnimationFrame(() => {
-      const target = form.location_id ? purposeInputRef.current : locationInputRef.current
-      target?.focus()
+      locationInputRef.current?.focus()
     })
     return () => cancelAnimationFrame(raf)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -440,6 +439,9 @@ export default function CreateVisit() {
     } else {
       setStatus("registered")
       setBlacklistReason("")
+      requestAnimationFrame(() => {
+        locationInputRef.current?.focus()
+      })
     }
   }
 
@@ -519,7 +521,7 @@ export default function CreateVisit() {
     }
     if (!form.staff_id) {
       return toast.error(
-        t("create_visit.toast_select_staff_host", "Pilih staf host.")
+        t("create_visit.toast_select_staff_host", "Pilih staf yang dikunjungi.")
       )
     }
 
@@ -676,7 +678,7 @@ export default function CreateVisit() {
         <p className="text-sm text-zinc-500">
           {t(
             "create_visit.subtitle",
-            "Cari pengunjung, tentukan tujuan dan host, lalu cetak tiket."
+            "Cari pengunjung, tentukan tujuan dan staf yang dikunjungi, lalu cetak tiket."
           )}
         </p>
       </div>
@@ -1048,7 +1050,7 @@ export default function CreateVisit() {
             ) : status === "registered" ? (
               t(
                 "create_visit.footer_status_registered",
-                "Lengkapi tujuan, host, dan kartu, lalu cetak tiket."
+                "Lengkapi tujuan, staf yang dikunjungi, dan kartu, lalu cetak tiket."
               )
             ) : (
               t(

@@ -363,7 +363,7 @@ export default function Staffs() {
         <div>
           <h1 className="text-2xl font-bold">{t("staffs.title", "Master Staf & Karyawan")}</h1>
           <p className="text-muted-foreground">
-            {t("staffs.description", "Kelola data staf dan karyawan internal sebagai PIC/Host kunjungan.")}
+            {t("staffs.description", "Kelola data staf dan karyawan internal yang dapat dikunjungi.")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

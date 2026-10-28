@@ -92,6 +92,7 @@ export default function VesselArrivals() {
 
   // Filters & Pagination
   const [search, setSearch] = useState("")
+  const [searchResetKey, setSearchResetKey] = useState(0)
   const [stayStatusFilter, setStayStatusFilter] = useState("all")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
@@ -229,6 +230,7 @@ export default function VesselArrivals() {
       {/* Unified Search Kapal + Kru */}
       <div className="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm space-y-2">
         <UnifiedVesselCrewSearch
+          resetKey={searchResetKey}
           onSelectVessel={(arrivalId) => {
             setSelectedArrivalIdForDetail(arrivalId)
             setDetailModalOpen(true)
@@ -544,7 +546,10 @@ export default function VesselArrivals() {
         open={detailModalOpen}
         onClose={() => setDetailModalOpen(false)}
         arrivalId={selectedArrivalIdForDetail}
-        onUpdated={fetchArrivals}
+        onUpdated={() => {
+          fetchArrivals()
+          setSearchResetKey((k) => k + 1)
+        }}
       />
 
       {/* Sign-Out Quick Modal */}
@@ -563,7 +568,10 @@ export default function VesselArrivals() {
           setSelectedPersonVisitorId(null)
         }}
         visitorId={selectedPersonVisitorId}
-        onActionComplete={fetchArrivals}
+        onActionComplete={() => {
+          fetchArrivals()
+          setSearchResetKey((k) => k + 1)
+        }}
         onViewVesselCrew={(arrivalId: string) => {
           setPersonPanelOpen(false)
           setSelectedArrivalIdForDetail(arrivalId)

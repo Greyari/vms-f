@@ -155,15 +155,13 @@ export default function VisitorReport() {
   const [dateTo, setDateTo] = useState("")
   const [timeFrom, setTimeFrom] = useState("")
   const [timeTo, setTimeTo] = useState("")
-  const [visitorNoFrom, setVisitorNoFrom] = useState("")
-  const [visitorNoTo, setVisitorNoTo] = useState("")
   const [visitorName, setVisitorName] = useState("")
   const [company, setCompany] = useState("")
   const [occupation, setOccupation] = useState("")
   const [staff, setStaff] = useState("")
   const [location, setLocation] = useState("")
   const [cardNo, setCardNo] = useState("")
-  const [locationCodeOrVehicleNo, setLocationCodeOrVehicleNo] = useState("")
+  const [vehicleNo, setVehicleNo] = useState("")
   const [visitorType, setVisitorType] = useState(ALL)
   const [cardType, setCardType] = useState(ALL)
   const [openOnly, setOpenOnly] = useState(false)
@@ -219,15 +217,16 @@ export default function VisitorReport() {
     if (dateTo) newFilters.date_to = dateTo
     if (timeFrom) newFilters.time_from = timeFrom
     if (timeTo) newFilters.time_to = timeTo
-    if (visitorNoFrom) newFilters.visitor_no_from = visitorNoFrom
-    if (visitorNoTo) newFilters.visitor_no_to = visitorNoTo
     if (visitorName.trim()) newFilters.visitor_name = visitorName.trim()
     if (company.trim()) newFilters.company = company.trim()
     if (occupation.trim()) newFilters.occupation = occupation.trim()
     if (staff.trim()) newFilters.staff = staff.trim()
     if (location.trim()) newFilters.location = location.trim()
     if (cardNo.trim()) newFilters.card_no = cardNo.trim()
-    if (locationCodeOrVehicleNo.trim()) newFilters.location_code_or_vehicle_no = locationCodeOrVehicleNo.trim()
+    if (vehicleNo.trim()) {
+      newFilters.vehicle_no = vehicleNo.trim()
+      newFilters.location_code_or_vehicle_no = vehicleNo.trim()
+    }
     if (visitorType !== ALL) newFilters.visitor_type = visitorType
     if (cardType !== ALL) newFilters.card_type = cardType
     if (openOnly) newFilters.open_only = true
@@ -241,15 +240,13 @@ export default function VisitorReport() {
     setDateTo("")
     setTimeFrom("")
     setTimeTo("")
-    setVisitorNoFrom("")
-    setVisitorNoTo("")
     setVisitorName("")
     setCompany("")
     setOccupation("")
     setStaff("")
     setLocation("")
     setCardNo("")
-    setLocationCodeOrVehicleNo("")
+    setVehicleNo("")
     setVisitorType(ALL)
     setCardType(ALL)
     setOpenOnly(false)
@@ -429,28 +426,6 @@ export default function VisitorReport() {
               />
             </div>
 
-            {/* Rentang Visitor No */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t("visitor_report.visitor_no_from", "No. Visitor (Dari)")}</Label>
-              <Input
-                type="number"
-                placeholder="cth. 100000"
-                value={visitorNoFrom}
-                onChange={(e) => setVisitorNoFrom(e.target.value)}
-                className="h-9 text-sm"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t("visitor_report.visitor_no_to", "No. Visitor (Sampai)")}</Label>
-              <Input
-                type="number"
-                placeholder="cth. 100500"
-                value={visitorNoTo}
-                onChange={(e) => setVisitorNoTo(e.target.value)}
-                className="h-9 text-sm"
-              />
-            </div>
-
             {/* Nama & Perusahaan */}
             <div className="space-y-1.5">
               <Label className="text-xs">{t("visitor_report.visitor_name_label", "Nama Pengunjung")}</Label>
@@ -471,11 +446,11 @@ export default function VisitorReport() {
               />
             </div>
 
-            {/* Host & Lokasi */}
+            {/* Staf yang Dikunjungi & Lokasi */}
             <div className="space-y-1.5">
-              <Label className="text-xs">{t("visitor_report.host_label", "Staf / Host Tujuan")}</Label>
+              <Label className="text-xs">{t("visitor_report.host_label", "Staf yang Dikunjungi")}</Label>
               <Input
-                placeholder={t("visitor_report.host_placeholder", "Nama staf/host...")}
+                placeholder={t("visitor_report.host_placeholder", "Nama staf yang dikunjungi...")}
                 value={staff}
                 onChange={(e) => setStaff(e.target.value)}
                 className="h-9 text-sm"
@@ -502,11 +477,11 @@ export default function VisitorReport() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">{t("visitor_report.vehicle_or_location_code", "Plat / Kode Lokasi")}</Label>
+              <Label className="text-xs">{t("visitor_report.vehicle_plate", "Plat Kendaraan (BP)")}</Label>
               <Input
-                placeholder={t("visitor_report.plate_placeholder", "Plat kendaraan / IMO...")}
-                value={locationCodeOrVehicleNo}
-                onChange={(e) => setLocationCodeOrVehicleNo(e.target.value)}
+                placeholder={t("visitor_report.plate_only_placeholder", "Nomor plat kendaraan...")}
+                value={vehicleNo}
+                onChange={(e) => setVehicleNo(e.target.value)}
                 className="h-9 text-sm"
               />
             </div>
@@ -598,7 +573,7 @@ export default function VisitorReport() {
                 <TableHead>{t("visitor_report.col_ticket", "No. Tiket")}</TableHead>
                 <TableHead>{t("visitor_report.col_visitor", "Pengunjung")}</TableHead>
                 <TableHead>{t("visitor_report.col_company", "Perusahaan")}</TableHead>
-                <TableHead>{t("visitor_report.col_location", "Host & Lokasi")}</TableHead>
+                <TableHead>{t("visitor_report.col_location", "Staf yang Dikunjungi & Lokasi")}</TableHead>
                 <TableHead>{t("visitor_report.col_sign_out", "Check-Out (Keluar)")}</TableHead>
                 <TableHead>{t("visitor_report.col_cards", "Kartu")}</TableHead>
                 <TableHead>{t("visitor_report.col_vehicle", "Plat")}</TableHead>

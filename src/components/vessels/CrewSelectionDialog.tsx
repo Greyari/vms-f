@@ -101,7 +101,12 @@ export default function CrewSelectionDialog({
     id_number: "",
     company: "",
     occupation: "",
+    gender: "",
+    birth_place: "",
+    birth_date: "",
+    nationality: "Indonesia",
     seaman_book_no: "",
+    certificate_no: "",
   })
   const [newCrewErrors, setNewCrewErrors] = useState<Record<string, string>>({})
 
@@ -284,6 +289,7 @@ export default function CrewSelectionDialog({
     const selectedList = candidates.filter((c) => validSelectedIds.includes(c.id))
     onSave(validSelectedIds, selectedList)
     toast.success(`${validSelectedIds.length} kru kapal berhasil diterapkan ke manifest`)
+    setSearch("")
     onClose()
   }
 
@@ -295,7 +301,12 @@ export default function CrewSelectionDialog({
       id_number: "",
       company: "",
       occupation: "",
+      gender: "",
+      birth_place: "",
+      birth_date: "",
+      nationality: "Indonesia",
       seaman_book_no: "",
+      certificate_no: "",
     })
     setNewCrewErrors({})
     setNewCrewOpen(true)
@@ -324,9 +335,17 @@ export default function CrewSelectionDialog({
         id_number: newCrewForm.id_number.trim(),
         company: newCrewForm.company.trim() || null,
         occupation: newCrewForm.occupation.trim() || null,
+        gender: newCrewForm.gender || null,
+        birth_place: newCrewForm.birth_place.trim() || null,
+        birth_date: newCrewForm.birth_date || null,
+        nationality: newCrewForm.nationality.trim() || "Indonesia",
         seaman_book_no: newCrewForm.seaman_book_no.trim() || null,
+        certificate_no: newCrewForm.certificate_no.trim() || null,
         visitor_type: "crew",
         vessel_id: locationId || null,
+        phone: null,
+        email: null,
+        address: null,
       }
 
       const res = await api.post("/visitors", payload)
@@ -344,9 +363,9 @@ export default function CrewSelectionDialog({
         id_number: createdData.id_number || newCrewForm.id_number.trim(),
         company: createdData.company || newCrewForm.company.trim() || null,
         occupation: createdData.occupation || newCrewForm.occupation.trim() || null,
-        nationality: createdData.nationality || "Indonesia",
+        nationality: createdData.nationality || newCrewForm.nationality.trim() || "Indonesia",
         certificate: createdData.certificate || null,
-        certificate_no: createdData.certificate_no || null,
+        certificate_no: createdData.certificate_no || newCrewForm.certificate_no.trim() || null,
         seaman_book_no: createdData.seaman_book_no || newCrewForm.seaman_book_no.trim() || null,
         is_blacklisted: false,
         blacklist_reason: null,
@@ -512,29 +531,80 @@ export default function CrewSelectionDialog({
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="inline_company">{t("vesselArrivals.shipping_company", "Perusahaan Pelayaran / Instansi")}</Label>
-                  <Input
-                    id="inline_company"
-                    value={newCrewForm.company}
-                    onChange={(e) => setNewCrewForm({ ...newCrewForm, company: e.target.value })}
-                    placeholder={t("vesselArrivals.company_placeholder", "Contoh: PT. Pelayaran Nasional")}
-                    className="mt-1 bg-white dark:bg-zinc-800"
-                  />
-                </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <Label htmlFor="inline_company">{t("vesselArrivals.shipping_company", "Perusahaan Pelayaran / Instansi")}</Label>
+                    <Input
+                      id="inline_company"
+                      value={newCrewForm.company}
+                      onChange={(e) => setNewCrewForm({ ...newCrewForm, company: e.target.value })}
+                      placeholder={t("vesselArrivals.company_placeholder", "Contoh: PT. Pelayaran Nasional")}
+                      className="mt-1 bg-white dark:bg-zinc-800"
+                    />
+                  </div>
+
                   <div>
                     <Label htmlFor="inline_occupation">{t("vesselArrivals.rank_occupation", "Jabatan / Pangkat")}</Label>
                     <Input
                       id="inline_occupation"
                       value={newCrewForm.occupation}
                       onChange={(e) => setNewCrewForm({ ...newCrewForm, occupation: e.target.value })}
-                      placeholder={t("vesselArrivals.rank_placeholder", "Contoh: Oiler, AB, Bosun")}
+                      placeholder={t("vesselArrivals.rank_placeholder", "Contoh: Nahkoda, Mualim I, AB, KKM")}
+                      className="mt-1 bg-white dark:bg-zinc-800"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+                  <div>
+                    <Label htmlFor="inline_gender">{t("visitors.field_gender", "Jenis Kelamin")}</Label>
+                    <select
+                      id="inline_gender"
+                      value={newCrewForm.gender}
+                      onChange={(e) => setNewCrewForm({ ...newCrewForm, gender: e.target.value })}
+                      className="flex h-9 w-full rounded-md border border-input bg-white dark:bg-zinc-800 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring mt-1"
+                    >
+                      <option value="">{t("visitors.opt_select_gender", "Pilih Jenis Kelamin")}</option>
+                      <option value="M">{t("common.male", "Laki-laki (M)")}</option>
+                      <option value="F">{t("common.female", "Perempuan (F)")}</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="inline_pob">{t("visitors.field_pob", "Tempat Lahir")}</Label>
+                    <Input
+                      id="inline_pob"
+                      value={newCrewForm.birth_place}
+                      onChange={(e) => setNewCrewForm({ ...newCrewForm, birth_place: e.target.value })}
+                      placeholder={t("visitors.field_pob_placeholder", "Kota Kelahiran")}
                       className="mt-1 bg-white dark:bg-zinc-800"
                     />
                   </div>
 
+                  <div>
+                    <Label htmlFor="inline_dob">{t("visitors.field_dob", "Tanggal Lahir")}</Label>
+                    <Input
+                      id="inline_dob"
+                      type="date"
+                      value={newCrewForm.birth_date}
+                      onChange={(e) => setNewCrewForm({ ...newCrewForm, birth_date: e.target.value })}
+                      className="mt-1 bg-white dark:bg-zinc-800"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="inline_nationality">{t("visitors.field_nationality", "Kewarganegaraan")}</Label>
+                    <Input
+                      id="inline_nationality"
+                      value={newCrewForm.nationality}
+                      onChange={(e) => setNewCrewForm({ ...newCrewForm, nationality: e.target.value })}
+                      placeholder={t("visitors.field_nationality_placeholder", "Indonesia")}
+                      className="mt-1 bg-white dark:bg-zinc-800"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
                     <Label htmlFor="inline_seaman">{t("vesselArrivals.seaman_book", "Buku Pelaut (Seaman Book)")}</Label>
                     <Input
@@ -542,6 +612,17 @@ export default function CrewSelectionDialog({
                       value={newCrewForm.seaman_book_no}
                       onChange={(e) => setNewCrewForm({ ...newCrewForm, seaman_book_no: e.target.value })}
                       placeholder={t("vesselArrivals.seaman_book_placeholder", "Contoh: SB-12345")}
+                      className="mt-1 bg-white dark:bg-zinc-800"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="inline_cert">{t("visitors.field_certificate_no", "Nomor Sertifikat")}</Label>
+                    <Input
+                      id="inline_cert"
+                      value={newCrewForm.certificate_no}
+                      onChange={(e) => setNewCrewForm({ ...newCrewForm, certificate_no: e.target.value })}
+                      placeholder={t("visitors.field_certificate_no_placeholder", "Contoh: CERT-MAR-1234")}
                       className="mt-1 bg-white dark:bg-zinc-800"
                     />
                   </div>

@@ -945,11 +945,11 @@ export function VisitFormFields({
         disabled && "pointer-events-none opacity-50"
       )}
     >
-      {/* ===== 2. Tujuan & host ===== */}
+      {/* ===== 2. Tujuan & Staf yang Dikunjungi ===== */}
       <section className={cn(CARD_CLASS, "min-w-0 space-y-4")}>
         <div className="flex items-center justify-between">
           <SectionTitle n={2} icon={Building2}>
-            {t("create_visit.section2_title", "Tujuan & Host")}
+            {t("create_visit.section2_title", "Tujuan & Staf yang Dikunjungi")}
           </SectionTitle>
           {onResetDestination && (form.location_id || form.purpose || form.staff_id) ? (
             <Button
@@ -958,7 +958,7 @@ export function VisitFormFields({
               size="sm"
               onClick={onResetDestination}
               className="h-7 px-2 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-              title={t("create_visit.btn_reset_destination", "Kosongkan tujuan & host")}
+              title={t("create_visit.btn_reset_destination", "Kosongkan tujuan & staf yang dikunjungi")}
             >
               <RotateCcw className="mr-1 h-3.5 w-3.5" />
               {t("common.reset", "Reset")}
@@ -1102,7 +1102,7 @@ export function VisitFormFields({
 
         <div className="min-w-0 space-y-1.5">
           <Label htmlFor="staff_id" className="text-xs font-semibold">
-            {t("create_visit.host_label", "Host *")}
+            {t("create_visit.host_label", "Staf yang Dikunjungi *")}
           </Label>
           <SearchSelect
             id="staff_id"
@@ -1133,7 +1133,7 @@ export function VisitFormFields({
           <p className="text-[11px] text-zinc-500">
             {t(
               "create_visit.host_add_hint",
-              "Host tidak ada di daftar? Tambahkan dulu di halaman Staf."
+              "Staf tidak ada di daftar? Tambahkan dulu di halaman Staf."
             )}
           </p>
         </div>

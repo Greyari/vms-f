@@ -346,7 +346,7 @@ export default function EditVisitModal({
           <DialogDescription>
             {t(
               "visit_history.edit_modal_subtitle",
-              "Perbarui tujuan, host, kartu pengunjung, kartu kendaraan, atau plat kendaraan untuk kunjungan aktif ini."
+              "Perbarui tujuan, staf yang dikunjungi, kartu pengunjung, kartu kendaraan, atau plat kendaraan untuk kunjungan aktif ini."
             )}
           </DialogDescription>
         </DialogHeader>
