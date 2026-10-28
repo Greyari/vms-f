@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useTranslation } from "@/context/I18nContext"
+import { useAuth } from "@/context/AuthContext"
 import { toast } from "sonner"
 import api from "@/lib/axios"
 
@@ -49,7 +50,9 @@ export interface VesselArrivalItem {
   location_id: string
   vessel_name: string
   sign_in_date: string
+  sign_in_time?: string | null
   sign_out_date?: string | null
+  sign_out_time?: string | null
   sign_in_port?: string | null
   sign_out_port?: string | null
   captain?: string | null
@@ -87,6 +90,8 @@ const ITEMS_PER_PAGE = 100
 
 export default function VesselArrivals() {
   const { t } = useTranslation()
+  const { hasPermission } = useAuth()
+  const canManageVessels = hasPermission("manage_vessel_arrivals")
   const [arrivals, setArrivals] = useState<VesselArrivalItem[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -215,16 +220,18 @@ export default function VesselArrivals() {
           </p>
         </div>
 
-        <Button
-          onClick={() => {
-            setSelectedArrivalForEdit(null)
-            setFormModalOpen(true)
-          }}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          <Plus className="h-4 w-4" />
-          {t("vessel_arrivals.create_btn", "Catat Kedatangan Baru")}
-        </Button>
+        {canManageVessels && (
+          <Button
+            onClick={() => {
+              setSelectedArrivalForEdit(null)
+              setFormModalOpen(true)
+            }}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            {t("vessel_arrivals.create_btn", "Catat Kedatangan Baru")}
+          </Button>
+        )}
       </div>
 
       {/* Unified Search Kapal + Kru */}
@@ -369,7 +376,14 @@ export default function VesselArrivals() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm font-medium">{arrival.sign_in_date}</div>
+                        <div className="text-sm font-medium">
+                          {arrival.sign_in_date}
+                          {arrival.sign_in_time && (
+                            <span className="ml-1 text-xs font-mono text-zinc-500">
+                              {arrival.sign_in_time.substring(0, 5)}
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-zinc-500">
                           {arrival.sign_in_port ? `Dari: ${arrival.sign_in_port}` : "-"}
                         </div>
@@ -384,7 +398,14 @@ export default function VesselArrivals() {
                             <Badge variant="secondary" className="mb-1">
                               {t("vessel_arrivals.departed", "Sudah Berangkat")}
                             </Badge>
-                            <div className="text-sm font-medium">{arrival.sign_out_date}</div>
+                            <div className="text-sm font-medium">
+                              {arrival.sign_out_date}
+                              {arrival.sign_out_time && (
+                                <span className="ml-1 text-xs font-mono text-zinc-500">
+                                  {arrival.sign_out_time.substring(0, 5)}
+                                </span>
+                              )}
+                            </div>
                             <div className="text-xs text-zinc-500">
                               {arrival.sign_out_port ? `Ke: ${arrival.sign_out_port}` : "-"}
                             </div>
@@ -432,39 +453,43 @@ export default function VesselArrivals() {
                           >
                             <Eye className="h-4 w-4 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            title="Edit Kedatangan Kapal"
-                            onClick={() => {
-                              setSelectedArrivalForEdit(arrival)
-                              setFormModalOpen(true)
-                            }}
-                          >
-                            <Pencil className="h-4 w-4 text-blue-600 hover:text-blue-800 dark:text-blue-400" />
-                          </Button>
-                          {isInPort && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title={t("vessel_arrivals.btn_checkout_vessel_title", "Check-Out Kapal")}
-                              onClick={() => {
-                                setSelectedArrivalForSignOut(arrival)
-                                setSignOutModalOpen(true)
-                              }}
-                            >
-                              <LogOut className="h-4 w-4 text-amber-600 hover:text-amber-800 dark:text-amber-400" />
-                            </Button>
+                          {canManageVessels && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Edit Kedatangan Kapal"
+                                onClick={() => {
+                                  setSelectedArrivalForEdit(arrival)
+                                  setFormModalOpen(true)
+                                }}
+                              >
+                                <Pencil className="h-4 w-4 text-blue-600 hover:text-blue-800 dark:text-blue-400" />
+                              </Button>
+                              {isInPort && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title={t("vessel_arrivals.btn_checkout_vessel_title", "Check-Out Kapal")}
+                                  onClick={() => {
+                                    setSelectedArrivalForSignOut(arrival)
+                                    setSignOutModalOpen(true)
+                                  }}
+                                >
+                                  <LogOut className="h-4 w-4 text-amber-600 hover:text-amber-800 dark:text-amber-400" />
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title={t("common.delete", "Hapus")}
+                                onClick={() => handleDeleteClick(arrival)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            title={t("common.delete", "Hapus")}
-                            onClick={() => handleDeleteClick(arrival)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

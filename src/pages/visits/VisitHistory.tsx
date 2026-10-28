@@ -158,6 +158,7 @@ export const DEFAULT_VISIBLE_COLUMNS: OptionalColumnKey[] = [
   "check_in_time",
   "visitor_name",
   "card_no",
+  "vehicle_card",
   "plate_no",
   "purpose",
 ]
@@ -371,7 +372,7 @@ export default function VisitHistory() {
 
   // Column visibility state persisted per user in localStorage
   const storageKey = useMemo(
-    () => `vms_visit_history_columns_v2_${user?.id || user?.username || "default"}`,
+    () => `vms_visit_history_columns_v3_${user?.id || user?.username || "default"}`,
     [user?.id, user?.username]
   )
 

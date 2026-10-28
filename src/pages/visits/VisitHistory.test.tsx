@@ -98,6 +98,7 @@ describe("VisitHistory Page", () => {
     await waitFor(() => {
       expect(screen.getByText("Ahmad Fauzi")).toBeInTheDocument()
       expect(screen.getByText("VIS-001")).toBeInTheDocument()
+      expect(screen.getByText("VEH-010")).toBeInTheDocument()
       expect(screen.getByText("BP 1234 XY")).toBeInTheDocument()
       expect(screen.getByText("Survey Mesin")).toBeInTheDocument()
     })
@@ -156,7 +157,7 @@ describe("VisitHistory Page", () => {
     })
 
     const savedCols = JSON.parse(
-      localStorage.getItem("vms_visit_history_columns_v2_u-1") || "[]"
+      localStorage.getItem("vms_visit_history_columns_v3_u-1") || "[]"
     )
     expect(savedCols).toContain("host")
   })

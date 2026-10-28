@@ -575,4 +575,78 @@ describe("CreateVisit Page & Master Data", () => {
       expect(idKeys).toEqual(enKeys)
     })
   })
+
+  describe("Card selection flexibility (Visitor card vs Vehicle card)", () => {
+    it("allows submitting with only vehicle card when visitor card is not selected", async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({
+        data: {
+          visit: { id: "visit-veh-1", ticket_number: "TK-2026-0002" },
+        },
+      })
+
+      render(
+        <MemoryRouter>
+          <CreateVisit />
+        </MemoryRouter>
+      )
+
+      // Check visitor to unlock
+      fireEvent.change(screen.getByPlaceholderText(/ketik nomor, tekan enter untuk cek/i), {
+        target: { value: "1234567890123456" },
+      })
+      fireEvent.click(screen.getByRole("button", { name: /cek nomor id/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText("Ahmad Dahlan")).toBeInTheDocument()
+      })
+
+      // Select location
+      const locationInput = document.getElementById("location_id") as HTMLInputElement
+      fireEvent.focus(locationInput)
+      fireEvent.change(locationInput, { target: { value: "STORE" } })
+      await waitFor(() => {
+        expect(screen.getByText("STORE")).toBeInTheDocument()
+      })
+      fireEvent.mouseDown(screen.getByText("STORE"))
+
+      // Fill purpose
+      const purposeInput = document.getElementById("purpose") as HTMLInputElement
+      fireEvent.focus(purposeInput)
+      fireEvent.change(purposeInput, { target: { value: "AUDIT GUDANG" } })
+
+      // Select staff
+      const staffInput = document.getElementById("staff_id") as HTMLInputElement
+      fireEvent.focus(staffInput)
+      fireEvent.change(staffInput, { target: { value: "Budi" } })
+      await waitFor(() => {
+        expect(screen.getByText("Budi Santoso")).toBeInTheDocument()
+      })
+      fireEvent.mouseDown(screen.getByText("Budi Santoso"))
+
+      // Do NOT select card_ids, select vehicle_card_id instead
+      const vehicleCardInput = document.getElementById("vehicle_card_id") as HTMLInputElement
+      fireEvent.focus(vehicleCardInput)
+      fireEvent.change(vehicleCardInput, { target: { value: "VEH" } })
+      await waitFor(() => {
+        expect(screen.getByText("VEH-001")).toBeInTheDocument()
+      })
+      fireEvent.mouseDown(screen.getByText("VEH-001"))
+
+      // Submit form
+      const submitBtn = screen.getByRole("button", {
+        name: /simpan & cetak tiket/i,
+      })
+      fireEvent.click(submitBtn)
+
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith(
+          "/visits",
+          expect.objectContaining({
+            card_ids: [],
+            vehicle_card_id: "vc-1",
+          })
+        )
+      })
+    })
+  })
 })

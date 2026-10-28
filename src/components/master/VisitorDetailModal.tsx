@@ -533,7 +533,7 @@ export default function VisitorDetailModal({
                                         CHECK-IN
                                       </Badge>
                                     ) : (
-                                      <Badge variant="outline" className="text-zinc-600 border-zinc-300 dark:border-zinc-700">
+                                      <Badge variant="outline" className="text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700">
                                         <LogOut className="mr-1 h-3 w-3" />
                                         CHECK-OUT
                                       </Badge>

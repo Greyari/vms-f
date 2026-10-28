@@ -32,6 +32,7 @@ export default function SignOutVesselModal({
 }: SignOutVesselModalProps) {
   const { t } = useTranslation()
   const [signOutDate, setSignOutDate] = useState("")
+  const [signOutTime, setSignOutTime] = useState("")
   const [signOutPort, setSignOutPort] = useState("")
   const [error, setError] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -43,7 +44,9 @@ export default function SignOutVesselModal({
     }
 
     const today = new Date().toISOString().split("T")[0]
+    const nowTime = new Date().toTimeString().slice(0, 5)
     setSignOutDate(today)
+    setSignOutTime(nowTime)
     setSignOutPort("")
     setError("")
   }, [open, arrival])
@@ -69,6 +72,7 @@ export default function SignOutVesselModal({
     try {
       await api.put(`/vessel-arrivals/${arrival.id}`, {
         sign_out_date: signOutDate,
+        sign_out_time: signOutTime.trim() ? (signOutTime.length === 5 ? `${signOutTime}:00` : signOutTime) : null,
         sign_out_port: signOutPort.trim() || null,
       })
 
@@ -112,19 +116,35 @@ export default function SignOutVesselModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-          <div>
-            <Label htmlFor="quick-sign-out-date">
-              {t("vesselArrivals.sign_out_date_label", "Tanggal Keberangkatan")} <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="quick-sign-out-date"
-              type="date"
-              aria-label={t("vesselArrivals.sign_out_date_aria", "Tanggal Keberangkatan")}
-              value={signOutDate}
-              onChange={(e) => setSignOutDate(e.target.value)}
-              disabled={submitting}
-              className="mt-1"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="quick-sign-out-date">
+                {t("vesselArrivals.sign_out_date_label", "Tanggal Keberangkatan")} <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="quick-sign-out-date"
+                type="date"
+                aria-label={t("vesselArrivals.sign_out_date_aria", "Tanggal Keberangkatan")}
+                value={signOutDate}
+                onChange={(e) => setSignOutDate(e.target.value)}
+                disabled={submitting}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="quick-sign-out-time">
+                {t("vesselArrivals.sign_out_time_label", "Jam Keberangkatan")}
+              </Label>
+              <Input
+                id="quick-sign-out-time"
+                type="time"
+                aria-label={t("vesselArrivals.sign_out_time_aria", "Jam Keberangkatan")}
+                value={signOutTime}
+                onChange={(e) => setSignOutTime(e.target.value)}
+                disabled={submitting}
+                className="mt-1"
+              />
+            </div>
           </div>
 
           <div>

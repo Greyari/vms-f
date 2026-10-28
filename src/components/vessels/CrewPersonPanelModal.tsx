@@ -103,6 +103,7 @@ export default function CrewPersonPanelModal({
   const [notes, setNotes] = useState("")
 
   // Confirmations
+  const [confirmCheckInOpen, setConfirmCheckInOpen] = useState(false)
   const [confirmReactivateOpen, setConfirmReactivateOpen] = useState(false)
   const [confirmCheckOutOpen, setConfirmCheckOutOpen] = useState(false)
 
@@ -152,7 +153,7 @@ export default function CrewPersonPanelModal({
   }
 
   // Handle Check-In
-  const handleCheckIn = async () => {
+  const handleCheckIn = useCallback(async () => {
     if (!data?.current_placement?.vessel_arrival_id || !data.visitor.id) return
     if (data.current_placement.sign_out_date) {
       toast.error(
@@ -194,6 +195,7 @@ export default function CrewPersonPanelModal({
           name: data.visitor.name,
         })
       )
+      setConfirmCheckInOpen(false)
       await loadData()
       onActionComplete?.()
     } catch (err: any) {
@@ -205,10 +207,10 @@ export default function CrewPersonPanelModal({
     } finally {
       setActionLoading(false)
     }
-  }
+  }, [data, customDateTime, notes, loadData, onActionComplete, t])
 
   // Handle Check-Out
-  const handleCheckOut = async () => {
+  const handleCheckOut = useCallback(async () => {
     if (!data?.current_placement?.vessel_arrival_id || !data.visitor.id) return
 
     setActionLoading(true)
@@ -243,10 +245,10 @@ export default function CrewPersonPanelModal({
     } finally {
       setActionLoading(false)
     }
-  }
+  }, [data, customDateTime, notes, loadData, onActionComplete, t])
 
   // Handle Reactivate
-  const handleReactivate = async () => {
+  const handleReactivate = useCallback(async () => {
     if (!data?.current_placement?.vessel_arrival_id || !data.visitor.id) return
     if (data.current_placement.sign_out_date) {
       toast.error(
@@ -284,7 +286,7 @@ export default function CrewPersonPanelModal({
     } finally {
       setActionLoading(false)
     }
-  }
+  }, [data, notes, loadData, onActionComplete, t])
 
   const visitor = data?.visitor
   const placement = data?.current_placement
@@ -292,6 +294,70 @@ export default function CrewPersonPanelModal({
   const isCheckedIn = placement?.status === "checked_in"
   const isCheckedOut = placement?.status === "checked_out"
   const isExpected = !placement || placement.status === "expected"
+
+  // Keyboard navigation: Enter opens confirmation dialog; Enter again inside confirmation executes action
+  useEffect(() => {
+    if (!open) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.repeat) return
+
+      if (e.key === "Enter") {
+        if (actionLoading || loading) return
+
+        // If confirmation dialog is already open, execute corresponding action
+        if (confirmCheckInOpen) {
+          e.preventDefault()
+          handleCheckIn()
+          return
+        }
+        if (confirmCheckOutOpen) {
+          e.preventDefault()
+          handleCheckOut()
+          return
+        }
+        if (confirmReactivateOpen) {
+          e.preventDefault()
+          handleReactivate()
+          return
+        }
+
+        // If sheet is open and no confirmation dialog is open yet, open the relevant confirmation
+        if (data && placement) {
+          if (isVesselDeparted || visitor?.is_blacklisted) return
+
+          e.preventDefault()
+          if (isExpected) {
+            setConfirmCheckInOpen(true)
+          } else if (isCheckedIn) {
+            setConfirmCheckOutOpen(true)
+          } else if (isCheckedOut) {
+            setConfirmReactivateOpen(true)
+          }
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [
+    open,
+    loading,
+    actionLoading,
+    confirmCheckInOpen,
+    confirmCheckOutOpen,
+    confirmReactivateOpen,
+    data,
+    placement,
+    isVesselDeparted,
+    visitor,
+    isExpected,
+    isCheckedIn,
+    isCheckedOut,
+    handleCheckIn,
+    handleCheckOut,
+    handleReactivate,
+  ])
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -488,6 +554,14 @@ export default function CrewPersonPanelModal({
                         id="panel-action-note"
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault()
+                            if (isExpected) setConfirmCheckInOpen(true)
+                            else if (isCheckedIn) setConfirmCheckOutOpen(true)
+                            else if (isCheckedOut) setConfirmReactivateOpen(true)
+                          }
+                        }}
                         placeholder={t("vessel.note_placeholder", "Contoh: Naik kapal shift malam...")}
                         className="h-8 text-xs bg-background"
                       />
@@ -496,7 +570,7 @@ export default function CrewPersonPanelModal({
                     {/* Large Action Button Based on Status */}
                     {isExpected && (
                       <Button
-                        onClick={handleCheckIn}
+                        onClick={() => setConfirmCheckInOpen(true)}
                         disabled={actionLoading || visitor.is_blacklisted}
                         className="w-full h-12 text-base font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md flex items-center justify-center gap-2"
                       >
@@ -634,6 +708,41 @@ export default function CrewPersonPanelModal({
         </SheetFooter>
       </SheetContent>
 
+      {/* Check-In Confirmation Dialog for Expected Crew */}
+      <AlertDialog open={confirmCheckInOpen} onOpenChange={setConfirmCheckInOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("vessel.confirm_checkin_title", "Konfirmasi Check-In Kru")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                "vessel.confirm_checkin_desc",
+                "Check-In kru {{name}} pada kapal {{vessel}}? Kru akan berstatus Check-In.",
+                {
+                  name: visitor?.name || "",
+                  vessel: placement?.vessel_name || "",
+                }
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>
+              {t("common.cancel", "Batal")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              autoFocus
+              onClick={handleCheckIn}
+              disabled={actionLoading}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              {t("vessel.btn_check_in", "Check-In Kru")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Check-Out Confirmation Dialog */}
       <AlertDialog open={confirmCheckOutOpen} onOpenChange={setConfirmCheckOutOpen}>
         <AlertDialogContent>
@@ -657,6 +766,7 @@ export default function CrewPersonPanelModal({
               {t("common.cancel", "Batal")}
             </AlertDialogCancel>
             <AlertDialogAction
+              autoFocus
               onClick={handleCheckOut}
               disabled={actionLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -691,6 +801,7 @@ export default function CrewPersonPanelModal({
               {t("common.cancel", "Batal")}
             </AlertDialogCancel>
             <AlertDialogAction
+              autoFocus
               onClick={handleReactivate}
               disabled={actionLoading}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"

@@ -85,7 +85,9 @@ export default function VesselArrivalFormModal({
   // Form Fields
   const [locationId, setLocationId] = useState("")
   const [signInDate, setSignInDate] = useState("")
+  const [signInTime, setSignInTime] = useState("")
   const [signOutDate, setSignOutDate] = useState("")
+  const [signOutTime, setSignOutTime] = useState("")
   const [signInPort, setSignInPort] = useState("")
   const [signOutPort, setSignOutPort] = useState("")
   const [captain, setCaptain] = useState("")
@@ -153,7 +155,9 @@ export default function VesselArrivalFormModal({
     if (arrivalToEdit) {
       setLocationId(arrivalToEdit.location_id || "")
       setSignInDate(arrivalToEdit.sign_in_date || "")
+      setSignInTime((arrivalToEdit as any).sign_in_time ? (arrivalToEdit as any).sign_in_time.substring(0, 5) : "")
       setSignOutDate(arrivalToEdit.sign_out_date || "")
+      setSignOutTime((arrivalToEdit as any).sign_out_time ? (arrivalToEdit as any).sign_out_time.substring(0, 5) : "")
       setSignInPort(arrivalToEdit.sign_in_port || "")
       setSignOutPort(arrivalToEdit.sign_out_port || "")
       setCaptain(arrivalToEdit.captain || "")
@@ -204,9 +208,12 @@ export default function VesselArrivalFormModal({
     } else {
       // Default to today
       const today = new Date().toISOString().split("T")[0]
+      const nowTime = new Date().toTimeString().slice(0, 5)
       setLocationId("")
       setSignInDate(today)
+      setSignInTime(nowTime)
       setSignOutDate("")
+      setSignOutTime("")
       setSignInPort("")
       setSignOutPort("")
       setCaptain("")
@@ -333,7 +340,9 @@ export default function VesselArrivalFormModal({
         const payload: Record<string, unknown> = {
           location_id: locationId,
           sign_in_date: signInDate,
+          sign_in_time: signInTime.trim() ? (signInTime.length === 5 ? `${signInTime}:00` : signInTime) : null,
           sign_out_date: signOutDate || null,
+          sign_out_time: signOutTime.trim() ? (signOutTime.length === 5 ? `${signOutTime}:00` : signOutTime) : null,
           sign_in_port: signInPort.trim() || null,
           sign_out_port: signOutPort.trim() || null,
           captain: captain.trim() || null,
@@ -637,18 +646,36 @@ export default function VesselArrivalFormModal({
               )}
 
               <div>
-                <Label htmlFor="sign-in-date">
-                  {t("vesselArrivals.sign_in_date_label", "Tanggal Kedatangan (Check-In)")} <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="sign-in-date"
-                  type="date"
-                  aria-label={t("vesselArrivals.sign_in_date_aria", "Tanggal Kedatangan")}
-                  value={signInDate}
-                  onChange={(e) => setSignInDate(e.target.value)}
-                  disabled={submitting}
-                  className="mt-1"
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="sign-in-date">
+                      {t("vesselArrivals.sign_in_date_label", "Tanggal Kedatangan (Check-In)")} <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="sign-in-date"
+                      type="date"
+                      aria-label={t("vesselArrivals.sign_in_date_aria", "Tanggal Kedatangan")}
+                      value={signInDate}
+                      onChange={(e) => setSignInDate(e.target.value)}
+                      disabled={submitting}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="sign-in-time">
+                      {t("vesselArrivals.sign_in_time_label", "Jam Kedatangan")}
+                    </Label>
+                    <Input
+                      id="sign-in-time"
+                      type="time"
+                      aria-label={t("vesselArrivals.sign_in_time_aria", "Jam Kedatangan")}
+                      value={signInTime}
+                      onChange={(e) => setSignInTime(e.target.value)}
+                      disabled={submitting}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
                 {errors.sign_in_date && (
                   <p className="text-xs text-red-500 mt-1">{errors.sign_in_date}</p>
                 )}
@@ -669,16 +696,32 @@ export default function VesselArrivalFormModal({
               </div>
 
               <div>
-                <Label htmlFor="sign-out-date">{t("vesselArrivals.sign_out_date_label", "Tanggal Keberangkatan (Check-Out)")}</Label>
-                <Input
-                  id="sign-out-date"
-                  type="date"
-                  aria-label={t("vesselArrivals.sign_out_date_aria", "Tanggal Keberangkatan")}
-                  value={signOutDate}
-                  onChange={(e) => setSignOutDate(e.target.value)}
-                  disabled={submitting}
-                  className="mt-1"
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="sign-out-date">{t("vesselArrivals.sign_out_date_label", "Tanggal Keberangkatan (Check-Out)")}</Label>
+                    <Input
+                      id="sign-out-date"
+                      type="date"
+                      aria-label={t("vesselArrivals.sign_out_date_aria", "Tanggal Keberangkatan")}
+                      value={signOutDate}
+                      onChange={(e) => setSignOutDate(e.target.value)}
+                      disabled={submitting}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="sign-out-time">{t("vesselArrivals.sign_out_time_label", "Jam Keberangkatan")}</Label>
+                    <Input
+                      id="sign-out-time"
+                      type="time"
+                      aria-label={t("vesselArrivals.sign_out_time_aria", "Jam Keberangkatan")}
+                      value={signOutTime}
+                      onChange={(e) => setSignOutTime(e.target.value)}
+                      disabled={submitting}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
                 {errors.sign_out_date && (
                   <p className="text-xs text-red-500 mt-1">{errors.sign_out_date}</p>
                 )}
@@ -702,13 +745,13 @@ export default function VesselArrivalFormModal({
 
           {/* Bagian 2: Informasi Keagenan Lokal & Asing */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 border-b pb-1">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 border-b border-zinc-200 dark:border-zinc-800 pb-1">
               {t("vesselArrivals.section_agency", "Informasi Keagenan")}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Agen Lokal */}
-              <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border">
+              <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700/80">
                 <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   {t("vesselArrivals.local_agent_title", "Agen Lokal (Indonesia)")}
                 </span>
@@ -749,7 +792,7 @@ export default function VesselArrivalFormModal({
               </div>
 
               {/* Agen Asing */}
-              <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border">
+              <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700/80">
                 <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   {t("vesselArrivals.foreign_agent_title", "Agen Luar Negeri (Foreign Agent)")}
                 </span>
@@ -823,7 +866,7 @@ export default function VesselArrivalFormModal({
                       <Badge
                         key={crew.id}
                         variant="secondary"
-                        className="flex items-center gap-1.5 py-1 px-2.5 bg-white dark:bg-zinc-800 border text-xs text-zinc-800 dark:text-zinc-200 shadow-sm"
+                        className="flex items-center gap-1.5 py-1 px-2.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-800 dark:text-zinc-200 shadow-sm"
                       >
                         <span className="font-medium">{crew.name}</span>
                         {crew.occupation && (
@@ -847,7 +890,7 @@ export default function VesselArrivalFormModal({
                       <Badge
                         key={id}
                         variant="secondary"
-                        className="flex items-center gap-1.5 py-1 px-2.5 bg-white dark:bg-zinc-800 border text-xs shadow-sm"
+                        className="flex items-center gap-1.5 py-1 px-2.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs shadow-sm"
                       >
                         <span>{t("vesselArrivals.crew_tag", "Kru")} #{id.slice(0, 8)}</span>
                         <button

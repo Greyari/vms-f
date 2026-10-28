@@ -123,6 +123,8 @@ export default function CrewReport() {
   const [company, setCompany] = useState("")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
+  const [timeFrom, setTimeFrom] = useState("")
+  const [timeTo, setTimeTo] = useState("")
 
   const [appliedFilters, setAppliedFilters] = useState<Record<string, any>>({})
 
@@ -189,6 +191,8 @@ export default function CrewReport() {
     if (company.trim()) newFilters.company = company.trim()
     if (dateFrom) newFilters.date_from = dateFrom
     if (dateTo) newFilters.date_to = dateTo
+    if (timeFrom) newFilters.time_from = timeFrom
+    if (timeTo) newFilters.time_to = timeTo
 
     setPage(1)
     setAppliedFilters(newFilters)
@@ -203,6 +207,8 @@ export default function CrewReport() {
     setCompany("")
     setDateFrom("")
     setDateTo("")
+    setTimeFrom("")
+    setTimeTo("")
     setPage(1)
     setAppliedFilters({})
   }
@@ -330,7 +336,6 @@ export default function CrewReport() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
-            <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             {t("crew_report.title", "Laporan & Ekspor Kru Kapal")}
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
@@ -343,9 +348,9 @@ export default function CrewReport() {
 
         <div className="flex items-center gap-2">
           <Button
-            variant="default"
+            variant="outline"
             size="sm"
-            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+            className="gap-2"
             disabled={loading || exportLoading || exportPdfLoading}
             onClick={handleExportExcel}
           >
@@ -354,7 +359,7 @@ export default function CrewReport() {
             ) : (
               <FileDown className="h-4 w-4" />
             )}
-            {t("crew_report.export_excel", "Ekspor Excel (.xlsx)")}
+            {t("common.export_excel", "Export Excel")}
           </Button>
           <Button
             variant="outline"
@@ -373,38 +378,34 @@ export default function CrewReport() {
         </div>
       </div>
 
-      {/* Mode Switcher */}
-      <div className="flex items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-xs w-fit">
-        <button
+      {/* Mode Switcher Tabs */}
+      <div className="flex items-center gap-2 border-b border-zinc-200 pb-3 dark:border-zinc-800">
+        <Button
           type="button"
+          variant={mode === "placements" ? "default" : "outline"}
+          size="sm"
+          className="gap-2"
           onClick={() => {
             setMode("placements")
             setPage(1)
           }}
-          className={`px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-            mode === "placements"
-              ? "bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs font-semibold"
-              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400"
-          }`}
         >
           <Users className="w-3.5 h-3.5" />
           {t("crew_report.mode_placements", "Penempatan Kru Kapal")}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant={mode === "history" ? "default" : "outline"}
+          size="sm"
+          className="gap-2"
           onClick={() => {
             setMode("history")
             setPage(1)
           }}
-          className={`px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-            mode === "history"
-              ? "bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs font-semibold"
-              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400"
-          }`}
         >
           <History className="w-3.5 h-3.5" />
           {t("crew_report.mode_history", "Riwayat Lengkap Log & Aktivitas Kru")}
-        </button>
+        </Button>
       </div>
 
       {/* Quick Summary Pill Bar */}
@@ -447,7 +448,7 @@ export default function CrewReport() {
       <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <form onSubmit={handleApplyFilter} className="space-y-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            <Filter className="h-4 w-4 text-blue-600" />
+            <Filter className="h-4 w-4" />
             {t("crew_report.filter_title", "Filter Pencarian Kru Kapal")}
           </div>
 
@@ -556,21 +557,60 @@ export default function CrewReport() {
               />
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-end gap-2">
-              <Button type="submit" size="sm" className="flex-1 h-9 bg-blue-600 hover:bg-blue-700 text-white text-xs">
-                <Search className="h-3.5 w-3.5 mr-1.5" />
-                {t("common.filter", "Terapkan Filter")}
-              </Button>
+            {/* Rentang Jam */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t("common.time_from", "Jam Dari")}</Label>
+              <Input
+                type="time"
+                value={timeFrom}
+                onChange={(e) => setTimeFrom(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t("common.time_to", "Jam Sampai")}</Label>
+              <Input
+                type="time"
+                value={timeTo}
+                onChange={(e) => setTimeTo(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons & Filter Summary */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-xs text-zinc-700 dark:text-zinc-300 w-fit">
+              <span>
+                {t("crew_report.total_filtered", "Total Hasil Filter")}: <strong>{total.toLocaleString()}</strong>{" "}
+                {mode === "history" ? t("crew_report.logs_count", "log aktivitas") : t("crew_report.crew_count", "kru")}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleResetFilter}
-                title={t("common.reset", "Reset")}
-                className="h-9 px-3 text-xs"
+                className="gap-1.5"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
+                {t("common.reset", "Reset")}
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="gap-1.5"
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Search className="h-3.5 w-3.5" />
+                )}
+                {t("common.filter", "Terapkan Filter")}
               </Button>
             </div>
           </div>

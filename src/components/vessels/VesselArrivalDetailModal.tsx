@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
 import { useTranslation } from "@/context/I18nContext"
+import { useAuth } from "@/context/AuthContext"
 
 import {
   Dialog,
@@ -108,7 +109,9 @@ interface ArrivalDetail {
   location_id: string
   vessel_name: string
   sign_in_date: string
+  sign_in_time?: string | null
   sign_out_date?: string | null
+  sign_out_time?: string | null
   sign_in_port?: string | null
   sign_out_port?: string | null
   captain?: string | null
@@ -164,6 +167,8 @@ export default function VesselArrivalDetailModal({
   onUpdated,
 }: VesselArrivalDetailModalProps) {
   const { t } = useTranslation()
+  const { hasPermission } = useAuth()
+  const canManageVessels = hasPermission("manage_vessel_arrivals")
   const [detail, setDetail] = useState<ArrivalDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [processingCrewId, setProcessingCrewId] = useState<string | null>(null)
@@ -592,8 +597,8 @@ export default function VesselArrivalDetailModal({
         ) : (
           <div className="flex-1 overflow-y-auto space-y-5 pt-2 pr-1">
             {/* Seksi 1: Info Kapal & Rute */}
-            <div className="p-4 bg-zinc-50 dark:bg-zinc-850 rounded-xl border border-zinc-200 dark:border-zinc-700/80 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-900/60 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-2">
                 <div className="font-semibold text-zinc-900 dark:text-zinc-100 flex flex-wrap items-center gap-2">
                   <Ship className="h-4 w-4 text-blue-500" />
                   <span>{detail.vessel_name}</span>
@@ -608,20 +613,20 @@ export default function VesselArrivalDetailModal({
                     </Badge>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
                   {detail.vessel?.call_sign && (
                     <span>
-                      Call Sign: <strong>{detail.vessel.call_sign}</strong>
+                      Call Sign: <strong className="text-zinc-800 dark:text-zinc-200">{detail.vessel.call_sign}</strong>
                     </span>
                   )}
                   {detail.vessel?.flag && (
                     <span>
-                      {t("vesselArrivals.quick_vessel_flag", "Bendera")}: <strong>{detail.vessel.flag}</strong>
+                      {t("vesselArrivals.quick_vessel_flag", "Bendera")}: <strong className="text-zinc-800 dark:text-zinc-200">{detail.vessel.flag}</strong>
                     </span>
                   )}
                   {detail.vessel?.pic && (
                     <span>
-                      {t("vesselArrivals.quick_vessel_pic", "Note / PIC")}: <strong>{detail.vessel.pic}</strong>
+                      {t("vesselArrivals.quick_vessel_pic", "Note / PIC")}: <strong className="text-zinc-800 dark:text-zinc-200">{detail.vessel.pic}</strong>
                     </span>
                   )}
                 </div>
@@ -629,37 +634,41 @@ export default function VesselArrivalDetailModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <div className="text-xs text-zinc-500 flex items-center gap-1">
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
                     {t("vesselArrivals.sign_in_time", "Waktu Check-In")}
                   </div>
-                  <div className="font-medium mt-0.5">{detail.sign_in_date}</div>
-                  <div className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5">
+                  <div className="font-medium text-zinc-900 dark:text-zinc-100 mt-0.5">
+                    {detail.sign_in_date} {detail.sign_in_time ? `(${detail.sign_in_time.substring(0, 5)})` : ""}
+                  </div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mt-0.5">
                     <MapPin className="h-3 w-3" />
                     {t("vesselArrivals.from_port", "Dari: {{port}}", { port: detail.sign_in_port || "-" })}
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-xs text-zinc-500 flex items-center gap-1">
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
                     {t("vesselArrivals.sign_out_time", "Waktu Check-Out")}
                   </div>
-                  <div className="font-medium mt-0.5">
-                    {detail.sign_out_date || t("vesselArrivals.not_departed", "Belum Berangkat")}
+                  <div className="font-medium text-zinc-900 dark:text-zinc-100 mt-0.5">
+                    {detail.sign_out_date
+                      ? `${detail.sign_out_date}${detail.sign_out_time ? ` (${detail.sign_out_time.substring(0, 5)})` : ""}`
+                      : t("vesselArrivals.not_departed", "Belum Berangkat")}
                   </div>
-                  <div className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5">
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mt-0.5">
                     <MapPin className="h-3 w-3" />
                     {t("vesselArrivals.to_port", "Ke: {{port}}", { port: detail.sign_out_port || "-" })}
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-xs text-zinc-500 flex items-center gap-1">
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
                     <User className="h-3.5 w-3.5" />
                     {t("vesselArrivals.label_captain", "Nakhoda / Captain")}
                   </div>
-                  <div className="font-medium mt-0.5">
+                  <div className="font-medium text-zinc-900 dark:text-zinc-100 mt-0.5">
                     {detail.captain || detail.vessel?.captain || "-"}
                   </div>
                 </div>
@@ -668,39 +677,39 @@ export default function VesselArrivalDetailModal({
 
             {/* Seksi 2: Informasi Keagenan */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-3 bg-zinc-50 dark:bg-zinc-850 rounded-lg border border-zinc-200 dark:border-zinc-700/80 space-y-2">
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-2">
                 <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                   <Building className="h-3.5 w-3.5 text-blue-500" />
                   {t("vesselArrivals.local_agent_title", "Agen Lokal (Indonesia)")}
                 </div>
-                <div className="text-sm font-medium">
+                <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                   {detail.local_agent_company || "-"}
                 </div>
-                <div className="text-xs text-zinc-500">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">
                   PIC: {detail.local_agent_name || "-"} • Telp:{" "}
                   {detail.local_agent_phone || "-"}
                 </div>
                 {detail.local_agent_location && (
-                  <div className="text-xs text-zinc-400">
+                  <div className="text-xs text-zinc-400 dark:text-zinc-500">
                     {t("common.location", "Lokasi")}: {detail.local_agent_location}
                   </div>
                 )}
               </div>
 
-              <div className="p-3 bg-zinc-50 dark:bg-zinc-850 rounded-lg border border-zinc-200 dark:border-zinc-700/80 space-y-2">
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-2">
                 <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                   <Building className="h-3.5 w-3.5 text-blue-500" />
                   {t("vesselArrivals.foreign_agent_title", "Agen Luar Negeri (Foreign)")}
                 </div>
-                <div className="text-sm font-medium">
+                <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                   {detail.foreign_agent_company || "-"}
                 </div>
-                <div className="text-xs text-zinc-500">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">
                   PIC: {detail.foreign_agent_name || "-"} • Telp:{" "}
                   {detail.foreign_agent_phone || "-"}
                 </div>
                 {detail.foreign_agent_location && (
-                  <div className="text-xs text-zinc-400">
+                  <div className="text-xs text-zinc-400 dark:text-zinc-500">
                     {t("common.location", "Lokasi")}: {detail.foreign_agent_location}
                   </div>
                 )}
@@ -709,7 +718,7 @@ export default function VesselArrivalDetailModal({
 
             {/* Seksi 3: Tab Switcher Manifest Kru vs Riwayat Log Keluar-Masuk Kru */}
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 pb-2 dark:border-zinc-700">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 pb-2 dark:border-zinc-800">
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
@@ -775,7 +784,7 @@ export default function VesselArrivalDetailModal({
                       {t("vesselArrivals.btn_checkout_all", "Check-Out Semua Kru")}
                     </Button>
                   )}
-                  {isInPort && (
+                  {isInPort && canManageVessels && (
                     <Button
                       type="button"
                       size="sm"
@@ -886,9 +895,9 @@ export default function VesselArrivalDetailModal({
                     </button>
                   </div>
 
-                  <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-x-auto">
+                  <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-x-auto">
                     <Table>
-                      <TableHeader className="bg-zinc-50 dark:bg-zinc-800">
+                      <TableHeader className="bg-zinc-50 dark:bg-zinc-800/80">
                         <TableRow>
                           <TableHead className="w-10 text-center">
                             <button
@@ -1145,7 +1154,7 @@ export default function VesselArrivalDetailModal({
                                   </Button>
                                 )}
 
-                                {!isDetached && (
+                                {!isDetached && canManageVessels && (
                                   <Button
                                     type="button"
                                     variant="outline"
@@ -1174,7 +1183,7 @@ export default function VesselArrivalDetailModal({
               ) : (
                 <div className="space-y-3">
                   {/* Filter Bar untuk Riwayat Log Kru */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 dark:border-zinc-700 dark:bg-zinc-850">
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 dark:border-zinc-800 dark:bg-zinc-900/60">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
                         {t("vesselArrivals.filter_crew_label", "Filter Kru")}:
@@ -1183,7 +1192,7 @@ export default function VesselArrivalDetailModal({
                         aria-label="Filter Kru"
                         value={selectedCrewFilter}
                         onChange={(e) => setSelectedCrewFilter(e.target.value)}
-                        className="h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs dark:border-zinc-700 dark:bg-zinc-900"
+                        className="h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                       >
                         <option value="">{t("vesselArrivals.filter_all_crew", "Semua Kru")} ({allCrewList.length})</option>
                         {allCrewList.map((c) => (
@@ -1200,7 +1209,7 @@ export default function VesselArrivalDetailModal({
                         aria-label="Filter Aksi Log"
                         value={selectedActionFilter}
                         onChange={(e) => setSelectedActionFilter(e.target.value)}
-                        className="h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs dark:border-zinc-700 dark:bg-zinc-900"
+                        className="h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                       >
                         <option value="">{t("vesselArrivals.filter_all_actions", "Semua Aksi")}</option>
                         <option value="check_in">{t("vesselArrivals.log_type_check_in", "Check-In")}</option>
@@ -1247,9 +1256,9 @@ export default function VesselArrivalDetailModal({
                   </div>
 
                   {/* Tabel Riwayat Log Keluar-Masuk Kru */}
-                  <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-x-auto">
+                  <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-x-auto">
                     <Table>
-                      <TableHeader className="bg-zinc-50 dark:bg-zinc-800">
+                      <TableHeader className="bg-zinc-50 dark:bg-zinc-800/80">
                         <TableRow>
                           <TableHead className="w-12 text-center">{t("vesselArrivals.col_no", "No")}</TableHead>
                           <TableHead>{t("vesselArrivals.col_activity_time", "Waktu Aktivitas")}</TableHead>
@@ -1340,7 +1349,7 @@ export default function VesselArrivalDetailModal({
           </div>
         )}
 
-        <DialogFooter className="pt-3 border-t border-zinc-200 dark:border-zinc-700">
+        <DialogFooter className="pt-3 border-t border-zinc-200 dark:border-zinc-800">
           <Button type="button" variant="outline" onClick={onClose}>
             {t("common.close", "Tutup")}
           </Button>

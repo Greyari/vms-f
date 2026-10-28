@@ -4,6 +4,13 @@ import VesselArrivals from './VesselArrivals'
 import api from '@/lib/axios'
 
 vi.mock('@/lib/axios')
+let mockPermissions = ['manage_vessel_arrivals']
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 1, name: 'Admin', roles: ['administrator'] },
+    hasPermission: (p: string) => mockPermissions.includes(p),
+  }),
+}))
 
 const sampleArrivals = [
   {
@@ -63,6 +70,7 @@ const sampleArrivals = [
 describe('VesselArrivals Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockPermissions = ['manage_vessel_arrivals']
     vi.mocked(api.get).mockResolvedValue({
       data: {
         data: sampleArrivals,
@@ -196,5 +204,20 @@ describe('VesselArrivals Page', () => {
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/vessel-arrivals/uuid-arrival-1')
     })
+  })
+
+  it('hides create, edit, signout, and delete buttons when user lacks manage_vessel_arrivals permission', async () => {
+    mockPermissions = ['view_vessel_arrivals', 'checkout_visits']
+    render(<VesselArrivals />)
+
+    await waitFor(() => {
+      expect(screen.getByText('MV. PACIFIC GLORY')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText(/catat kedatangan baru/i)).not.toBeInTheDocument()
+    expect(screen.queryByTitle(/edit kedatangan kapal/i)).not.toBeInTheDocument()
+    expect(screen.queryByTitle(/check-out kapal/i)).not.toBeInTheDocument()
+    expect(screen.queryByTitle(/hapus/i)).not.toBeInTheDocument()
+    expect(screen.getAllByTitle(/lihat detail sandar/i).length).toBe(2)
   })
 })

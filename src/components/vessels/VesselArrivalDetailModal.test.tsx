@@ -4,6 +4,13 @@ import VesselArrivalDetailModal from './VesselArrivalDetailModal'
 import api from '@/lib/axios'
 
 vi.mock('@/lib/axios')
+let mockPermissions = ['manage_vessel_arrivals']
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 1, name: 'Admin', roles: ['administrator'] },
+    hasPermission: (p: string) => mockPermissions.includes(p),
+  }),
+}))
 
 const mockDetail = {
   id: 'uuid-arrival-1',
@@ -76,6 +83,7 @@ describe('VesselArrivalDetailModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockPermissions = ['manage_vessel_arrivals']
     vi.mocked(api.get).mockResolvedValue({
       data: mockDetail,
     })
@@ -401,6 +409,29 @@ describe('VesselArrivalDetailModal', () => {
         expect.objectContaining({ visitor_id: 'crew-1' })
       )
     })
+  })
+
+  it('hides Tambah Kru and Lepas Kru buttons when user lacks manage_vessel_arrivals permission', async () => {
+    mockPermissions = ['view_vessel_arrivals', 'checkout_visits']
+    render(
+      <VesselArrivalDetailModal
+        open={true}
+        onClose={mockOnClose}
+        arrivalId="uuid-arrival-1"
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
+    })
+
+    // Add crew and detach crew should be hidden
+    expect(screen.queryByText(/check-in \/ tambah kru/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/lepas kru/i)).not.toBeInTheDocument()
+
+    // Gate operator should still see Check-Out Kru for active crew and Check-In Kru for checked-out crew
+    expect(screen.getByRole('button', { name: /check-out kru/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /check-in kru/i })).toBeInTheDocument()
   })
 })
 

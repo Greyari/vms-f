@@ -525,15 +525,17 @@ export default function CreateVisit() {
       )
     }
 
-    // BARU: kartu wajib dipilih sebelum request ke backend.
-    // Hapus blok ini kalau kunjungan boleh tanpa kartu.
-    if (form.card_ids.length === 0) {
+    // Kartu akses wajib: minimal pilih salah satu (kartu pengunjung atau kartu kendaraan)
+    if (form.card_ids.length === 0 && !form.vehicle_card_id) {
       return toast.error(
-        t("create_visit.toast_select_card", "Pilih kartu akses dulu.")
+        t(
+          "create_visit.toast_select_card",
+          "Pilih minimal satu kartu akses (kartu pengunjung atau kartu kendaraan)."
+        )
       )
     }
 
-    // BARU: tolak kartu yang sedang dipakai.
+    // Tolak kartu pengunjung yang sedang dipakai.
     const usedSelected = cardList.filter(
       (c) => form.card_ids.includes(String(c.id)) && isCardInUse(c)
     )
@@ -544,6 +546,21 @@ export default function CreateVisit() {
           "Ada kartu yang sedang dipakai. Pilih kartu lain."
         )
       )
+    }
+
+    // Tolak kartu kendaraan yang sedang dipakai.
+    if (form.vehicle_card_id) {
+      const selectedVehicleCard = vehicleList.find(
+        (c) => String(c.id) === String(form.vehicle_card_id)
+      )
+      if (selectedVehicleCard && isCardInUse(selectedVehicleCard)) {
+        return toast.error(
+          t(
+            "create_visit.toast_vehicle_card_in_use",
+            "Kartu kendaraan yang dipilih sedang dipakai. Pilih kartu lain."
+          )
+        )
+      }
     }
 
     setLoading(true)

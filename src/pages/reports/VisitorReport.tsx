@@ -496,7 +496,6 @@ export default function VisitorReport() {
                 <SelectContent>
                   <SelectItem value={ALL}>{t("common.all", "Semua Tipe")}</SelectItem>
                   <SelectItem value="visitor">{t("visitors.opt_type_regular", "Pengunjung Umum (Regular)")}</SelectItem>
-                  <SelectItem value="crew">{t("visitors.opt_type_crew", "Crew (Kru Kapal)")}</SelectItem>
                   <SelectItem value="temporary_worker">{t("visitors.opt_type_contractor", "Tenaga Kerja Sementara / Kontraktor")}</SelectItem>
                   <SelectItem value="supplier">{t("visitors.opt_type_supplier", "Supplier / Vendor")}</SelectItem>
                   <SelectItem value="others">{t("visitors.opt_type_others", "Lainnya")}</SelectItem>
@@ -534,30 +533,39 @@ export default function VisitorReport() {
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleResetFilter}
-              className="gap-1.5"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              {t("common.reset", "Reset")}
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              className="gap-1.5"
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Search className="h-3.5 w-3.5" />
-              )}
-              {t("common.filter", "Terapkan Filter")}
-            </Button>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-xs text-zinc-700 dark:text-zinc-300 w-fit">
+              <span>
+                {t("visitor_report.total_filtered", "Total Hasil Filter")}: <strong>{total.toLocaleString()}</strong>{" "}
+                {t("visitor_report.visits_count", "kunjungan")}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleResetFilter}
+                className="gap-1.5"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                {t("common.reset", "Reset")}
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="gap-1.5"
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Search className="h-3.5 w-3.5" />
+                )}
+                {t("common.filter", "Terapkan Filter")}
+              </Button>
+            </div>
           </div>
         </form>
       </div>

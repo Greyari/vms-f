@@ -54,8 +54,10 @@ export interface VesselReportItem {
   location_id: string
   vessel_name?: string | null
   sign_in_date: string | null
+  sign_in_time?: string | null
   sign_in_port: string | null
   sign_out_date: string | null
+  sign_out_time?: string | null
   sign_out_port: string | null
   total_days: number
   captain: string | null
@@ -85,6 +87,8 @@ export default function VesselReport() {
   const [stayStatus, setStayStatus] = useState("all")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
+  const [timeFrom, setTimeFrom] = useState("")
+  const [timeTo, setTimeTo] = useState("")
 
   const [appliedFilters, setAppliedFilters] = useState<Record<string, any>>({})
 
@@ -140,6 +144,8 @@ export default function VesselReport() {
     if (stayStatus && stayStatus !== "all") newFilters.stay_status = stayStatus
     if (dateFrom) newFilters.date_from = dateFrom
     if (dateTo) newFilters.date_to = dateTo
+    if (timeFrom) newFilters.time_from = timeFrom
+    if (timeTo) newFilters.time_to = timeTo
 
     setPage(1)
     setAppliedFilters(newFilters)
@@ -150,6 +156,8 @@ export default function VesselReport() {
     setStayStatus("all")
     setDateFrom("")
     setDateTo("")
+    setTimeFrom("")
+    setTimeTo("")
     setPage(1)
     setAppliedFilters({})
   }
@@ -320,7 +328,7 @@ export default function VesselReport() {
             {t("vessel_report.filter_box_title", "Filter Laporan Kapal")}
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {/* Nama Kapal */}
             <div className="space-y-1.5">
               <Label className="text-xs">{t("vessel_report.vessel_name_label", "Nama Kapal")}</Label>
@@ -367,32 +375,61 @@ export default function VesselReport() {
                 className="h-9 text-sm"
               />
             </div>
+
+            {/* Rentang Jam */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t("common.time_from", "Jam (Dari)")}</Label>
+              <Input
+                type="time"
+                value={timeFrom}
+                onChange={(e) => setTimeFrom(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t("common.time_to", "Jam (Sampai)")}</Label>
+              <Input
+                type="time"
+                value={timeTo}
+                onChange={(e) => setTimeTo(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleResetFilter}
-              className="gap-1.5"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              {t("common.reset", "Reset")}
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              className="gap-1.5"
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Search className="h-3.5 w-3.5" />
-              )}
-              {t("common.filter", "Terapkan Filter")}
-            </Button>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-xs text-zinc-700 dark:text-zinc-300 w-fit">
+              <span>
+                {t("vessel_report.total_filtered", "Total Hasil Filter")}: <strong>{total.toLocaleString()}</strong>{" "}
+                {t("vessel_report.vessels_count", "kapal")}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleResetFilter}
+                className="gap-1.5"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                {t("common.reset", "Reset")}
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="gap-1.5"
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Search className="h-3.5 w-3.5" />
+                )}
+                {t("common.filter", "Terapkan Filter")}
+              </Button>
+            </div>
           </div>
         </form>
       </div>
@@ -449,6 +486,11 @@ export default function VesselReport() {
                         <TableCell>
                           <div className="font-medium text-zinc-900 dark:text-zinc-100">
                             {item.sign_in_date || "-"}
+                            {item.sign_in_time && (
+                              <span className="ml-1 text-[11px] font-mono text-zinc-500">
+                                {item.sign_in_time.substring(0, 5)}
+                              </span>
+                            )}
                           </div>
                           <div className="text-[11px] text-zinc-500">
                             {item.sign_in_port || "-"}
@@ -463,6 +505,11 @@ export default function VesselReport() {
                             <div>
                               <div className="font-medium text-zinc-900 dark:text-zinc-100">
                                 {item.sign_out_date}
+                                {item.sign_out_time && (
+                                  <span className="ml-1 text-[11px] font-mono text-zinc-500">
+                                    {item.sign_out_time.substring(0, 5)}
+                                  </span>
+                                )}
                               </div>
                               <div className="text-[11px] text-zinc-500">
                                 {item.sign_out_port || "-"}
@@ -533,7 +580,11 @@ export default function VesselReport() {
 
                       <div className="flex items-center gap-3 text-xs text-zinc-600 dark:text-zinc-400">
                         <div>
-                          {t("vessel_arrivals.col_sign_in", "Masuk")}: <strong className="text-zinc-800 dark:text-zinc-200">{item.sign_in_date || "-"}</strong>
+                          {t("vessel_arrivals.col_sign_in", "Masuk")}:{" "}
+                          <strong className="text-zinc-800 dark:text-zinc-200">
+                            {item.sign_in_date || "-"}
+                            {item.sign_in_time ? ` ${item.sign_in_time.substring(0, 5)}` : ""}
+                          </strong>
                         </div>
                         <div>
                           {t("vessel_arrivals.col_sign_out", "Keluar")}:{" "}
@@ -542,7 +593,10 @@ export default function VesselReport() {
                               {t("vessel_report.in_port_badge", "IN PORT")}
                             </Badge>
                           ) : (
-                            <strong className="text-zinc-800 dark:text-zinc-200">{item.sign_out_date}</strong>
+                            <strong className="text-zinc-800 dark:text-zinc-200">
+                              {item.sign_out_date}
+                              {item.sign_out_time ? ` ${item.sign_out_time.substring(0, 5)}` : ""}
+                            </strong>
                           )}
                         </div>
                         <Badge variant="secondary" className="font-mono text-[10px]">
