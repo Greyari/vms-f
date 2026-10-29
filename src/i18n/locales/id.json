@@ -139,6 +139,7 @@
     "activity_logs": "Log Aktivitas",
     "roles": "Peran & Hak Akses",
     "my_profile": "Profil Saya",
+    "app_overview": "Panduan Aplikasi",
     "logout": "Keluar (Logout)",
     "crew_report": "Laporan Kru Kapal"
   },
@@ -836,6 +837,9 @@
     "foreign_agent_phone_label": "Nomor Telepon",
     "manifest_title": "Manifest Kru Kapal:",
     "selected_crew_count": "{{count}} Kru Terpilih",
+    "vessel_required_hint": "Pilih kapal terlebih dahulu",
+    "auto_selected_first_vessel": "Kapal pertama dipilih otomatis untuk mengelola kru.",
+    "please_select_vessel_first": "Silakan pilih kapal terlebih dahulu sebelum mengelola kru.",
     "btn_manage_crew": "Kelola Kru Kapal",
     "assigned_crew_list": "Daftar Kru yang Ditugaskan:",
     "no_crew_selected": "Belum ada kru yang dipilih. Klik \"Kelola Kru Kapal\" untuk memilih atau menambahkan kru pelaut.",
@@ -1889,6 +1893,9 @@
     "foreign_agent_phone_label": "Nomor Telepon",
     "manifest_title": "Manifest Kru Kapal:",
     "selected_crew_count": "{{count}} Kru Terpilih",
+    "vessel_required_hint": "Pilih kapal terlebih dahulu",
+    "auto_selected_first_vessel": "Kapal pertama dipilih otomatis untuk mengelola kru.",
+    "please_select_vessel_first": "Silakan pilih kapal terlebih dahulu sebelum mengelola kru.",
     "btn_manage_crew": "Kelola Kru Kapal",
     "assigned_crew_list": "Daftar Kru yang Ditugaskan:",
     "no_crew_selected": "Belum ada kru yang dipilih. Klik \"Kelola Kru Kapal\" untuk memilih atau menambahkan kru pelaut.",
@@ -2193,5 +2200,861 @@
     "occupation": "Jabatan / Profesi",
     "nationality": "Kebangsaan",
     "phone": "No. Telepon"
+  },
+  "app_overview": {
+    "title": "Panduan Aplikasi",
+    "subtitle": "Penjelasan singkat fungsi dan fitur utama setiap halaman di VMS Core.",
+    "summary_accessible": "{{accessible}} dari {{total}} halaman dapat Anda akses",
+    "search_label": "Cari halaman atau fitur",
+    "search_placeholder": "Cari nama halaman, rute, atau fitur...",
+    "clear_search": "Bersihkan pencarian",
+    "jump_to_aria": "Lompat ke kelompok halaman",
+    "jump_to_label": "Lompat ke",
+    "empty_search": "Tidak ada halaman atau fitur yang cocok dengan kata kunci pencarian Anda.",
+    "reset_search": "Tampilkan Semua Halaman",
+    "purpose_heading": "Untuk Apa",
+    "features_heading": "Fitur Utama",
+    "access_allowed": "Bisa diakses",
+    "access_denied": "Tidak ada akses",
+    "open_page": "Buka halaman",
+    "guides_heading": "Panduan Langkah demi Langkah",
+    "guide_try_now": "Coba Sekarang",
+    "guide_show": "Lihat Panduan",
+    "guide_hide": "Sembunyikan Panduan",
+    "guide_tip_label": "Tips",
+    "tour_start": "Mulai Tur",
+    "tour_repeat": "Ulangi Tur",
+    "tour_select_label": "Pilih tur terpandu",
+    "tour_next": "Lanjut",
+    "tour_prev": "Kembali",
+    "tour_skip": "Lewati",
+    "tour_done": "Selesai",
+    "tour_progress": "{{current}} dari {{total}}",
+    "flow_section_title": "Alur Kerja Utama",
+    "flow_replay": "Putar Ulang",
+    "flow_start_tour": "Mulai tur alur ini",
+    "tips_section_title": "Tips Umum",
+    "tips_section_subtitle": "Fitur global yang tersedia di seluruh halaman aplikasi VMS Core.",
+    "roles": {
+      "administrator": "Administrator",
+      "supervisor": "Supervisor",
+      "security": "Security"
+    },
+    "groups": {
+      "overview": {
+        "title": "Ikhtisar",
+        "description": "Pemantauan metrik operasional gerbang dan aktivitas pengunjung secara real-time."
+      },
+      "visitor_management": {
+        "title": "Manajemen Pengunjung",
+        "description": "Operasional harian pos keamanan untuk registrasi tamu, riwayat kunjungan, dan kedatangan kru kapal."
+      },
+      "master_data": {
+        "title": "Data Induk (Master Data)",
+        "description": "Pengelolaan referensi lokasi, kapal, staf penerima, kartu fisik, direktori pengunjung, dan daftar cekal.",
+        "badge_import_export": "Semua halaman mendukung Import & Export Excel/CSV"
+      },
+      "reports": {
+        "title": "Laporan & Analitik",
+        "description": "Rekapitulasi data operasional dan pencetakan laporan resmi dalam format Excel maupun PDF berkop."
+      },
+      "system_settings": {
+        "title": "Pengaturan Sistem",
+        "description": "Manajemen pengguna, hak akses peran, audit log aktivitas, profil akun, dan panduan aplikasi."
+      }
+    },
+    "pages": {
+      "dashboard": {
+        "title": "Dashboard",
+        "purpose": "Memantau ringkasan operasional gerbang secara langsung pada hari berjalan.",
+        "features": {
+          "metrics": "Kartu metrik real-time (kunjungan aktif, total bulan ini, kartu tersedia, pengunjung blacklist)",
+          "weekly_trend": "Grafik tren kunjungan mingguan dan status ketersediaan kartu tamu & kendaraan",
+          "active_visitors": "Tabel daftar tamu yang sedang berada di area galangan (In Yard)"
+        }
+      },
+      "add_visit": {
+        "title": "Tambah Kunjungan",
+        "purpose": "Mendaftarkan kedatangan pengunjung baru atau memproses check-in di pos keamanan.",
+        "features": {
+          "registration_modes": "Pencarian cepat pengunjung terdaftar menggunakan Nama (autocomplete) maupun Nomor Identitas",
+          "id_detection": "Deteksi otomatis nomor identitas (KTP, SIM, Paspor) beserta riwayat jumlah kunjungan",
+          "blacklist_alert": "Peringatan dan pencegahan otomatis apabila pengunjung terdaftar di Blacklist",
+          "host_and_cards": "Penetapan lokasi/kapal tujuan & staf penerima (Host), dilanjutkan pemilihan kartu pengunjung fisik (wajib) dan kartu kendaraan (opsional)",
+          "print_pass": "Cetak langsung tiket Visitor Pass format ½ A4 setelah kartu pengunjung dipilih dan check-in berhasil"
+        },
+        "guides": {
+          "add_visit": {
+            "title": "Tambah kunjungan",
+            "steps": {
+              "1": "Ketik Nama pengunjung untuk memilih dari saran otomatis, atau pilih Jenis ID (KTP, SIM, Paspor) lalu ketik Nomor ID dan klik Cek nomor ID.",
+              "2": "Periksa panel status di sebelah kanan; sistem otomatis menolak pendaftaran jika pengunjung terdaftar di Blacklist, atau meminta pendaftaran dulu di Daftar Pengunjung jika belum terdaftar.",
+              "3": "Pada bagian Tujuan & Staf yang Dikunjungi, pilih Lokasi / Kapal tujuan, isi Tujuan kunjungan, serta pilih Staf yang Dikunjungi (Host).",
+              "4": "Pada bagian Kartu Akses & Kendaraan, pilih Kartu Pengunjung fisik yang berstatus Tersedia (wajib), serta isi plat nomor dan kartu kendaraan jika tamu membawa kendaraan.",
+              "5": "Klik tombol Simpan & Cetak Tiket di bar bawah untuk menyimpan kunjungan dan mencetak tiket Visitor Pass format ½ A4."
+            },
+            "tip": "Pastikan minimal satu kartu fisik pengunjung berstatus Tersedia telah dipilih sebelum menekan Simpan & Cetak Tiket."
+          }
+        }
+      },
+      "visit_history": {
+        "title": "Riwayat Kunjungan",
+        "purpose": "Mencari, memantau, mencetak ulang tiket, mengubah data, dan memproses check-out kunjungan.",
+        "features": {
+          "quick_search": "Pencarian cepat berdasarkan plat nomor kendaraan, nomor tiket, nama, atau perusahaan",
+          "status_filter": "Filter status kunjungan aktif (In Yard) maupun yang sudah selesai (Checked Out)",
+          "checkout": "Prosedur check-out tamu individu maupun check-out massal (Bulk Check-Out) rombongan",
+          "reprint_and_edit": "Cetak ulang tiket pass masuk (Reprint Pass) dan edit data kunjungan aktif",
+          "auto_card_release": "Pengembalian status kartu tamu dan kartu kendaraan secara otomatis saat check-out"
+        },
+        "guides": {
+          "checkout": {
+            "title": "Check-out kunjungan",
+            "steps": {
+              "1": "Pastikan filter status menampilkan daftar kunjungan aktif (In Yard).",
+              "2": "Ketik plat nomor kendaraan, nomor tiket, nama tamu, atau perusahaan pada kolom pencarian cepat.",
+              "3": "Klik tombol Check-out pada baris tamu individu, atau pilih beberapa baris untuk Bulk Check-Out rombongan.",
+              "4": "Konfirmasi check-out agar kartu tamu dan kartu kendaraan otomatis dikembalikan menjadi Tersedia."
+            },
+            "tip": "Gunakan pencarian plat nomor kendaraan untuk mempercepat proses check-out di gerbang keluar."
+          },
+          "reprint_edit": {
+            "title": "Cetak ulang / edit pass",
+            "steps": {
+              "1": "Temukan data kunjungan yang masih berstatus aktif (In Yard) pada tabel riwayat.",
+              "2": "Klik aksi Reprint Pass untuk membuka tampilan cetak ulang tiket Visitor Pass.",
+              "3": "Klik aksi Edit untuk memperbarui rincian kunjungan aktif seperti lokasi tujuan atau kartu akses, lalu simpan."
+            },
+            "tip": "Kunjungan yang sudah selesai (Checked Out) tidak dapat diubah kembali."
+          }
+        }
+      },
+      "crew_arrivals": {
+        "title": "Kedatangan Kru",
+        "purpose": "Mengelola kedatangan kapal (Repair Vessel dan armada menetap Tugboat/Barge) beserta penempatan dan pergerakan manifest kru.",
+        "features": {
+          "unified_search": "Pencarian terpadu untuk melacak kapal sandar dan kru pelaut secara instan",
+          "register_arrival": "Registrasi kedatangan kapal baru lengkap dengan jadwal, pelabuhan, agen lokal/asing, dan manifest awal",
+          "manifest_tabs": "Tab pemantauan manifest kru kapal (Aktif, Belum Check-In, Selesai) serta tab Riwayat Log Keluar-Masuk Kru",
+          "crew_actions": "Aksi Check-In kru (aturan 1-ke-1 ketat), Check-Out, Lepas Kru (Detach), dan pencatatan riwayat log aktivitas",
+          "export_and_depart": "Prosedur keberangkatan/sign-out kapal perbaikan (Repair Vessel), sedangkan Tugboat & Barge berstatus menetap (Stay) tanpa check-out"
+        },
+        "guides": {
+          "register_arrival": {
+            "title": "Daftarkan kedatangan kapal",
+            "steps": {
+              "1": "Pastikan data kapal sudah terdaftar di menu Lokasi & Kapal, dan data kru sudah terdaftar di menu Daftar Pengunjung dengan tipe Crew.",
+              "2": "Klik tombol Catat Kedatangan Baru pada halaman Kedatangan Kru, lalu pilih kapal sandar, jadwal kedatangan, serta pelabuhan asal.",
+              "3": "Lengkapi informasi agen perkapalan lokal maupun agen asing beserta kontak penanggung jawab.",
+              "4": "Pilih dan gabungkan daftar kru pelaut ke dalam manifest kapal tersebut lalu simpan (kru wajib terhubung ke kapal dulu agar bisa Check-In dan Check-Out)."
+            },
+            "tip": "Kru yang belum digabungkan ke manifest kedatangan kapal tidak dapat melakukan Check-In maupun Check-Out."
+          },
+          "manage_manifest": {
+            "title": "Kelola manifest & aksi kru",
+            "steps": {
+              "1": "Cara tercepat: ketik nama kru atau nama kapal pada kotak Pencarian Terpadu di bagian atas halaman untuk langsung membuka panel aksi kru atau detail manifest.",
+              "2": "Atau klik tombol Detail pada baris kapal di tabel untuk menampilkan daftar manifest (Kru Aktif On-Board, Belum Check-In, Riwayat Selesai).",
+              "3": "Klik tombol Check-In atau Check-Out pada baris kru sesuai pergerakan keluar-masuk pelaut (aturan 1-ke-1 ketat).",
+              "4": "Gunakan aksi Lepas Kru (Detach) atau Pindah Kapal (Transfer) jika kru berpindah penugasan ke kapal lain."
+            },
+            "tip": "Tombol Check-In dan Check-Out kru dapat diakses baik melalui Pencarian Terpadu maupun melalui modal Detail Manifest kapal."
+          },
+          "export_depart": {
+            "title": "Export & tandai berangkat",
+            "steps": {
+              "1": "Buka detail kedatangan kapal lalu pilih tab riwayat log aktivitas keluar-masuk kru.",
+              "2": "Klik tombol Export Excel untuk mengunduh rekapitulasi log pergerakan kru dalam format .xlsx.",
+              "3": "Saat kapal perbaikan (Repair Vessel) selesai dan meninggalkan galangan, klik tombol Check-Out / Departed pada baris kapal atau di dalam detail kapal."
+            },
+            "tip": "Kapal bertipe Tugboat dan Barge berstatus menetap (Stay) sehingga tidak memerlukan prosedur Check-Out kapal."
+          }
+        }
+      },
+      "locations_vessels": {
+        "title": "Lokasi & Kapal",
+        "purpose": "Mengelola daftar lokasi area galangan (dermaga, bengkel, kantor) serta data induk kapal sandar.",
+        "features": {
+          "yard_zones": "Pencatatan lokasi zona galangan, dermaga, serta klasifikasi tipe kapal (Tugboat, Barge, atau Repair Vessel)",
+          "vessel_details": "Penyimpanan metadata kapal seperti nomor IMO, Call Sign, bendera, nakhoda, dan PIC kapal",
+          "import_export": "Dukungan penuh Import dan Export data Lokasi & Kapal menggunakan template Excel/CSV"
+        },
+        "guides": {
+          "manage_records": {
+            "title": "Tambah, Edit & Hapus data lokasi atau kapal",
+            "steps": {
+              "1": "Klik tombol tambah untuk membuka formulir pendaftaran lokasi galangan atau kapal baru.",
+              "2": "Pilih tipe entitas (zona darat, dermaga, Tugboat, Barge, atau Repair Vessel) lalu lengkapi metadata seperti IMO, Call Sign, bendera, dan PIC.",
+              "3": "Simpan data baru, atau gunakan aksi Edit pada baris tabel untuk memperbarui rincian lokasi dan kapal yang sudah ada.",
+              "4": "Gunakan aksi Hapus pada baris yang tidak lagi digunakan apabila belum terikat pada riwayat transaksi aktif."
+            },
+            "tip": "Pastikan klasifikasi tipe kapal (Repair Vessel vs Tugboat/Barge) dipilih dengan tepat karena menentukan perilaku keberangkatan kapal."
+          },
+          "import_export": {
+            "title": "Import & Export data via Excel/CSV",
+            "steps": {
+              "1": "Klik tombol Import lalu unduh file template resmi Excel/CSV yang tersedia pada dialog.",
+              "2": "Isi daftar lokasi atau kapal pada file template sesuai format kolom yang ditentukan.",
+              "3": "Unggah file yang telah diisi, periksa tabel pratinjau validasi, lalu konfirmasi proses Import.",
+              "4": "Klik tombol Export kapan saja untuk mengunduh seluruh daftar Lokasi & Kapal ke file Excel/CSV."
+            },
+            "tip": "Selalu gunakan template terbaru agar header kolom sesuai dengan format validasi sistem."
+          }
+        }
+      },
+      "staffs": {
+        "title": "Staf Pegawai",
+        "purpose": "Mengelola direktori karyawan internal yang berperan sebagai penerima tamu (Host).",
+        "features": {
+          "host_directory": "Pencarian cepat nama staf, nomor induk pegawai, jabatan, dan kontak penerima tamu",
+          "department_status": "Pengelolaan departemen serta pengaktifan/penonaktifan status staf",
+          "import_export": "Import massal dan Export daftar staf pegawai melalui file Excel/CSV"
+        },
+        "guides": {
+          "manage_records": {
+            "title": "Tambah, Edit & Hapus data staf pegawai",
+            "steps": {
+              "1": "Klik tombol tambah staf untuk membuka formulir data karyawan penerima tamu (Host).",
+              "2": "Masukkan nama lengkap, nomor induk pegawai, departemen, jabatan, serta nomor kontak.",
+              "3": "Atur status aktif/nonaktif staf atau gunakan aksi Edit pada tabel untuk memperbarui data karyawan.",
+              "4": "Gunakan aksi Hapus apabila data staf duplikat dan belum memiliki riwayat penerimaan tamu."
+            },
+            "tip": "Nonaktifkan status staf yang sudah mutasi atau purna tugas agar tidak muncul pada pilihan Host saat registrasi tamu."
+          },
+          "import_export": {
+            "title": "Import & Export direktori staf",
+            "steps": {
+              "1": "Buka menu Import pada halaman Staf Pegawai dan unduh template Excel/CSV.",
+              "2": "Lengkapi data nama, nomor induk, departemen, dan jabatan staf pada file template.",
+              "3": "Unggah file ke dalam dialog Import, tinjau hasil validasi baris, lalu simpan secara massal.",
+              "4": "Gunakan tombol Export untuk mengunduh rekap direktori staf aktif maupun nonaktif."
+            },
+            "tip": "Pastikan nomor induk pegawai bersifat unik agar tidak terjadi duplikasi saat proses Import massal."
+          }
+        }
+      },
+      "cards": {
+        "title": "Kartu Pengunjung",
+        "purpose": "Mengelola inventaris kartu akses fisik tamu (RFID/Barcode) yang dipinjamkan di gerbang.",
+        "features": {
+          "physical_cards": "Pendaftaran nomor dan kode kartu akses fisik pengunjung",
+          "status_tracking": "Pemantauan status kartu secara akurat: Tersedia (Available), Digunakan (In Use), atau Hilang (Lost)",
+          "import_export": "Import dan Export inventaris kartu pengunjung via Excel/CSV"
+        },
+        "guides": {
+          "manage_records": {
+            "title": "Tambah, Edit & Hapus inventaris kartu pengunjung",
+            "steps": {
+              "1": "Klik tombol tambah kartu untuk mendaftarkan nomor seri dan kode kartu fisik RFID/Barcode baru.",
+              "2": "Tentukan kategori serta status awal ketersediaan kartu (Tersedia atau Hilang/Rusak).",
+              "3": "Gunakan aksi Edit pada baris kartu untuk memperbarui kode atau mengubah status kartu yang hilang.",
+              "4": "Hapus data kartu apabila nomor kartu salah didaftarkan dan belum pernah dipinjamkan."
+            },
+            "tip": "Kartu yang berstatus Digunakan (In Use) sedang terikat pada kunjungan aktif dan akan kembali Tersedia otomatis saat tamu check-out."
+          },
+          "import_export": {
+            "title": "Import & Export inventaris kartu",
+            "steps": {
+              "1": "Klik tombol Import dan unduh template Excel/CSV inventaris kartu pengunjung.",
+              "2": "Masukkan daftar nomor kartu dan kode RFID/Barcode secara berurutan pada file template.",
+              "3": "Unggah file, periksa pratinjau data kartu, lalu jalankan proses Import.",
+              "4": "Klik tombol Export untuk mengunduh laporan inventaris dan status ketersediaan seluruh kartu."
+            },
+            "tip": "Lakukan Export secara berkala untuk mengaudit jumlah kartu fisik yang tersedia di pos gerbang."
+          }
+        }
+      },
+      "card_vehicles": {
+        "title": "Kartu Kendaraan",
+        "purpose": "Mengelola kartu pass akses gerbang untuk kendaraan pengunjung roda 2 maupun roda 4.",
+        "features": {
+          "gate_pass": "Inventaris kartu pass kendaraan berdasarkan kategori dan nomor seri kartu",
+          "plate_pairing": "Terhubung langsung dengan pencatatan plat nomor kendaraan saat check-in dan check-out",
+          "import_export": "Import dan Export daftar kartu kendaraan menggunakan template Excel/CSV"
+        },
+        "guides": {
+          "manage_records": {
+            "title": "Tambah, Edit & Hapus kartu pass kendaraan",
+            "steps": {
+              "1": "Klik tombol tambah untuk mendaftarkan nomor seri kartu pass kendaraan baru.",
+              "2": "Pilih kategori kendaraan (roda 2, roda 4, atau operasional) dan status ketersediaannya.",
+              "3": "Gunakan aksi Edit untuk memperbarui rincian kartu atau menandai kartu yang rusak/hilang.",
+              "4": "Gunakan aksi Hapus untuk membersihkan nomor kartu yang tidak lagi berlaku."
+            },
+            "tip": "Kartu kendaraan akan dipasangkan dengan plat nomor kendaraan tamu saat check-in dan dilepas otomatis saat check-out."
+          },
+          "import_export": {
+            "title": "Import & Export daftar kartu kendaraan",
+            "steps": {
+              "1": "Buka dialog Import dan unduh file template Excel/CSV kartu kendaraan.",
+              "2": "Isi nomor seri dan kategori kartu kendaraan pada kolom yang tersedia.",
+              "3": "Unggah file template ke sistem, periksa validasi pratinjau, lalu konfirmasi penyimpanan.",
+              "4": "Klik tombol Export untuk mengunduh daftar inventaris kartu kendaraan dalam format Excel/CSV."
+            },
+            "tip": "Beri penomoran seri yang jelas antara kartu roda 2 dan roda 4 untuk memudahkan petugas di gerbang."
+          }
+        }
+      },
+      "visitors": {
+        "title": "Daftar Pengunjung",
+        "purpose": "Menyimpan arsip induk seluruh pengunjung, kontraktor, dan tamu yang pernah terdaftar.",
+        "features": {
+          "master_archive": "Pengelolaan biodata lengkap pengunjung, jenis identitas, perusahaan, dan kewarganegaraan",
+          "visit_timeline": "Modal detail profil dengan riwayat garis waktu (timeline) seluruh kunjungan perorangan",
+          "print_and_export": "Cetak profil pengunjung serta fitur Import & Export data induk pengunjung via Excel/CSV"
+        },
+        "guides": {
+          "manage_records": {
+            "title": "Kelola profil & lihat timeline kunjungan",
+            "steps": {
+              "1": "Gunakan kolom pencarian untuk menemukan pengunjung berdasarkan nama, nomor identitas, atau perusahaan.",
+              "2": "Klik tombol tambah atau aksi Edit untuk melengkapi biodata, jenis identitas, perusahaan, dan kewarganegaraan.",
+              "3": "Klik rincian profil pengunjung untuk membuka modal garis waktu (timeline) seluruh riwayat kunjungannya.",
+              "4": "Gunakan aksi Hapus apabila terdapat profil ganda yang belum memiliki riwayat transaksi."
+            },
+            "tip": "Data profil yang diperbarui di halaman ini akan otomatis terisi saat pengunjung tersebut kembali melakukan check-in."
+          },
+          "import_export": {
+            "title": "Cetak profil, Import & Export data pengunjung",
+            "steps": {
+              "1": "Buka modal detail pengunjung lalu klik tombol cetak untuk mencetak lembar profil perorangan.",
+              "2": "Klik tombol Import dan unduh template Excel/CSV untuk mendaftarkan data kontraktor atau tamu rombongan lebih awal.",
+              "3": "Unggah file yang telah diisi, tinjau pratinjau validasi, lalu simpan ke arsip induk.",
+              "4": "Klik tombol Export untuk mengunduh arsip induk pengunjung ke dalam file Excel/CSV."
+            },
+            "tip": "Mengimpor daftar pekerja subkontraktor sebelum hari kedatangan akan mempercepat antrean registrasi di pos gerbang."
+          }
+        }
+      },
+      "blacklist": {
+        "title": "Daftar Blacklist",
+        "purpose": "Mengelola daftar cekal keamanan bagi pengunjung yang dilarang memasuki area galangan.",
+        "features": {
+          "block_management": "Pencatatan alasan pelanggaran cekal serta prosedur pemulihan akses (Unblacklist)",
+          "cloud_hub_sync": "Antrean sinkronisasi (Outbox) dengan Cloud Hub agar daftar cekal tersebar lintas gerbang",
+          "import_export": "Import dan Export daftar cekal keamanan melalui file Excel/CSV"
+        },
+        "guides": {
+          "add_block": {
+            "title": "Tambah blokir pengunjung",
+            "steps": {
+              "1": "Cari data pengunjung atau buka formulir penambahan daftar cekal keamanan (Blacklist).",
+              "2": "Masukkan alasan pelanggaran keamanan secara lengkap sebagai referensi petugas gerbang.",
+              "3": "Simpan penetapan blokir, atau gunakan fitur Import Excel/CSV untuk memproses daftar cekal secara massal."
+            },
+            "tip": "Pengunjung yang masuk daftar cekal akan otomatis memicu peringatan blokir saat nomor identitasnya dipindai di halaman Tambah Kunjungan."
+          },
+          "remove_block": {
+            "title": "Hapus blokir (Unblacklist)",
+            "steps": {
+              "1": "Cari nama atau nomor identitas pengunjung pada tabel Daftar Blacklist.",
+              "2": "Klik aksi pemulihan akses (Unblacklist) pada baris pengunjung yang telah mendapat izin resmi.",
+              "3": "Konfirmasi pencabutan status blokir agar pengunjung dapat kembali didaftarkan pada kunjungan berikutnya."
+            },
+            "tip": "Setiap tindakan penambahan maupun pencabutan blokir tercatat otomatis di halaman Log Aktivitas."
+          },
+          "cloud_sync": {
+            "title": "Sinkronisasi Cloud Hub",
+            "steps": {
+              "1": "Periksa indikator status sinkronisasi dan antrean Outbox Cloud Hub pada halaman Daftar Blacklist.",
+              "2": "Pastikan perubahan status cekal lokal telah masuk ke antrean pengiriman lintas gerbang.",
+              "3": "Jalankan aksi sinkronisasi manual apabila koneksi ke Cloud Hub baru saja pulih kembali."
+            },
+            "tip": "Fitur Outbox memastikan pembaruan daftar cekal tetap tersimpan aman saat pos gerbang beroperasi secara offline."
+          }
+        }
+      },
+      "visitor_report": {
+        "title": "Laporan Kunjungan",
+        "purpose": "Menyajikan laporan analitik dan rekapitulasi riwayat kunjungan tamu berdasarkan berbagai kriteria.",
+        "features": {
+          "multi_filter": "Filter multi-kriteria mencakup rentang tanggal/jam, lokasi, tipe pengunjung, perusahaan, dan status",
+          "kpi_summary": "Ringkasan indikator kinerja utama (KPI) jumlah kunjungan pada periode terpilih",
+          "export_excel_pdf": "Ekspor laporan ke Excel (.xlsx) dan dokumen PDF resmi A4 Landscape berkop perusahaan"
+        },
+        "guides": {
+          "filter_kpi": {
+            "title": "Terapkan filter, baca KPI & ekspor laporan",
+            "steps": {
+              "1": "Pilih rentang tanggal dan jam kedatangan serta kriteria tambahan seperti lokasi tujuan, tipe pengunjung, perusahaan, atau status.",
+              "2": "Amati kartu ringkasan indikator kinerja utama (KPI) di bagian atas untuk melihat total kunjungan pada periode terpilih.",
+              "3": "Periksa rincian baris data kunjungan pada tabel laporan untuk memverifikasi kelengkapan informasi.",
+              "4": "Klik tombol ekspor Excel (.xlsx) untuk pengolahan data lanjutan atau ekspor PDF A4 Landscape berkop resmi."
+            },
+            "tip": "Persempit rentang tanggal atau filter lokasi sebelum mencetak dokumen PDF jika jumlah baris data sangat besar."
+          }
+        }
+      },
+      "vessel_report": {
+        "title": "Laporan Kapal",
+        "purpose": "Menyajikan rekapitulasi riwayat kedatangan dan keberangkatan kapal sandar di galangan.",
+        "features": {
+          "arrival_recap": "2 tab tampilan: Rincian Bersama Kru (default) dan Ringkasan Kapal, dilengkapi filter status (In Port, Departed, Stay)",
+          "crew_stats": "Ringkasan statistik jumlah kru aktif dan total pergerakan kru per kedatangan kapal",
+          "export_excel_pdf": "Ekspor rekapitulasi kapal ke file Excel (.xlsx) dan laporan PDF resmi"
+        },
+        "guides": {
+          "filter_kpi": {
+            "title": "Terapkan filter, baca statistik & ekspor laporan kapal",
+            "steps": {
+              "1": "Pilih tab tampilan Rincian Bersama Kru (default) atau Ringkasan Kapal sesuai kebutuhan rekapitulasi.",
+              "2": "Terapkan filter rentang tanggal kedatangan, nama kapal, agen, atau status kapal (In Port, Departed, Stay).",
+              "3": "Tinjau statistik jumlah kru aktif di atas kapal dan total pergerakan kru pada setiap catatan kedatangan.",
+              "4": "Klik tombol Export Excel (.xlsx) atau Ekspor PDF untuk mengunduh dokumen laporan resmi."
+            },
+            "tip": "Gunakan filter status Stay untuk memisahkan armada menetap (Tugboat & Barge) dari kapal perbaikan (Repair Vessel)."
+          }
+        }
+      },
+      "crew_report": {
+        "title": "Laporan Kru Kapal",
+        "purpose": "Menyajikan laporan komprehensif penempatan kru pelaut dan riwayat keluar-masuk gerbang.",
+        "features": {
+          "three_modes": "2 tab mode tampilan: Riwayat Lengkap Log & Aktivitas Kru (default) dan Penempatan Kru Kapal",
+          "seafarer_docs": "Pencarian detail dokumen buku pelaut (Seaman Book), jabatan, kebangsaan, dan nama kapal",
+          "export_excel_pdf": "Ekspor data kru ke Excel (.xlsx) dan dokumen PDF Landscape berformat sesi per baris (In, Out, Days angka bulat, Status ONBOARD)"
+        },
+        "guides": {
+          "filter_kpi": {
+            "title": "Filter aktivitas kru & ekspor Excel/PDF",
+            "steps": {
+              "1": "Pilih tab Riwayat Lengkap Log & Aktivitas Kru (default utama) atau tab Penempatan Kru Kapal.",
+              "2": "Saring data berdasarkan nama kru, nomor buku pelaut (Seaman Book), nama kapal, kebangsaan, atau status penempatan.",
+              "3": "Periksa tabel hasil penyaringan beserta total rekapitulasi data yang ditampilkan.",
+              "4": "Klik Ekspor Excel (.xlsx) atau Ekspor PDF untuk mengunduh laporan Landscape berformat sesi per baris (In, Out, Days, dan status ONBOARD)."
+            },
+            "tip": "Mode Riwayat Lengkap Log menampilkan setiap sesi pergerakan keluar-masuk kru secara kronologis."
+          }
+        }
+      },
+      "system_users": {
+        "title": "Pengguna Sistem",
+        "purpose": "Mengelola akun petugas pos keamanan, supervisor, dan administrator yang menggunakan aplikasi.",
+        "features": {
+          "account_management": "Pembuatan akun baru, pengubahan profil pengguna, serta aktivasi/deaktivasi akses login",
+          "role_assignment": "Penetapan peran (Role) untuk mengatur kewenangan menu dan fitur setiap petugas",
+          "password_reset": "Fitur reset kata sandi oleh Administrator bagi petugas yang lupa kredensial"
+        },
+        "guides": {
+          "create_account": {
+            "title": "Buat akun petugas baru",
+            "steps": {
+              "1": "Klik tombol tambah pengguna pada halaman Pengguna Sistem untuk membuka formulir akun baru.",
+              "2": "Isi nama lengkap, username login, alamat email, kata sandi awal, serta status aktif akun.",
+              "3": "Simpan formulir agar petugas dapat langsung masuk menggunakan kredensial tersebut."
+            },
+            "tip": "Gunakan kombinasi username singkat yang mudah diketik oleh petugas saat pergantian shift di pos gerbang."
+          },
+          "assign_role": {
+            "title": "Atur peran (Role) pengguna",
+            "steps": {
+              "1": "Cari akun petugas pada daftar pengguna lalu klik aksi Edit.",
+              "2": "Pilih peran (Role) yang sesuai seperti Administrator, Supervisor, Security, atau peran kustom.",
+              "3": "Simpan perubahan untuk memperbarui kewenangan menu dan fitur petugas tersebut."
+            },
+            "tip": "Berikan peran dengan hak akses paling sesuai dengan tugas operasional harian petugas."
+          },
+          "reset_password": {
+            "title": "Reset kata sandi pengguna",
+            "steps": {
+              "1": "Temukan akun petugas yang membutuhkan pemulihan kredensial pada tabel Pengguna Sistem.",
+              "2": "Buka menu aksi reset kata sandi atau pengubahan kredensial oleh Administrator.",
+              "3": "Masukkan kata sandi baru yang aman lalu konfirmasi penyimpanan."
+            },
+            "tip": "Sarankan petugas untuk segera mengganti kata sandi secara mandiri melalui menu Profil Saya setelah berhasil login."
+          }
+        }
+      },
+      "activity_logs": {
+        "title": "Log Aktivitas",
+        "purpose": "Memantau jejak audit (audit trail) seluruh aktivitas dan perubahan data penting di dalam sistem.",
+        "features": {
+          "audit_trail": "Pencatatan otomatis setiap aksi sensitif (login, check-in/out, perubahan master data, blacklist)",
+          "actor_ip_time": "Informasi detail waktu kejadian, nama pelaku (actor), subjek data, dan alamat IP perangkat",
+          "filter_search": "Filter pencarian log berdasarkan rentang tanggal, kategori aksi, dan pengguna"
+        }
+      },
+      "roles": {
+        "title": "Manajemen Peran",
+        "purpose": "Mengatur matriks hak akses (permissions) untuk setiap peran pengguna di dalam aplikasi.",
+        "features": {
+          "permission_matrix": "Pengaturan izin granular untuk melihat, membuat, mengubah, atau menghapus data per modul",
+          "protected_builtin": "Proteksi keamanan pada 3 peran bawaan sistem (Administrator, Supervisor, Security)",
+          "custom_roles": "Kemampuan membuat dan menyesuaikan peran tambahan sesuai kebutuhan operasional"
+        },
+        "guides": {
+          "custom_roles": {
+            "title": "Buat custom role & atur matriks izin",
+            "steps": {
+              "1": "Klik tombol tambah peran baru untuk membuat peran kustom di luar 3 peran bawaan sistem.",
+              "2": "Masukkan nama peran dan deskripsi singkat tanggung jawab operasionalnya.",
+              "3": "Centang atau sesuaikan izin granular (lihat, buat, ubah, hapus) untuk setiap modul pada matriks hak akses.",
+              "4": "Simpan konfigurasi peran agar dapat ditetapkan kepada akun pengguna di menu Pengguna Sistem."
+            },
+            "tip": "Tiga peran bawaan sistem (Administrator, Supervisor, Security) dilindungi agar struktur akses utama tetap aman."
+          }
+        }
+      },
+      "my_profile": {
+        "title": "Profil Saya",
+        "purpose": "Mengelola informasi identitas akun pribadi dan mengganti kata sandi secara mandiri.",
+        "features": {
+          "personal_info": "Pembaruan nama lengkap, username login cepat (huruf besar otomatis), dan alamat email",
+          "change_password": "Formulir penggantian kata sandi mandiri dengan validasi keamanan",
+          "role_badges": "Menampilkan informasi identitas akun aktif beserta lencana peran (Role) yang dimiliki"
+        },
+        "guides": {
+          "change_password": {
+            "title": "Ubah kata sandi akun pribadi",
+            "steps": {
+              "1": "Buka halaman Profil Saya dan periksa informasi identitas akun serta lencana peran (Role) Anda.",
+              "2": "Perbarui nama lengkap, username login cepat, atau alamat email bila diperlukan.",
+              "3": "Pada bagian formulir keamanan, masukkan kata sandi saat ini diikuti kata sandi baru beserta konfirmasinya.",
+              "4": "Klik tombol simpan untuk menerapkan kata sandi baru pada sesi akun Anda."
+            },
+            "tip": "Perbarui kata sandi Anda secara berkala dan jangan membagikan kredensial akun pos penjagaan kepada orang lain."
+          }
+        }
+      },
+      "app_overview": {
+        "title": "Panduan Aplikasi",
+        "purpose": "Memberikan panduan ringkas mengenai fungsi setiap halaman dan status hak akses akun Anda.",
+        "features": {
+          "module_catalog": "Katalog lengkap seluruh halaman VMS Core yang dikelompokkan sesuai struktur menu sidebar",
+          "access_indicator": "Indikator otomatis halaman yang dapat Anda akses beserta tombol pintasan menuju halaman terkait",
+          "quick_search": "Pencarian instan nama halaman, fungsi, maupun fitur serta navigasi lompat antar modul"
+        }
+      }
+    },
+    "tips": {
+      "bilingual": {
+        "title": "Dwibahasa (ID & EN)",
+        "description": "Gunakan tombol ID / EN berikon bola dunia di header kanan atas untuk mengganti bahasa antarmuka secara instan."
+      },
+      "dark_mode": {
+        "title": "Mode Gelap & Terang",
+        "description": "Klik ikon matahari/bulan di header atas untuk beralih antara tampilan terang dan gelap. Preferensi tersimpan otomatis."
+      },
+      "cloud_sync": {
+        "title": "Offline-First & Sinkronisasi Cloud Hub",
+        "description": "Aplikasi tetap berjalan penuh di jaringan lokal (LAN) gerbang tanpa internet, dan menyinkronkan data cekal melalui indikator Cloud Hub."
+      },
+      "master_import_export": {
+        "title": "Import & Export Data Master",
+        "description": "Seluruh halaman pada grup Data Induk dilengkapi fitur unduh template, pratinjau Import, dan Export data ke Excel/CSV."
+      }
+    },
+    "tour": {
+      "tour_welcome": {
+        "title": "Tur Pengenalan Aplikasi",
+        "steps": {
+          "1": {
+            "title": "Navigasi Menu Sidebar",
+            "description": "Gunakan menu di sisi kiri untuk berpindah antar modul operasional sesuai kewenangan peran akun Anda."
+          },
+          "2": {
+            "title": "Pencarian Cepat Panduan",
+            "description": "Ketik nama menu, rute, fitur, atau kata kunci langkah kerja untuk menyaring kartu panduan secara instan."
+          },
+          "3": {
+            "title": "Navigasi Lompat Modul",
+            "description": "Klik tombol pintasan kelompok modul ini untuk langsung menggulir halaman ke bagian yang Anda butuhkan."
+          },
+          "4": {
+            "title": "Kartu Halaman & Panduan Langkah",
+            "description": "Setiap kartu menampilkan fungsi utama, daftar fitur, panduan langkah demi langkah, serta tautan Coba Sekarang."
+          },
+          "5": {
+            "title": "Pengaturan Bahasa (ID / EN)",
+            "description": "Beralih antara Bahasa Indonesia dan Bahasa Inggris kapan saja melalui tombol ID / EN di bagian atas."
+          },
+          "6": {
+            "title": "Mode Gelap & Terang",
+            "description": "Klik ikon tema ini untuk menyesuaikan tampilan layar dengan kondisi pencahayaan pos penjagaan."
+          },
+          "7": {
+            "title": "Profil & Opsi Pengguna",
+            "description": "Periksa identitas akun aktif Anda atau keluar dari sesi melalui panel pengguna di pojok kiri bawah."
+          }
+        }
+      },
+      "tour_visit_flow": {
+        "title": "Tur Alur Kunjungan",
+        "steps": {
+          "1": {
+            "title": "Modul Tambah Kunjungan",
+            "description": "Mulai proses penerimaan tamu atau kontraktor di pos penjagaan melalui halaman Tambah Kunjungan."
+          },
+          "2": {
+            "title": "Cari Pengunjung Berdasarkan Nama",
+            "description": "Ketik nama pengunjung yang sudah terdaftar pada kolom Nama ini, lalu tekan Enter atau klik dari daftar saran otomatis."
+          },
+          "3": {
+            "title": "Atau Deteksi dengan Nomor Identitas",
+            "description": "Anda juga bisa memilih Jenis ID (KTP, SIM, atau Paspor), mengetik Nomor ID, lalu menekan tombol Cek nomor ID."
+          },
+          "4": {
+            "title": "Panel Status Verifikasi & Peringatan",
+            "description": "Periksa hasil pengecekan di panel kanan: hijau jika aman, merah jika tamu masuk daftar cekal, atau kuning jika belum terdaftar di Daftar Pengunjung."
+          },
+          "5": {
+            "title": "Langkah 2: Pilih Lokasi / Kapal & Staf (Host)",
+            "description": "Pilih lokasi darat atau kapal tujuan, ketik keperluan kunjungan, serta pilih staf pegawai internal (Host) yang dikunjungi."
+          },
+          "6": {
+            "title": "Langkah 3: Pilih Kartu Akses & Kendaraan",
+            "description": "Pilih minimal satu Kartu Pengunjung fisik yang berstatus Tersedia (wajib), serta isi nomor plat dan kartu kendaraan jika membawa kendaraan."
+          },
+          "7": {
+            "title": "Simpan & Cetak Tiket Visitor Pass ½ A4",
+            "description": "Klik tombol Simpan & Cetak Tiket di bar bawah untuk menyimpan pendaftaran dan langsung mencetak tiket Visitor Pass ukuran ½ A4."
+          },
+          "8": {
+            "title": "Riwayat Kunjungan & Proses Check-Out",
+            "description": "Saat tamu selesai berkunjung, cari nama, kartu, atau plat nomor di halaman Riwayat Kunjungan lalu klik Check-Out agar kartu kembali Tersedia."
+          }
+        }
+      },
+      "tour_vessel_flow": {
+        "title": "Tur Alur Kapal & Kru",
+        "steps": {
+          "1": {
+            "title": "1. Prasyarat Kapal: Menu Lokasi & Kapal",
+            "description": "Jika data kapal belum ada di sistem, daftarkan terlebih dahulu di halaman Lokasi & Kapal (pilih tipe Repair Vessel, Tug Boat, atau Barge beserta IMO & Captain)."
+          },
+          "2": {
+            "title": "2. Prasyarat Kru: Menu Daftar Pengunjung",
+            "description": "Jika data kru pelaut belum terdaftar, tambahkan di halaman Daftar Pengunjung dengan memilih Tipe Pengunjung = Crew (atau via Import Excel)."
+          },
+          "3": {
+            "title": "3. Tombol Catat Kedatangan Baru",
+            "description": "Klik Catat Kedatangan Baru untuk membuka formulir modal pendaftaran kedatangan kapal sandar."
+          },
+          "4": {
+            "title": "4. Pilih Kapal Sandar dari Master Data",
+            "description": "Pilih nama kapal yang sandar dari database master. Memilih kapal adalah syarat wajib sebelum mengelola manifest kru pada langkah berikutnya."
+          },
+          "5": {
+            "title": "5. Buka Dialog Kelola Kru Kapal",
+            "description": "Klik tombol Kelola Kru Kapal. Jika kapal sudah dipilih, dialog seleksi kru pelaut akan terbuka untuk menugaskan kru ke manifest awal kapal."
+          },
+          "6": {
+            "title": "6. Pilih Kru Pelaut di Dialog Seleksi",
+            "description": "Centang nama-nama kru pelaut yang bertugas on-board untuk langsung digabungkan ke kapal ini."
+          },
+          "7": {
+            "title": "7. Terapkan Kru ke Formulir Kedatangan",
+            "description": "Klik tombol Terapkan Kru agar seluruh kru yang dicentang masuk ke ringkasan manifest kedatangan kapal."
+          },
+          "8": {
+            "title": "8. Simpan & Daftarkan Kedatangan Kapal",
+            "description": "Klik tombol Simpan Kedatangan untuk menyimpan pendaftaran kapal beserta seluruh kru di manifest awalnya."
+          },
+          "9": {
+            "title": "9. Check-In / Check-Out Cepat via Pencarian Terpadu",
+            "description": "Ketik nama kru atau kapal di kotak Pencarian Terpadu ini untuk memfilter status manifest secara instan dari mana saja."
+          },
+          "10": {
+            "title": "10. Buka Modal Kelola Manifes & Detail Kapal",
+            "description": "Klik tombol aksi Detail (ikon mata / kelola kru) pada baris kapal sandar untuk membuka modal dialog manajemen manifes kru."
+          },
+          "11": {
+            "title": "11. Modal Manajemen Manifes Kru Kapal",
+            "description": "Di dalam modal dialog ini, kelola status Check-In / Check-Out kru on-board, lepas kru (detach), serta unduh log riwayat via tombol Export Log Excel."
+          },
+          "12": {
+            "title": "12. Filter Status Sandar & Check-Out Kapal (Departed)",
+            "description": "Saat kapal perbaikan (Repair Vessel) selesai dan berlayar keluar, jalankan aksi Check-Out / Departed pada baris kapal."
+          }
+        }
+      },
+      "tour_master_data": {
+        "title": "Tur Pengelolaan Data Induk",
+        "steps": {
+          "1": {
+            "title": "1. Master Lokasi & Kapal (/master/locations)",
+            "description": "Kelola CRUD (Tambah, Edit, Hapus) lokasi darat galangan dan kapal (Repair Vessel, Tug Boat, Barge), lengkap dengan fitur Import & Export Excel."
+          },
+          "2": {
+            "title": "2. Master Staf Pegawai (/master/staffs)",
+            "description": "Kelola CRUD data staf/karyawan internal penerima tamu (Host), pengaturan kolom tabel, pemulihan data terhapus (Lihat Sampah), serta Import & Export Excel."
+          },
+          "3": {
+            "title": "3. Master Kartu Pengunjung (/master/cards)",
+            "description": "Kelola CRUD inventaris kartu fisik tamu, pantau status otomatis (Available, In Use, Lost, Damaged), serta Import & Export Excel."
+          },
+          "4": {
+            "title": "4. Master Kartu Kendaraan (/master/vehicle-cards)",
+            "description": "Kelola CRUD kartu pass kendaraan operasional maupun tamu yang dipinjamkan saat kendaraan masuk area galangan, beserta Import & Export Excel."
+          },
+          "5": {
+            "title": "5. Master Daftar Pengunjung (/master/visitors)",
+            "description": "Kelola CRUD direktori induk seluruh tamu, kontraktor, dan kru kapal (KTP/SIM/Paspor), lihat total kunjungan, Import/Export Excel, atau masukkan ke daftar blokir."
+          },
+          "6": {
+            "title": "6. Daftar Cekal & Cloud Hub (/master/visitors/blacklist)",
+            "description": "Tambah data blokir keamanan baru, cabut blokir (Unblock), Import/Export Excel, serta buka tab Global untuk Sinkronisasi Cloud Hub antar-cabang."
+          }
+        }
+      }
+    },
+    "flow": {
+      "visit_flow": {
+        "title": "Alur Kunjungan",
+        "nodes": {
+          "1": {
+            "title": "Registrasi Tamu",
+            "description": "Verifikasi identitas, pilih lokasi tujuan & Host, lalu alokasikan kartu akses."
+          },
+          "2": {
+            "title": "Cetak Pass",
+            "description": "Cetak tiket Visitor Pass format ½ A4 untuk dibawa tamu selama di area galangan."
+          },
+          "3": {
+            "title": "Pantau Riwayat",
+            "description": "Lacak tamu yang sedang berada di area galangan (In Yard) atau cetak ulang pass."
+          },
+          "4": {
+            "title": "Check-out",
+            "description": "Proses kepulangan tamu individu maupun rombongan di pos gerbang keluar."
+          },
+          "5": {
+            "title": "Kartu Dilepas",
+            "description": "Status kartu tamu dan kartu kendaraan otomatis kembali menjadi Tersedia."
+          }
+        }
+      },
+      "vessel_flow": {
+        "title": "Alur Kapal & Kru",
+        "nodes": {
+          "1": {
+            "title": "Daftarkan Kedatangan",
+            "description": "Catat jadwal kapal sandar, pelabuhan asal, agen lokal/asing, dan manifest awal."
+          },
+          "2": {
+            "title": "Manifest Kru",
+            "description": "Kelola pergerakan Check-In, Check-Out, Detach, atau Transfer kru pelaut."
+          },
+          "3": {
+            "title": "Export Log",
+            "description": "Unduh rekapitulasi riwayat aktivitas keluar-masuk kru dalam format Excel."
+          },
+          "4": {
+            "title": "Kapal Berangkat",
+            "description": "Tandai keberangkatan (Departed) untuk kapal perbaikan saat meninggalkan galangan."
+          }
+        }
+      }
+    },
+    "simulator": {
+      "title": "Simulasi Interaktif & Contoh Visual Halaman",
+      "badge_safe": "Mode Latihan (Data Dummy)",
+      "subtitle": "Coba langsung alur kerja registrasi tamu, check-out kartu fisik, serta manifest kru kapal secara visual tanpa mengubah data asli.",
+      "tabs_aria": "Pilih skenario simulasi interaktif",
+      "tab_visit_create": "1. Registrasi & Cetak Pass",
+      "tab_visit_history": "2. Riwayat & Check-out",
+      "tab_vessel_crew": "3. Kapal & Manifest Kru",
+      "reset_btn": "Reset Simulasi",
+      "card_available": "Tersedia",
+      "card_in_use": "Sedang Dipakai",
+      "visit_create": {
+        "window_caption": "Pratinjau Interaktif Tambah Kunjungan",
+        "step1_heading": "Cari & Verifikasi Pengunjung (Nama / Nomor ID)",
+        "step1_instruction": "Klik salah satu contoh profil tamu di bawah ini untuk melihat reaksi sistem secara langsung:",
+        "method_by_name": "Cari Nama",
+        "method_by_id": "Cari Nomor ID",
+        "method_name_hint": "Mode Cari Nama: Ketik nama pengunjung dan pilih dari saran otomatis (atau klik contoh profil di bawah):",
+        "method_id_hint": "Mode Cari Nomor ID: Pilih jenis ID (KTP/SIM/Paspor) lalu cek nomor identitas (klik contoh di bawah):",
+        "preset_safe_label": "Tamu Terdaftar (Aman)",
+        "preset_blocked_label": "Tamu Diblokir (Cekal)",
+        "preset_new_label": "Tamu Belum Terdaftar",
+        "status_verified": "Pengunjung ditemukan & terverifikasi",
+        "badge_ready_checkin": "Siap Check-in",
+        "label_visitor": "Nama Tamu",
+        "status_blocked": "Peringatan Keamanan: Tamu Masuk Daftar Cekal",
+        "badge_entry_denied": "Akses Ditolak",
+        "blocked_reason_text": "Alasan: Pelanggaran prosedur APD & area terbatas. Formulir tujuan, kartu, dan cetak tiket otomatis dikunci.",
+        "status_unregistered": "Pengunjung belum terdaftar di direktori",
+        "unregistered_help_text": "Tamu baru harus didaftarkan terlebih dahulu di menu Daftar Pengunjung sebelum melanjutkan check-in.",
+        "simulate_register_btn": "Simulasikan Selesai Daftar -> Terverifikasi",
+        "step2_heading": "Pilih Lokasi / Kapal Tujuan & Staf (Host)",
+        "select_dest_label": "Pilih Lokasi / Kapal Tujuan:",
+        "select_host_label": "Pilih Staf Penerima (Host):",
+        "step3_heading": "Pilih Kartu Akses Fisik & Kendaraan",
+        "select_card_label": "Pilih Kartu Pengunjung (Kartu sedang dipakai otomatis terkunci):",
+        "vehicle_plate_label": "Plat Nomor Kendaraan (Opsional):",
+        "footer_ready": "Langkah 4: Data lengkap — klik Simpan & Cetak Tiket untuk melihat hasil tiket Visitor Pass ½ A4.",
+        "footer_locked": "Langkah 4: Formulir terkunci — pilih skenario Tamu Terdaftar (Aman) untuk mencoba cetak tiket.",
+        "print_btn": "Simpan & Cetak Tiket (Simulasi)",
+        "pass_preview_title": "Contoh Hasil Cetak Tiket Visitor Pass ½ A4",
+        "pass_dest": "TUJUAN",
+        "pass_signatures": "Kolom Tanda Tangan: Tamu · Host · Pos Sekuriti"
+      },
+      "visit_history": {
+        "window_caption": "Pratinjau Interaktif Riwayat & Check-out",
+        "card_strip_label": "Status Kartu Fisik Saat Ini",
+        "filter_all": "Semua",
+        "filter_active": "Aktif (In Yard)",
+        "filter_completed": "Selesai (Checked Out)",
+        "search_placeholder": "Coba ketik plat (BP 8821) atau nama...",
+        "bulk_checkout_btn": "Bulk Check-Out",
+        "col_visitor": "Pengunjung & Jam Masuk",
+        "col_destination": "Tujuan & Host",
+        "col_card_plate": "Kartu & Plat",
+        "col_status": "Status",
+        "col_action": "Aksi Simulasi",
+        "status_in_yard": "Aktif (In Yard)",
+        "status_checked_out": "Selesai (Checked Out)"
+      },
+      "vessel_crew": {
+        "window_caption": "Pratinjau Interaktif Kedatangan Kapal & Kru",
+        "prereq_step1_title": "1. Data Kapal (Lokasi & Kapal)",
+        "prereq_step1_desc": "Pastikan kapal sudah terdaftar di Master Lokasi & Kapal (Repair Vessel / Tug Boat / Barge).",
+        "prereq_step2_title": "2. Data Kru (Daftar Pengunjung)",
+        "prereq_step2_desc": "Pastikan profil kru sudah terdaftar di Master Daftar Pengunjung dengan tipe Crew.",
+        "prereq_step3_title": "3. Gabungkan ke Kedatangan Kapal",
+        "prereq_step3_desc": "Hubungkan kru ke manifest kapal sandar agar tombol Check-In & Check-Out kru aktif.",
+        "status_in_port": "Sedang Sandar (In Port)",
+        "status_departed": "Sudah Berangkat (Departed)",
+        "status_stay": "Stay Permanen",
+        "repair_vessel_desc": "Tipe: Repair Vessel — Kapal perbaikan yang memiliki tombol Check-Out / Keberangkatan (Departed).",
+        "tugboat_desc": "Tipe: Tugboat / Barge — Armada operasional yang menetap (Stay) untuk mobilitas kru.",
+        "quick_search_placeholder": "Pencarian Cepat Kapal / Kru (ketik nama kru)...",
+        "manifest_heading": "Daftar Manifest Kru (Klik tombol aksi di kanan untuk mengubah status kru):",
+        "export_btn": "Export Log Excel",
+        "depart_btn": "Check-Out Kapal (Departed)",
+        "col_crew": "Nama Kru Pelaut",
+        "col_rank_doc": "Jabatan & Dokumen",
+        "col_status": "Status Manifest",
+        "col_action": "Aksi Kru",
+        "status_unlinked": "Belum Terhubung ke Kapal",
+        "link_crew_btn": "Gabungkan ke Kapal",
+        "export_success_msg": "Simulasi berhasil: File log pergerakan kru (.xlsx) siap diunduh.",
+        "table_title": "Daftar Kapal Sandar (Pilih untuk Kelola Kru)",
+        "table_desc": "Klik tombol pada kapal yang ingin dikelola manifesnya untuk membuka dialog manajemen kru.",
+        "open_crew_modal_btn": "Buka Modal Kelola Kru",
+        "modal_title": "Manajemen Kru Kapal Sandar",
+        "modal_subtitle": "Pilih kapal lalu kelola manifes, hubungkan kru, lakukan check-in/out, atau export log.",
+        "close_modal_btn": "Tutup Modal",
+        "step1_select_vessel": "Langkah 1: Pilih / Konfirmasi Kapal",
+        "step2_manage_crew": "Langkah 2: Kelola Manifes & Status Kru",
+        "create_arrival_btn": "Catat Kedatangan Baru",
+        "register_modal_title": "Formulir Catat Kedatangan Kapal Baru",
+        "register_modal_subtitle": "Pilih kapal dari master data, isi detail sandar, serta hubungkan daftar kru pelaut ke manifest awal.",
+        "form_vessel_label": "Pilih Kapal Sandar (Master Data)",
+        "form_port_label": "Pelabuhan Asal",
+        "form_captain_label": "Nama Nakhoda (Captain)",
+        "form_agent_label": "Agen Lokal / Perusahaan Agen",
+        "form_crew_label": "Hubungkan Kru Pelaut ke Manifest Awal",
+        "form_crew_desc": "Centang kru pelaut yang sedang on-board untuk langsung digabungkan ke kedatangan kapal ini:",
+        "submit_arrival_btn": "Simpan & Daftarkan Kedatangan",
+        "arrival_created_msg": "Kedatangan kapal berhasil dicatat dan manifes kru telah diperbarui.",
+        "manage_crew_submodal_btn": "Kelola Kru Kapal",
+        "crew_select_dialog_title": "Pilih & Kelola Kru Kapal",
+        "crew_select_dialog_subtitle": "Pilih kru pelaut yang sedang bertugas untuk langsung ditugaskan ke manifest awal kedatangan kapal ini.",
+        "apply_crew_btn": "Terapkan Kru ({{count}} Terpilih)"
+      },
+      "cancel_btn": "Batal"
+    }
   }
 }

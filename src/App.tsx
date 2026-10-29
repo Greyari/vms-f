@@ -26,6 +26,7 @@ import BlacklistedVisitors from "./pages/master/BlacklistedVisitors"
 import VesselArrivals from "./pages/vessels/VesselArrivals"
 import Dashboard from "./pages/dashboard/Dashboard"
 import Roles from "./pages/settings/Roles"
+import AppOverview from "./pages/settings/AppOverview"
 import NotFound from "./pages/NotFound"
 
 /**
@@ -109,6 +110,7 @@ function App() {
               {guarded("/settings/logs", <ActivityLogs />)}
               {guarded("/settings/profile", <Profile />)}
               {guarded("/settings/roles", <Roles />)}
+              {guarded("/settings/overview", <AppOverview />)}
 
               <Route path="*" element={<NotFound />} />
             </Route>

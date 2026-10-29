@@ -89,6 +89,20 @@ describe("route guards", () => {
     ).toBeInTheDocument()
   })
 
+  it("lets any signed-in user open the app overview page", async () => {
+    signInAs([])
+    window.history.pushState({}, "", "/settings/overview")
+
+    render(<App />)
+
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: /panduan aplikasi|app overview/i,
+      })
+    ).toBeInTheDocument()
+  })
+
   // Decision FE-3: an unknown path used to render an empty layout.
   it("answers an unknown path with a not-found page", async () => {
     signInAs(["view_visits"])

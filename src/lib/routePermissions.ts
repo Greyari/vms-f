@@ -24,6 +24,7 @@ export const ROUTE_PERMISSIONS = {
   "/settings/logs": "view_logs",
   "/settings/roles": "view_roles",
   "/settings/profile": null,
+  "/settings/overview": null,
 } as const satisfies Record<string, string | null>
 
 export type GuardedPath = keyof typeof ROUTE_PERMISSIONS

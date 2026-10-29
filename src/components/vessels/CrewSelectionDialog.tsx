@@ -398,7 +398,10 @@ export default function CrewSelectionDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-5xl md:max-w-6xl w-[95vw] max-h-[92vh] flex flex-col">
+        <DialogContent
+          data-tour="vessel-crew-dialog-content"
+          className="sm:max-w-5xl md:max-w-6xl w-[95vw] max-h-[92vh] flex flex-col"
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
               <Users className="h-5 w-5 text-blue-600" />
@@ -663,7 +666,10 @@ export default function CrewSelectionDialog({
           )}
 
           {/* Table of Candidates */}
-          <div className="flex-1 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg mt-3">
+          <div
+            data-tour="vessel-crew-dialog-list"
+            className="flex-1 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg mt-3"
+          >
             <Table>
               <TableHeader className="bg-zinc-50 dark:bg-zinc-800/80 sticky top-0 z-10">
                 <TableRow>
@@ -805,6 +811,7 @@ export default function CrewSelectionDialog({
             </Button>
             <Button
               type="button"
+              data-tour="vessel-crew-dialog-apply-btn"
               onClick={handleApply}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >

@@ -268,7 +268,10 @@ export default function Cards() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+      <div
+        data-tour="master-cards-header"
+        className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center"
+      >
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{t("cards.title", "Master Kartu Visitor")}</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -303,7 +306,10 @@ export default function Cards() {
       </div>
 
       {/* Filters Card */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div
+        data-tour="master-cards-filter"
+        className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+      >
         <form onSubmit={handleApplyFilter} className="space-y-3">
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex-1 min-w-[200px]">

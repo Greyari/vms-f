@@ -265,7 +265,7 @@ export default function Locations() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" data-tour="master-header-actions">
           <Button
             variant="outline"
             onClick={() => setImportOpen(true)}
@@ -293,7 +293,10 @@ export default function Locations() {
 
       {/* Filter Card */}
       <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mb-4 flex flex-col items-stretch gap-3 md:flex-row md:items-center md:justify-between">
+        <div
+          data-tour="master-filter-search"
+          className="mb-4 flex flex-col items-stretch gap-3 md:flex-row md:items-center md:justify-between"
+        >
           <div className="flex flex-wrap items-center gap-3">
             {/* Type Filter */}
             <div className="flex items-center gap-1.5">
@@ -370,7 +373,10 @@ export default function Locations() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto rounded-md border border-zinc-200 dark:border-zinc-800">
+        <div
+          data-tour="master-data-table"
+          className="overflow-x-auto rounded-md border border-zinc-200 dark:border-zinc-800"
+        >
           <Table>
             <TableHeader className="border-b bg-zinc-50 dark:bg-zinc-900">
               <TableRow>

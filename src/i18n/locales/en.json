@@ -139,6 +139,7 @@
     "activity_logs": "Activity Logs",
     "roles": "Roles",
     "my_profile": "My Profile",
+    "app_overview": "App Overview",
     "logout": "Logout",
     "crew_report": "Crew Report"
   },
@@ -836,6 +837,9 @@
     "foreign_agent_phone_label": "Phone Number",
     "manifest_title": "Vessel Crew Manifest:",
     "selected_crew_count": "{{count}} Crew Selected",
+    "vessel_required_hint": "Select a vessel first",
+    "auto_selected_first_vessel": "The first vessel was automatically selected to manage crew.",
+    "please_select_vessel_first": "Please select a vessel first before managing crew.",
     "btn_manage_crew": "Manage Vessel Crew",
     "assigned_crew_list": "Assigned Crew List:",
     "no_crew_selected": "No crew members selected yet. Click \"Manage Vessel Crew\" to select or add seafarers.",
@@ -1889,6 +1893,9 @@
     "foreign_agent_phone_label": "Phone Number",
     "manifest_title": "Vessel Crew Manifest:",
     "selected_crew_count": "{{count}} Crew Selected",
+    "vessel_required_hint": "Select a vessel first",
+    "auto_selected_first_vessel": "The first vessel was automatically selected to manage crew.",
+    "please_select_vessel_first": "Please select a vessel first before managing crew.",
     "btn_manage_crew": "Manage Vessel Crew",
     "assigned_crew_list": "Assigned Crew List:",
     "no_crew_selected": "No crew members selected yet. Click \"Manage Vessel Crew\" to select or add seafarers.",
@@ -2193,5 +2200,861 @@
     "occupation": "Occupation / Rank",
     "nationality": "Nationality",
     "phone": "Phone Number"
+  },
+  "app_overview": {
+    "title": "App Overview",
+    "subtitle": "A quick guide to the purpose and key features of every page in VMS Core.",
+    "summary_accessible": "{{accessible}} of {{total}} pages accessible to your account",
+    "search_label": "Search pages or features",
+    "search_placeholder": "Search page name, route, or feature...",
+    "clear_search": "Clear search",
+    "jump_to_aria": "Jump to page group",
+    "jump_to_label": "Jump to",
+    "empty_search": "No pages or features match your search query.",
+    "reset_search": "Show All Pages",
+    "purpose_heading": "What It Is For",
+    "features_heading": "Key Features",
+    "access_allowed": "Accessible",
+    "access_denied": "No access",
+    "open_page": "Open page",
+    "guides_heading": "Step-by-Step Guides",
+    "guide_try_now": "Try Now",
+    "guide_show": "Show Guides",
+    "guide_hide": "Hide Guides",
+    "guide_tip_label": "Tip",
+    "tour_start": "Start Tour",
+    "tour_repeat": "Repeat Tour",
+    "tour_select_label": "Select guided tour",
+    "tour_next": "Next",
+    "tour_prev": "Back",
+    "tour_skip": "Skip",
+    "tour_done": "Done",
+    "tour_progress": "{{current}} of {{total}}",
+    "flow_section_title": "Key Workflows",
+    "flow_replay": "Replay",
+    "flow_start_tour": "Start workflow tour",
+    "tips_section_title": "General Tips",
+    "tips_section_subtitle": "Global features available across all screens in VMS Core.",
+    "roles": {
+      "administrator": "Administrator",
+      "supervisor": "Supervisor",
+      "security": "Security"
+    },
+    "groups": {
+      "overview": {
+        "title": "Overview",
+        "description": "Real-time gate operational metrics and active visitor monitoring."
+      },
+      "visitor_management": {
+        "title": "Visitor Management",
+        "description": "Daily gate security operations for visitor check-in, visit history, and vessel crew arrivals."
+      },
+      "master_data": {
+        "title": "Master Data",
+        "description": "Manage reference records for locations, vessels, host staff, physical cards, visitor directory, and blacklist.",
+        "badge_import_export": "All pages support Excel/CSV Import & Export"
+      },
+      "reports": {
+        "title": "Reports & Analytics",
+        "description": "Operational data summaries and official report exports in Excel and letterhead PDF formats."
+      },
+      "system_settings": {
+        "title": "System Settings",
+        "description": "User management, role permissions, activity audit logs, account profile, and application overview."
+      }
+    },
+    "pages": {
+      "dashboard": {
+        "title": "Dashboard",
+        "purpose": "Monitor real-time gate operational metrics and daily visitor activity at a glance.",
+        "features": {
+          "metrics": "Real-time metric cards (active visits, monthly total, available cards, blacklisted visitors)",
+          "weekly_trend": "Weekly visit trend chart and availability summary for visitor & vehicle cards",
+          "active_visitors": "Live table of visitors currently inside the shipyard (In Yard)"
+        }
+      },
+      "add_visit": {
+        "title": "Add Visit",
+        "purpose": "Register new visitor arrivals and process gate check-ins.",
+        "features": {
+          "registration_modes": "Fast lookup of registered visitors by Name (autocomplete) or ID Number",
+          "id_detection": "Automatic detection of ID numbers (KTP, Driving License, Passport) along with past visit count",
+          "blacklist_alert": "Automatic warning and check-in block when a visitor is on the Blacklist",
+          "host_and_cards": "Assign destination location/vessel & Host staff, followed by mandatory physical visitor card and optional vehicle card selection",
+          "print_pass": "Direct ½ A4 Visitor Pass ticket printing upon selecting a visitor card and successful check-in"
+        },
+        "guides": {
+          "add_visit": {
+            "title": "Register a new visit",
+            "steps": {
+              "1": "Type the visitor Name to pick from autocomplete suggestions, or select ID Type (KTP, Driving License, Passport), enter the ID Number, and click Check ID number.",
+              "2": "Check the status panel on the right; the system automatically blocks visitors on the Blacklist, or prompts registration in Visitor Directory first if unregistered.",
+              "3": "In the Destination & Host Staff section, select the Destination Location / Vessel, enter the Purpose of visit, and select the Host Staff.",
+              "4": "In the Access Cards & Vehicle section, select an Available physical Visitor Card (mandatory), plus license plate and vehicle card if bringing a vehicle.",
+              "5": "Click Save & Print Ticket on the bottom bar to save the visit and print the ½ A4 Visitor Pass ticket."
+            },
+            "tip": "Ensure at least one Available physical visitor card is selected before clicking Save & Print Ticket."
+          }
+        }
+      },
+      "visit_history": {
+        "title": "Visit History",
+        "purpose": "Search, track, reprint passes, edit active visits, and process visitor check-outs.",
+        "features": {
+          "quick_search": "Fast search by vehicle license plate, ticket number, visitor name, or company",
+          "status_filter": "Filter by active visits (In Yard) or completed visits (Checked Out)",
+          "checkout": "Individual visitor check-out and bulk check-out for groups",
+          "reprint_and_edit": "Reprint visitor entry pass (Reprint Pass) and edit active visit details",
+          "auto_card_release": "Automatic release of visitor and vehicle cards back to Available status on check-out"
+        },
+        "guides": {
+          "checkout": {
+            "title": "Check out a visit",
+            "steps": {
+              "1": "Make sure the status filter is set to active visits (In Yard).",
+              "2": "Type the vehicle license plate, ticket number, visitor name, or company in the quick search box.",
+              "3": "Click the Check-out button on an individual row, or select multiple rows for group Bulk Check-Out.",
+              "4": "Confirm the check-out so the visitor and vehicle cards are automatically released to Available."
+            },
+            "tip": "Use vehicle license plate search to speed up check-out at the exit gate."
+          },
+          "reprint_edit": {
+            "title": "Reprint or edit an active pass",
+            "steps": {
+              "1": "Find the active visit (In Yard) in the visit history table.",
+              "2": "Click the Reprint Pass action to open the Visitor Pass reprint screen.",
+              "3": "Click the Edit action to update active visit details such as destination or access cards, then save."
+            },
+            "tip": "Completed visits (Checked Out) cannot be modified."
+          }
+        }
+      },
+      "crew_arrivals": {
+        "title": "Crew Arrivals",
+        "purpose": "Manage vessel arrivals (Repair Vessels and permanent staying Tugboats/Barges) alongside seafarer crew manifest placements and movements.",
+        "features": {
+          "unified_search": "Unified search to quickly locate berthed vessels and individual seafarers",
+          "register_arrival": "Register new vessel arrivals with schedule, port, local/foreign agents, and initial crew manifest",
+          "manifest_tabs": "Crew manifest monitoring tabs (Active, Expected, Completed) alongside the crew movement logs history tab",
+          "crew_actions": "Crew Check-In (strict 1-to-1 placement rule), Check-Out, Detach Crew, and activity movement logging",
+          "export_and_depart": "Departure/sign-out workflow for Repair Vessels, while Tugboats & Barges remain permanently staying in yard without check-out"
+        },
+        "guides": {
+          "register_arrival": {
+            "title": "Register a vessel arrival",
+            "steps": {
+              "1": "Ensure the vessel record exists in Locations & Vessels and seafarer profiles exist in Visitor Directory with Visitor Type set to Crew.",
+              "2": "Click Record New Arrival on the Crew Arrivals page, then select the berthed vessel, arrival schedule, and port of origin.",
+              "3": "Fill in local and foreign shipping agent details along with contact persons.",
+              "4": "Select and link seafarers into the vessel crew manifest and save (seafarers must be linked to a vessel arrival before Check-In and Check-Out are enabled)."
+            },
+            "tip": "Seafarers who are not yet linked to a vessel arrival manifest cannot perform Check-In or Check-Out."
+          },
+          "manage_manifest": {
+            "title": "Manage crew manifest & actions",
+            "steps": {
+              "1": "Fastest method: type the seafarer name or vessel name in the Unified Search bar at the top of the page to open crew actions or manifest details immediately.",
+              "2": "Or click the Detail button on a vessel table row to view the manifest tabs (Active On-Board, Expected, Completed History).",
+              "3": "Click Crew Check-In or Check-Out on the seafarer row to record gate movements (strict 1-to-1 placement rule).",
+              "4": "Use Detach Crew or Transfer Vessel if a seafarer changes assignment to another vessel."
+            },
+            "tip": "Crew Check-In and Check-Out buttons are accessible from both the Unified Search bar and the Vessel Manifest Detail modal."
+          },
+          "export_depart": {
+            "title": "Export logs & mark vessel departed",
+            "steps": {
+              "1": "Open the vessel arrival detail modal and switch to the crew movement activity log tab.",
+              "2": "Click Export Excel to download the crew movement log summary as an .xlsx file.",
+              "3": "When a Repair Vessel completes work and leaves the shipyard, click the Check-Out / Departed button on the vessel row or inside the vessel detail modal."
+            },
+            "tip": "Tugboats and Barges stay permanently in the yard and do not require vessel departure check-out."
+          }
+        }
+      },
+      "locations_vessels": {
+        "title": "Locations & Vessels",
+        "purpose": "Manage shipyard areas (jetties, workshops, offices) and master records for berthed vessels.",
+        "features": {
+          "yard_zones": "Manage yard land zones, workshops, wharves, and vessel classifications (Tugboat, Barge, or Repair Vessel)",
+          "vessel_details": "Store vessel metadata including IMO number, Call Sign, flag, captain, and vessel PIC",
+          "import_export": "Full Excel/CSV template Import and Export support for Locations & Vessels"
+        },
+        "guides": {
+          "manage_records": {
+            "title": "Add, edit & delete location or vessel records",
+            "steps": {
+              "1": "Click the add button to open the registration form for a new yard location or vessel.",
+              "2": "Select the entity classification (land zone, wharf, Tugboat, Barge, or Repair Vessel) and fill in metadata such as IMO, Call Sign, flag, and PIC.",
+              "3": "Save the new record, or use the Edit action on a table row to update existing location and vessel details.",
+              "4": "Use the Delete action on unused records that have no linked active transactions."
+            },
+            "tip": "Make sure the vessel classification (Repair Vessel vs Tugboat/Barge) is selected accurately because it governs departure behavior."
+          },
+          "import_export": {
+            "title": "Import & Export records via Excel/CSV",
+            "steps": {
+              "1": "Click the Import button and download the official Excel/CSV template provided in the dialog.",
+              "2": "Fill in the location or vessel rows in the template following the required column format.",
+              "3": "Upload the completed file, review the validation preview table, and confirm the Import.",
+              "4": "Click the Export button at any time to download all Locations & Vessels into an Excel/CSV file."
+            },
+            "tip": "Always start from the latest template so column headers match the system validation rules."
+          }
+        }
+      },
+      "staffs": {
+        "title": "Staffs",
+        "purpose": "Manage the directory of internal employees who serve as visitor hosts.",
+        "features": {
+          "host_directory": "Quick lookup of staff names, employee IDs, titles, and contact details",
+          "department_status": "Manage department assignments and active/inactive staff status",
+          "import_export": "Bulk Import and Export of staff records via Excel/CSV files"
+        },
+        "guides": {
+          "manage_records": {
+            "title": "Add, edit & delete host staff records",
+            "steps": {
+              "1": "Click the add staff button to open the employee host registration form.",
+              "2": "Enter the full name, employee ID number, department, job title, and contact number.",
+              "3": "Toggle active/inactive status or use the Edit action in the table to update employee details.",
+              "4": "Use the Delete action to remove duplicate staff entries that have no visit history."
+            },
+            "tip": "Set transferred or retired employees to inactive so they no longer appear in the Host selector during check-in."
+          },
+          "import_export": {
+            "title": "Import & Export staff directory",
+            "steps": {
+              "1": "Open the Import dialog on the Staffs page and download the Excel/CSV template.",
+              "2": "Populate employee names, IDs, departments, and job titles in the template file.",
+              "3": "Upload the file in the Import dialog, review row validation results, and save in bulk.",
+              "4": "Use the Export button to download the directory of active and inactive staff."
+            },
+            "tip": "Ensure employee ID numbers are unique to prevent duplicates during bulk Import."
+          }
+        }
+      },
+      "cards": {
+        "title": "Cards",
+        "purpose": "Manage the inventory of physical visitor access cards (RFID/Barcode) issued at the gate.",
+        "features": {
+          "physical_cards": "Register physical visitor card numbers and badge codes",
+          "status_tracking": "Track real-time card status: Available, In Use, or Lost",
+          "import_export": "Import and Export visitor card inventory via Excel/CSV"
+        },
+        "guides": {
+          "manage_records": {
+            "title": "Add, edit & delete visitor cards",
+            "steps": {
+              "1": "Click the add card button to register a new physical RFID/Barcode card number and code.",
+              "2": "Select the card category and initial availability status (Available or Lost).",
+              "3": "Use the Edit action on a card row to update its badge code or mark a missing card as Lost.",
+              "4": "Delete card records that were entered by mistake and have never been issued."
+            },
+            "tip": "Cards marked In Use are tied to an active visit and automatically return to Available when the visitor checks out."
+          },
+          "import_export": {
+            "title": "Import & Export card inventory",
+            "steps": {
+              "1": "Click the Import button and download the visitor card Excel/CSV template.",
+              "2": "Enter the list of card numbers and RFID/Barcode codes in the template file.",
+              "3": "Upload the file, inspect the card preview table, and run the Import.",
+              "4": "Click the Export button to download a full inventory and status report of all cards."
+            },
+            "tip": "Export the inventory periodically to audit physical cards available at the gatehouse."
+          }
+        }
+      },
+      "card_vehicles": {
+        "title": "Vehicle Cards",
+        "purpose": "Manage gate pass cards for 2-wheeled and 4-wheeled visitor vehicles.",
+        "features": {
+          "gate_pass": "Maintain vehicle pass card inventory by category and serial number",
+          "plate_pairing": "Paired directly with vehicle license plate records during check-in and check-out",
+          "import_export": "Import and Export vehicle card records using Excel/CSV templates"
+        },
+        "guides": {
+          "manage_records": {
+            "title": "Add, edit & delete vehicle pass cards",
+            "steps": {
+              "1": "Click the add button to register a new vehicle pass card serial number.",
+              "2": "Choose the vehicle category (2-wheeled, 4-wheeled, or operational) and availability status.",
+              "3": "Use the Edit action to update card details or mark damaged/missing cards.",
+              "4": "Use the Delete action to remove retired card numbers."
+            },
+            "tip": "Vehicle cards are paired with the visitor's license plate at check-in and automatically released upon check-out."
+          },
+          "import_export": {
+            "title": "Import & Export vehicle card records",
+            "steps": {
+              "1": "Open the Import dialog and download the vehicle card Excel/CSV template.",
+              "2": "Fill in the serial numbers and vehicle categories in the template columns.",
+              "3": "Upload the template file, verify the validation preview, and confirm saving.",
+              "4": "Click the Export button to download the vehicle card inventory in Excel/CSV format."
+            },
+            "tip": "Use distinct serial prefixes for 2-wheeled and 4-wheeled passes so gate officers can tell them apart quickly."
+          }
+        }
+      },
+      "visitors": {
+        "title": "Visitors",
+        "purpose": "Maintain the master archive of all visitors, contractors, and guests ever registered.",
+        "features": {
+          "master_archive": "Manage full visitor profiles, ID types, companies, and nationalities",
+          "visit_timeline": "Detailed profile modal featuring an individual visit history timeline",
+          "print_and_export": "Print visitor profile sheets and Import & Export master records via Excel/CSV"
+        },
+        "guides": {
+          "manage_records": {
+            "title": "Manage profiles & inspect visit timeline",
+            "steps": {
+              "1": "Use the search bar to locate a visitor by name, ID number, or company.",
+              "2": "Click the add button or Edit action to complete profile details, ID type, company, and nationality.",
+              "3": "Click a visitor profile to open the detail modal showing their complete visit history timeline.",
+              "4": "Use the Delete action to remove duplicate profiles that have no recorded visits."
+            },
+            "tip": "Profile updates saved here will auto-populate the next time the visitor checks in at the gate."
+          },
+          "import_export": {
+            "title": "Print profile, Import & Export visitors",
+            "steps": {
+              "1": "Open the visitor detail modal and click the print button to print an individual profile sheet.",
+              "2": "Click the Import button and download the Excel/CSV template to pre-load contractor or group profiles.",
+              "3": "Upload the completed file, inspect the validation preview, and save to the master archive.",
+              "4": "Click the Export button to download the master visitor archive as an Excel/CSV file."
+            },
+            "tip": "Importing subcontractor profiles ahead of arrival speeds up registration queues at the gate."
+          }
+        }
+      },
+      "blacklist": {
+        "title": "Blacklist",
+        "purpose": "Manage the security blocklist of visitors prohibited from entering the shipyard.",
+        "features": {
+          "block_management": "Record violation reasons for blacklisting and restore access (Unblacklist) when authorized",
+          "cloud_hub_sync": "Outbox synchronization with Cloud Hub to propagate blacklist updates across gates",
+          "import_export": "Import and Export security blacklist records via Excel/CSV files"
+        },
+        "guides": {
+          "add_block": {
+            "title": "Add a visitor to the blocklist",
+            "steps": {
+              "1": "Search for the visitor record or open the add security blocklist (Blacklist) form.",
+              "2": "Enter the detailed security violation reason as a reference for gate officers.",
+              "3": "Save the block entry, or use Excel/CSV Import to process blocklist records in bulk."
+            },
+            "tip": "Blacklisted visitors automatically trigger a security block alert when their ID is scanned on the Add Visit page."
+          },
+          "remove_block": {
+            "title": "Remove a block (Unblacklist)",
+            "steps": {
+              "1": "Search for the visitor's name or ID number in the Blacklist table.",
+              "2": "Click the restore access (Unblacklist) action on the authorized visitor row.",
+              "3": "Confirm removing the block so the visitor can be registered again on future visits."
+            },
+            "tip": "Every block addition and removal is automatically recorded in the Activity Logs."
+          },
+          "cloud_sync": {
+            "title": "Synchronize with Cloud Hub",
+            "steps": {
+              "1": "Check the synchronization status indicator and Cloud Hub Outbox queue on the Blacklist page.",
+              "2": "Verify that local blocklist changes are queued for cross-gate distribution.",
+              "3": "Trigger a manual sync action if connectivity to the Cloud Hub has just been restored."
+            },
+            "tip": "The Outbox queue keeps blocklist updates safe while the gate operates offline."
+          }
+        }
+      },
+      "visitor_report": {
+        "title": "Visitor Report",
+        "purpose": "Generate analytical reports and summaries of visitor history across multiple criteria.",
+        "features": {
+          "multi_filter": "Multi-criteria filtering by date/time range, location, visitor type, company, and status",
+          "kpi_summary": "Key performance indicator (KPI) summary for the selected reporting period",
+          "export_excel_pdf": "Export reports to Excel (.xlsx) and official A4 Landscape PDF with company letterhead"
+        },
+        "guides": {
+          "filter_kpi": {
+            "title": "Apply filters, read KPIs & export report",
+            "steps": {
+              "1": "Select the arrival date/time range and additional criteria such as destination location, visitor type, company, or status.",
+              "2": "Review the key performance indicator (KPI) summary cards at the top for total visits in the selected period.",
+              "3": "Inspect the detailed visit rows in the report table to verify data completeness.",
+              "4": "Click Export Excel (.xlsx) for further analysis or Export PDF for an official A4 Landscape letterhead document."
+            },
+            "tip": "Narrow the date range or location filter before generating a PDF if the dataset is very large."
+          }
+        }
+      },
+      "vessel_report": {
+        "title": "Vessel Report",
+        "purpose": "Generate summaries of vessel arrival and departure history at the shipyard.",
+        "features": {
+          "arrival_recap": "2 view tabs: Details With Crew (default) and Vessel Summary, with status filters (In Port, Departed, Stay)",
+          "crew_stats": "Summary statistics of active on-board crew and total crew movements per arrival",
+          "export_excel_pdf": "Export vessel summaries to Excel (.xlsx) and official PDF reports"
+        },
+        "guides": {
+          "filter_kpi": {
+            "title": "Apply filters, review stats & export vessel report",
+            "steps": {
+              "1": "Select the Details With Crew tab (default) or Vessel Summary tab based on your reporting need.",
+              "2": "Filter by arrival date range, vessel name, agent, or vessel status (In Port, Departed, Stay).",
+              "3": "Review the active on-board crew count and total crew movement statistics for each arrival record.",
+              "4": "Click Export Excel (.xlsx) or Export PDF to download the official report document."
+            },
+            "tip": "Use the Stay status filter to separate permanently staying fleet vessels (Tugboats & Barges) from Repair Vessels."
+          }
+        }
+      },
+      "crew_report": {
+        "title": "Crew Report",
+        "purpose": "Generate comprehensive reports on seafarer placements and gate check-in/out activity.",
+        "features": {
+          "three_modes": "2 view modes: Complete Log & Crew Activity History (default) and Vessel Crew Placements",
+          "seafarer_docs": "Search by seaman book credentials, rank, nationality, and vessel name",
+          "export_excel_pdf": "Export crew activity logs to Excel (.xlsx) and session-paired Landscape PDF (In, Out, whole-integer Days, ONBOARD status)"
+        },
+        "guides": {
+          "filter_kpi": {
+            "title": "Filter crew activity & export Excel/PDF",
+            "steps": {
+              "1": "Choose the Complete Log & Crew Activity History tab (default) or the Vessel Crew Placements tab.",
+              "2": "Filter records by crew name, seaman book number, vessel name, nationality, or placement status.",
+              "3": "Inspect the filtered table rows along with the total record summary.",
+              "4": "Click Export Excel (.xlsx) or Export PDF to download a session-paired Landscape report (In, Out, Days, and ONBOARD status)."
+            },
+            "tip": "Complete Log mode displays every individual gate check-in and check-out session chronologically."
+          }
+        }
+      },
+      "system_users": {
+        "title": "System Users",
+        "purpose": "Manage accounts for gate security officers, supervisors, and system administrators.",
+        "features": {
+          "account_management": "Create user accounts, update profile details, and activate/deactivate login access",
+          "role_assignment": "Assign roles to control menu visibility and operational permissions",
+          "password_reset": "Administrator password reset for officers who need credential recovery"
+        },
+        "guides": {
+          "create_account": {
+            "title": "Create a new user account",
+            "steps": {
+              "1": "Click the add user button on the System Users page to open the new account form.",
+              "2": "Fill in the full name, login username, email address, initial password, and active account status.",
+              "3": "Save the form so the officer can sign in immediately with those credentials."
+            },
+            "tip": "Use concise usernames that are quick for gate officers to type during shift handovers."
+          },
+          "assign_role": {
+            "title": "Assign a user role",
+            "steps": {
+              "1": "Locate the officer's account in the users table and click the Edit action.",
+              "2": "Select the appropriate Role such as Administrator, Supervisor, Security, or a custom role.",
+              "3": "Save your changes to update the officer's menu visibility and feature permissions."
+            },
+            "tip": "Assign the role that best matches the officer's daily operational responsibilities."
+          },
+          "reset_password": {
+            "title": "Reset a user password",
+            "steps": {
+              "1": "Find the officer account requiring credential recovery in the System Users table.",
+              "2": "Open the Administrator password reset or credential update action.",
+              "3": "Enter a strong new password and confirm saving."
+            },
+            "tip": "Advise the officer to change their password afterward via the My Profile page."
+          }
+        }
+      },
+      "activity_logs": {
+        "title": "Activity Logs",
+        "purpose": "Inspect the security audit trail of all sensitive actions and data changes in the system.",
+        "features": {
+          "audit_trail": "Automatic logging of sensitive events (logins, check-ins/outs, master data edits, blacklist)",
+          "actor_ip_time": "Detailed timestamp, actor identity, target subject, and client IP address",
+          "filter_search": "Filter and search audit logs by date range, action category, and user"
+        }
+      },
+      "roles": {
+        "title": "Role Management",
+        "purpose": "Configure the permission matrix for each user role in the application.",
+        "features": {
+          "permission_matrix": "Granular permission toggles for viewing, creating, editing, or deleting per module",
+          "protected_builtin": "Built-in protection for the 3 core roles (Administrator, Supervisor, Security)",
+          "custom_roles": "Create and customize additional roles to fit operational needs"
+        },
+        "guides": {
+          "custom_roles": {
+            "title": "Create a custom role & configure permissions",
+            "steps": {
+              "1": "Click the add role button to create a custom role alongside the 3 built-in system roles.",
+              "2": "Enter the role name and a short description of its operational scope.",
+              "3": "Toggle granular permissions (view, create, edit, delete) for each module in the permission matrix.",
+              "4": "Save the role configuration so it can be assigned to accounts on the System Users page."
+            },
+            "tip": "The 3 built-in roles (Administrator, Supervisor, Security) are protected to keep core access safe."
+          }
+        }
+      },
+      "my_profile": {
+        "title": "My Profile",
+        "purpose": "Manage your personal account identity and change your password.",
+        "features": {
+          "personal_info": "Update full name, quick-login uppercase username, and email address",
+          "change_password": "Self-service password change form with security validation",
+          "role_badges": "View your active account identity and assigned role badges"
+        },
+        "guides": {
+          "change_password": {
+            "title": "Change your account password",
+            "steps": {
+              "1": "Open the My Profile page and review your account identity and assigned Role badges.",
+              "2": "Update your full name, uppercase quick-login username, or email address if needed.",
+              "3": "In the password security section, enter your current password followed by the new password and confirmation.",
+              "4": "Click the save button to apply the new password to your account."
+            },
+            "tip": "Update your password periodically and never share gatehouse login credentials."
+          }
+        }
+      },
+      "app_overview": {
+        "title": "App Overview",
+        "purpose": "Provide a quick reference to every screen's purpose and your account's access status.",
+        "features": {
+          "module_catalog": "Complete catalog of all VMS Core screens grouped to match the sidebar navigation",
+          "access_indicator": "Live indicator of which screens your account can open, with direct shortcut links",
+          "quick_search": "Instant client-side search by page name, purpose, or feature, plus quick-jump links"
+        }
+      }
+    },
+    "tips": {
+      "bilingual": {
+        "title": "Bilingual (ID & EN)",
+        "description": "Use the globe ID / EN switcher in the top-right header to switch the interface language at any time."
+      },
+      "dark_mode": {
+        "title": "Dark & Light Mode",
+        "description": "Click the sun/moon icon in the top header to toggle between light and dark themes. Your preference is saved automatically."
+      },
+      "cloud_sync": {
+        "title": "Offline-First & Cloud Hub Sync",
+        "description": "The gate app operates reliably on the local LAN without internet and syncs blacklist updates via the Cloud Hub indicator."
+      },
+      "master_import_export": {
+        "title": "Master Data Import & Export",
+        "description": "All 6 Master Data screens include template downloads, import previews, and Excel/CSV export tools."
+      }
+    },
+    "tour": {
+      "tour_welcome": {
+        "title": "Welcome & Layout Tour",
+        "steps": {
+          "1": {
+            "title": "Sidebar Navigation Menu",
+            "description": "Use the left sidebar menu to switch between operational modules available to your account role."
+          },
+          "2": {
+            "title": "Quick Guide Search",
+            "description": "Type a screen name, route, feature, or step keyword to filter guide cards immediately."
+          },
+          "3": {
+            "title": "Module Jump Links",
+            "description": "Click any module group shortcut to scroll directly to that section."
+          },
+          "4": {
+            "title": "Screen Card & Step-by-Step Guide",
+            "description": "Each card shows the screen purpose, key features, collapsible step-by-step guides, and a Try Now shortcut."
+          },
+          "5": {
+            "title": "Language Switcher (ID / EN)",
+            "description": "Switch between Indonesian and English at any time using the ID / EN buttons in the top bar."
+          },
+          "6": {
+            "title": "Dark & Light Theme",
+            "description": "Click the theme icon to adjust display contrast for day or night shift conditions."
+          },
+          "7": {
+            "title": "Profile & User Options",
+            "description": "Check your active account identity or sign out from the user panel at the bottom of the sidebar."
+          }
+        }
+      },
+      "tour_visit_flow": {
+        "title": "Visitor Workflow Tour",
+        "steps": {
+          "1": {
+            "title": "Add Visit Module",
+            "description": "Start registering new guests or contractors at the gatehouse from the Add Visit screen."
+          },
+          "2": {
+            "title": "Search Visitor by Name",
+            "description": "Type the name of a registered visitor in the Name field and press Enter or pick from the autocomplete suggestions."
+          },
+          "3": {
+            "title": "Or Detect by ID Number",
+            "description": "Alternatively, select the ID Type (KTP, Driving License, or Passport), enter the ID Number, and click Check ID number."
+          },
+          "4": {
+            "title": "Verification & Security Alert Panel",
+            "description": "Check the right-hand panel: green means verified, red means blocked on the security blocklist, and amber means not yet registered in Visitor Directory."
+          },
+          "5": {
+            "title": "Step 2: Select Destination Location / Vessel & Host",
+            "description": "Choose the destination land zone or vessel, enter the purpose of visit, and select the internal Host staff member."
+          },
+          "6": {
+            "title": "Step 3: Select Physical Access Card & Vehicle",
+            "description": "Select at least one Available physical Visitor Card (mandatory), plus the license plate and vehicle pass card if bringing a vehicle."
+          },
+          "7": {
+            "title": "Save & Print ½ A4 Visitor Pass",
+            "description": "Click Save & Print Ticket on the bottom bar to save the check-in and immediately print the ½ A4 Visitor Pass ticket."
+          },
+          "8": {
+            "title": "Visit History & Check-Out",
+            "description": "When the guest leaves, search by name, card, or license plate in Visit History and click Check-Out to release the cards back to Available."
+          }
+        }
+      },
+      "tour_vessel_flow": {
+        "title": "Vessel & Crew Workflow Tour",
+        "steps": {
+          "1": {
+            "title": "1. Vessel Prerequisite: Locations & Vessels",
+            "description": "If the vessel is not yet in the system, register it first on the Locations & Vessels screen (choose Repair Vessel, Tug Boat, or Barge with IMO & Captain)."
+          },
+          "2": {
+            "title": "2. Crew Prerequisite: Visitor Directory",
+            "description": "If seafarer profiles are not yet registered, add them in Visitor Directory with Visitor Type = Crew (or via Excel Import)."
+          },
+          "3": {
+            "title": "3. Record New Arrival Button",
+            "description": "Click Record New Arrival to open the berthed vessel arrival registration modal form."
+          },
+          "4": {
+            "title": "4. Select Berthed Vessel from Master Data",
+            "description": "Select the arriving vessel from the master database. Selecting a vessel is required before managing the crew manifest in the next step."
+          },
+          "5": {
+            "title": "5. Open Crew Selection Dialog",
+            "description": "Click the Manage Vessel Crew button. Once a vessel is selected, the seafarer selection dialog opens to assign crew to the initial manifest."
+          },
+          "6": {
+            "title": "6. Select Seafarers in Selection Dialog",
+            "description": "Check the names of seafarers serving on-board to link them directly to this vessel arrival."
+          },
+          "7": {
+            "title": "7. Apply Crew to Arrival Form",
+            "description": "Click Apply Crew so all checked seafarers are transferred into the vessel arrival manifest summary."
+          },
+          "8": {
+            "title": "8. Save & Register Vessel Arrival",
+            "description": "Click Save Arrival to complete the vessel registration along with all seafarers on its initial manifest."
+          },
+          "9": {
+            "title": "9. Fast Check-In / Check-Out via Unified Search",
+            "description": "Type a crew or vessel name in this Unified Search box to filter manifest statuses instantly from anywhere."
+          },
+          "10": {
+            "title": "10. Open Crew Manifest & Vessel Detail Modal",
+            "description": "Click the Detail action button (eye icon / manage crew) on any berthed vessel row to open the crew manifest management modal."
+          },
+          "11": {
+            "title": "11. Crew Manifest & Vessel Management Modal",
+            "description": "Inside this modal dialog, manage on-board Check-In / Check-Out statuses, detach crew, and download movement logs using the Export Log Excel button."
+          },
+          "12": {
+            "title": "12. Berth Status Filter & Vessel Check-Out (Departed)",
+            "description": "When a Repair Vessel completes work and sails out, trigger Check-Out / Departed on the vessel row."
+          }
+        }
+      },
+      "tour_master_data": {
+        "title": "Master Data Management Tour",
+        "steps": {
+          "1": {
+            "title": "1. Master Locations & Vessels (/master/locations)",
+            "description": "Manage CRUD (Add, Edit, Delete) for yard land locations and vessels (Repair Vessel, Tug Boat, Barge), complete with Excel Import & Export."
+          },
+          "2": {
+            "title": "2. Master Host Staffs (/master/staffs)",
+            "description": "Manage CRUD for internal host employees, customize visible table columns, restore deleted records from Trash, and run Excel Import & Export."
+          },
+          "3": {
+            "title": "3. Master Visitor Cards (/master/cards)",
+            "description": "Manage CRUD for physical visitor card inventory, monitor automatic card status (Available, In Use, Lost, Damaged), and run Excel Import & Export."
+          },
+          "4": {
+            "title": "4. Master Vehicle Cards (/master/vehicle-cards)",
+            "description": "Manage CRUD for vehicle pass cards assigned to guest and operational vehicles entering the shipyard, complete with Excel Import & Export."
+          },
+          "5": {
+            "title": "5. Master Visitor Directory (/master/visitors)",
+            "description": "Manage CRUD for the master directory of guests, contractors, and vessel crew (KTP/SIM/Passport), view visit counts, Import/Export Excel, or block offenders."
+          },
+          "6": {
+            "title": "6. Security Blocklist & Cloud Hub (/master/visitors/blacklist)",
+            "description": "Add new security blocks, remove blocks (Unblock), Import/Export Excel, and switch to the Global tab for multi-branch Cloud Hub synchronization."
+          }
+        }
+      }
+    },
+    "flow": {
+      "visit_flow": {
+        "title": "Visitor Workflow",
+        "nodes": {
+          "1": {
+            "title": "Register Visit",
+            "description": "Verify visitor ID, assign destination & Host, and allocate access cards."
+          },
+          "2": {
+            "title": "Print Pass",
+            "description": "Print the ½ A4 Visitor Pass ticket for the guest while inside the shipyard."
+          },
+          "3": {
+            "title": "Track History",
+            "description": "Monitor active visitors inside the yard (In Yard) or reprint entry passes."
+          },
+          "4": {
+            "title": "Check-out",
+            "description": "Process individual or group check-outs at the exit gate."
+          },
+          "5": {
+            "title": "Cards Released",
+            "description": "Visitor and vehicle cards automatically return to Available status."
+          }
+        }
+      },
+      "vessel_flow": {
+        "title": "Vessel & Crew Workflow",
+        "nodes": {
+          "1": {
+            "title": "Register Arrival",
+            "description": "Record berthed vessel schedule, port of origin, agents, and initial manifest."
+          },
+          "2": {
+            "title": "Crew Manifest",
+            "description": "Manage seafarer Check-In, Check-Out, Detach, or Vessel Transfer actions."
+          },
+          "3": {
+            "title": "Export Logs",
+            "description": "Download the crew gate movement activity history as an Excel file."
+          },
+          "4": {
+            "title": "Vessel Departed",
+            "description": "Mark Repair Vessels as Departed when they leave the shipyard."
+          }
+        }
+      }
+    },
+    "simulator": {
+      "title": "Interactive Simulation & Visual Page Examples",
+      "badge_safe": "Practice Mode (Dummy Data)",
+      "subtitle": "Try out guest registration, physical card check-out, and vessel crew manifest actions visually without affecting live records.",
+      "tabs_aria": "Select interactive simulation scenario",
+      "tab_visit_create": "1. Registration & Print Pass",
+      "tab_visit_history": "2. History & Check-out",
+      "tab_vessel_crew": "3. Vessel & Crew Manifest",
+      "reset_btn": "Reset Simulation",
+      "card_available": "Available",
+      "card_in_use": "In Use",
+      "visit_create": {
+        "window_caption": "Interactive Add Visit Preview",
+        "step1_heading": "Search & Verify Visitor (Name / ID Number)",
+        "step1_instruction": "Click one of the sample guest profiles below to see how the screen responds in real time:",
+        "method_by_name": "By Name",
+        "method_by_id": "By ID Number",
+        "method_name_hint": "Search by Name mode: Type a visitor name and pick from autocomplete suggestions (or click a sample below):",
+        "method_id_hint": "Search by ID mode: Select ID type (KTP/SIM/Passport) and check the ID number (click a sample below):",
+        "preset_safe_label": "Registered Guest (Safe)",
+        "preset_blocked_label": "Blocked Guest (Restricted)",
+        "preset_new_label": "Unregistered Guest",
+        "status_verified": "Visitor found & verified",
+        "badge_ready_checkin": "Ready for Check-in",
+        "label_visitor": "Guest Name",
+        "status_blocked": "Security Alert: Guest on Security Blocklist",
+        "badge_entry_denied": "Entry Denied",
+        "blocked_reason_text": "Reason: PPE & restricted zone violation. Destination, card assignment, and pass printing are locked automatically.",
+        "status_unregistered": "Visitor is not registered in the directory",
+        "unregistered_help_text": "New guests must first be added in the Visitor Directory screen before proceeding with check-in.",
+        "simulate_register_btn": "Simulate Registration Complete -> Verified",
+        "step2_heading": "Select Destination Location / Vessel & Host",
+        "select_dest_label": "Select Destination Location / Vessel:",
+        "select_host_label": "Select Host Staff:",
+        "step3_heading": "Select Physical Access Card & Vehicle",
+        "select_card_label": "Select Visitor Card (Cards in use are locked automatically):",
+        "vehicle_plate_label": "Vehicle License Plate (Optional):",
+        "footer_ready": "Step 4: Form ready — click Save & Print Ticket to preview the ½ A4 Visitor Pass ticket.",
+        "footer_locked": "Step 4: Form locked — select the Registered Guest (Safe) scenario to test pass printing.",
+        "print_btn": "Save & Print Ticket (Simulate)",
+        "pass_preview_title": "Sample ½ A4 Visitor Pass Print Preview",
+        "pass_dest": "DESTINATION",
+        "pass_signatures": "Signatures: Visitor · Host · Security Gate"
+      },
+      "visit_history": {
+        "window_caption": "Interactive Visit History & Check-out Preview",
+        "card_strip_label": "Live Physical Card Status",
+        "filter_all": "All",
+        "filter_active": "Active (In Yard)",
+        "filter_completed": "Completed (Checked Out)",
+        "search_placeholder": "Try typing plate (BP 8821) or name...",
+        "bulk_checkout_btn": "Bulk Check-Out",
+        "col_visitor": "Visitor & Check-in Time",
+        "col_destination": "Destination & Host",
+        "col_card_plate": "Card & Plate",
+        "col_status": "Status",
+        "col_action": "Simulated Action",
+        "status_in_yard": "Active (In Yard)",
+        "status_checked_out": "Completed (Checked Out)"
+      },
+      "vessel_crew": {
+        "window_caption": "Interactive Vessel Arrivals & Crew Manifest Preview",
+        "prereq_step1_title": "1. Vessel Record (Locations & Vessels)",
+        "prereq_step1_desc": "Ensure the vessel is registered in Master Locations & Vessels (Repair Vessel / Tug Boat / Barge).",
+        "prereq_step2_title": "2. Crew Profile (Visitor Directory)",
+        "prereq_step2_desc": "Ensure seafarer profiles are registered in Master Visitor Directory with type Crew.",
+        "prereq_step3_title": "3. Link to Vessel Arrival",
+        "prereq_step3_desc": "Combine crew into the berthed vessel manifest so Check-In & Check-Out buttons are enabled.",
+        "status_in_port": "In Port (Berthed)",
+        "status_departed": "Departed",
+        "status_stay": "Permanent Stay",
+        "repair_vessel_desc": "Type: Repair Vessel — Visiting vessel with a Check-Out / Departure (Departed) action.",
+        "tugboat_desc": "Type: Tugboat / Barge — Operational fleet vessel that stays permanently for crew mobility.",
+        "quick_search_placeholder": "Quick Search Vessel / Crew (type crew name)...",
+        "manifest_heading": "Crew Manifest Table (Click action buttons on the right to toggle crew status):",
+        "export_btn": "Export Excel Log",
+        "depart_btn": "Vessel Check-Out (Departed)",
+        "col_crew": "Seafarer Name",
+        "col_rank_doc": "Rank & Document",
+        "col_status": "Manifest Status",
+        "col_action": "Crew Action",
+        "status_unlinked": "Not Linked to Vessel",
+        "link_crew_btn": "Link to Vessel",
+        "export_success_msg": "Simulation complete: Crew movement log (.xlsx) is ready for download.",
+        "table_title": "Berthed Vessels (Select to Manage Crew)",
+        "table_desc": "Click the button on the vessel you want to manage to open the crew management dialog.",
+        "open_crew_modal_btn": "Open Crew Management Modal",
+        "modal_title": "Berthed Vessel Crew Management",
+        "modal_subtitle": "Select vessel then manage manifest, link crew, perform check-in/out, or export logs.",
+        "close_modal_btn": "Close Modal",
+        "step1_select_vessel": "Step 1: Select / Confirm Vessel",
+        "step2_manage_crew": "Step 2: Manage Manifest & Crew Status",
+        "create_arrival_btn": "Record New Arrival",
+        "register_modal_title": "Record New Vessel Arrival Form",
+        "register_modal_subtitle": "Select vessel from master data, fill berth details, and link seafarers into the initial manifest.",
+        "form_vessel_label": "Select Berthed Vessel (Master Data)",
+        "form_port_label": "Port of Origin",
+        "form_captain_label": "Captain Name",
+        "form_agent_label": "Local Agent / Agent Company",
+        "form_crew_label": "Link Seafarers to Initial Manifest",
+        "form_crew_desc": "Check seafarers who are on-board to link them into this vessel arrival directly:",
+        "submit_arrival_btn": "Save & Register Arrival",
+        "arrival_created_msg": "Vessel arrival recorded successfully and crew manifest updated.",
+        "manage_crew_submodal_btn": "Manage Crew",
+        "crew_select_dialog_title": "Select & Manage Vessel Crew",
+        "crew_select_dialog_subtitle": "Select seafarers currently on-board to assign them into this initial vessel arrival manifest.",
+        "apply_crew_btn": "Apply Crew ({{count}} Selected)"
+      },
+      "cancel_btn": "Cancel"
+    }
   }
 }

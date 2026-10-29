@@ -781,14 +781,14 @@ export default function CreateVisit() {
         className="space-y-6"
       >
         {/* ===== 1. Cari pengunjung ===== */}
-        <section className={CARD_CLASS}>
+        <section className={CARD_CLASS} data-tour="visit-search-section">
           <SectionTitle n={1} icon={User}>
             {t("create_visit.section1_title", "Cari Pengunjung")}
           </SectionTitle>
 
           <div className="grid items-start gap-6 lg:grid-cols-2">
             <div className="space-y-4">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="visit-name-search">
                 <Label htmlFor="visitor_name" className="text-xs font-semibold">
                   {t("create_visit.field_name", "Nama")}
                 </Label>
@@ -831,7 +831,7 @@ export default function CreateVisit() {
                 <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2" data-tour="visit-id-lookup">
                 <div className="space-y-1.5">
                   <Label htmlFor="id_type" className="text-xs font-semibold">
                     {t("create_visit.id_type", "Jenis ID")}
@@ -906,7 +906,7 @@ export default function CreateVisit() {
             </div>
 
             {/* Hasil */}
-            <div>
+            <div data-tour="visit-status-panel">
               {status === "idle" && (
                 <div className="flex min-h-[160px] items-center justify-center rounded-md border border-dashed border-zinc-300 p-4 text-center text-sm text-zinc-500 dark:border-zinc-700">
                   {t(
@@ -1052,7 +1052,10 @@ export default function CreateVisit() {
         />
 
         {/* Bar bawah */}
-        <div className="sticky bottom-0 z-20 -mx-4 flex flex-col items-center justify-between gap-3 border-t border-zinc-200 bg-white/95 p-4 shadow-lg backdrop-blur sm:mx-0 sm:flex-row sm:rounded-lg dark:border-zinc-800 dark:bg-zinc-950/95">
+        <div
+          data-tour="visit-submit-bar"
+          className="sticky bottom-0 z-20 -mx-4 flex flex-col items-center justify-between gap-3 border-t border-zinc-200 bg-white/95 p-4 shadow-lg backdrop-blur sm:mx-0 sm:flex-row sm:rounded-lg dark:border-zinc-800 dark:bg-zinc-950/95"
+        >
           <p className="hidden text-xs text-zinc-500 sm:block">
             {status === "blacklisted" ? (
               <span className="font-medium text-red-600">

@@ -20,6 +20,7 @@ import {
   Ship,
   Building2,
   KeyRound,
+  BookOpen,
   Sun,
   Moon,
   Globe,
@@ -200,6 +201,13 @@ export default function AppLayout() {
           icon: UserCircle,
           show: true,
         },
+        {
+          name: t("nav.app_overview"),
+          enName: "App Overview",
+          path: "/settings/overview",
+          icon: BookOpen,
+          show: true,
+        },
       ],
     },
   ]
@@ -224,7 +232,10 @@ export default function AppLayout() {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-zinc-50 dark:bg-zinc-900">
       {/* Sidebar */}
-      <aside className="flex h-screen w-64 flex-shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+      <aside
+        data-tour="layout-sidebar"
+        className="flex h-screen w-64 flex-shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+      >
         <div className="flex h-14 items-center border-b border-zinc-200 px-6 text-lg font-semibold dark:border-zinc-800">
           VMS Core
         </div>
@@ -272,6 +283,7 @@ export default function AppLayout() {
         </div>
 
         <div
+          data-tour="layout-profile"
           className="relative border-t border-zinc-200 p-4 dark:border-zinc-800"
           ref={dropdownRef}
         >
@@ -325,7 +337,10 @@ export default function AppLayout() {
           </div>
           <div className="flex items-center gap-3">
             {/* Language Switcher */}
-            <div className="flex items-center rounded-md border border-zinc-200 bg-white p-0.5 text-xs font-semibold dark:border-zinc-800 dark:bg-zinc-900">
+            <div
+              data-tour="layout-language"
+              className="flex items-center rounded-md border border-zinc-200 bg-white p-0.5 text-xs font-semibold dark:border-zinc-800 dark:bg-zinc-900"
+            >
               <Globe className="mx-1.5 h-3.5 w-3.5 text-zinc-400" />
               <button
                 type="button"
@@ -356,6 +371,7 @@ export default function AppLayout() {
             </div>
 
             <button
+              data-tour="layout-theme"
               onClick={toggleTheme}
               className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
               title={isDark ? t("layout.switch_light", "Beralih ke mode terang") : t("layout.switch_dark", "Beralih ke mode gelap")}

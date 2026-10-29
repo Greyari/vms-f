@@ -224,6 +224,7 @@ export default function VesselArrivals() {
 
         {canManageVessels && (
           <Button
+            data-tour="vessel-create-btn"
             onClick={() => {
               setSelectedArrivalForEdit(null)
               setFormModalOpen(true)
@@ -237,7 +238,10 @@ export default function VesselArrivals() {
       </div>
 
       {/* Unified Search Kapal + Kru */}
-      <div className="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm space-y-2">
+      <div
+        data-tour="vessel-unified-search"
+        className="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm space-y-2"
+      >
         <UnifiedVesselCrewSearch
           resetKey={searchResetKey}
           onSelectVessel={(arrivalId) => {
@@ -252,7 +256,10 @@ export default function VesselArrivals() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm space-y-4">
+      <div
+        data-tour="vessel-filter-bar"
+        className="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm space-y-4"
+      >
         <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
@@ -327,7 +334,10 @@ export default function VesselArrivals() {
       </div>
 
       {/* Tabel Kedatangan Kapal */}
-      <div className="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden">
+      <div
+        data-tour="vessel-arrivals-table"
+        className="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden"
+      >
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -453,6 +463,7 @@ export default function VesselArrivals() {
                             variant="ghost"
                             size="icon"
                             title="Lihat Detail Sandar"
+                            data-tour={index === 0 ? "vessel-open-detail-btn" : undefined}
                             onClick={() => {
                               setSelectedArrivalIdForDetail(arrival.id)
                               setDetailModalOpen(true)

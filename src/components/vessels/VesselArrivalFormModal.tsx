@@ -245,6 +245,30 @@ export default function VesselArrivalFormModal({
     }
   }
 
+  const handleOpenCrewDialog = () => {
+    if (!locationId) {
+      if (vessels.length > 0) {
+        handleSelectVessel(vessels[0].id)
+        setCrewDialogOpen(true)
+        toast.info(
+          t(
+            "vesselArrivals.auto_selected_first_vessel",
+            "Kapal pertama dipilih otomatis untuk mengelola kru."
+          )
+        )
+      } else {
+        toast.warning(
+          t(
+            "vesselArrivals.please_select_vessel_first",
+            "Silakan pilih kapal terlebih dahulu sebelum mengelola kru."
+          )
+        )
+      }
+      return
+    }
+    setCrewDialogOpen(true)
+  }
+
   const handleCreateVessel = async () => {
     if (!newVesselForm.name.trim()) {
       toast.error(t("vesselArrivals.err_vessel_name_required", "Nama kapal wajib diisi."))
@@ -407,7 +431,10 @@ export default function VesselArrivalFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-5xl md:max-w-6xl w-[95vw]">
+      <DialogContent
+        data-tour="vessel-form-modal-dialog"
+        className="max-h-[92vh] overflow-y-auto sm:max-w-5xl md:max-w-6xl w-[95vw]"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold">
             {isEdit
@@ -582,7 +609,7 @@ export default function VesselArrivalFormModal({
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div data-tour="vessel-form-select-vessel">
                 <Label htmlFor="vessel-select">
                   {t("vesselArrivals.select_vessel_label", "Pilih Kapal")} <span className="text-red-500">*</span>
                 </Label>
@@ -857,14 +884,20 @@ export default function VesselArrivalFormModal({
                 <span>
                   {t("vesselArrivals.manifest_title", "Manifest Kru Kapal:")}{" "}
                   <strong>{t("vesselArrivals.selected_crew_count", "{{count}} Kru Terpilih", { count: selectedCrewIds.length })}</strong>
+                  {!locationId && (
+                    <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-normal">
+                      ({t("vesselArrivals.vessel_required_hint", "Pilih kapal terlebih dahulu")})
+                    </span>
+                  )}
                 </span>
               </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={!locationId || submitting}
-                onClick={() => setCrewDialogOpen(true)}
+                data-tour="vessel-form-manage-crew-btn"
+                disabled={submitting}
+                onClick={handleOpenCrewDialog}
                 className="bg-white dark:bg-zinc-800 text-xs font-medium"
               >
                 {t("vesselArrivals.btn_manage_crew", "Kelola Kru Kapal")}
@@ -940,6 +973,7 @@ export default function VesselArrivalFormModal({
             </Button>
             <Button
               type="submit"
+              data-tour="vessel-form-submit-btn"
               disabled={submitting}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >

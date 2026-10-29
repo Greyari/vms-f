@@ -873,6 +873,7 @@ export default function VisitHistory() {
         {/* Status Segmented Control / Tabs */}
         <div
           role="tablist"
+          data-tour="history-status-tabs"
           aria-label={t("visit_history.status_filter_label", "Filter Status Kunjungan")}
           className="inline-flex items-center rounded-lg border border-zinc-200 bg-zinc-100/80 p-1 dark:border-zinc-800 dark:bg-zinc-900"
         >
@@ -943,9 +944,15 @@ export default function VisitHistory() {
       </div>
 
       {/* Main Card */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-950 space-y-4">
+      <div
+        data-tour="history-table-card"
+        className="rounded-lg border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-950 space-y-4"
+      >
         {/* Top Controls Row: Unified Search + Column Picker + Refresh */}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div
+          data-tour="history-search-bar"
+          className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+        >
           <div className="relative flex-1 max-w-xl">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-zinc-400" />
             <Input

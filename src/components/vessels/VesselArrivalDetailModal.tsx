@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { isAxiosError } from "axios"
 import { toast } from "sonner"
 import api from "@/lib/axios"
 import { useTranslation } from "@/context/I18nContext"
@@ -248,7 +249,7 @@ export default function VesselArrivalDetailModal({
     }
     setProcessingCrewId(crewIds[0])
     try {
-      const payload: Record<string, any> = {
+      const payload: Record<string, unknown> = {
         crew_ids: crewIds,
       }
       if (actionNote.trim()) {
@@ -262,10 +263,9 @@ export default function VesselArrivalDetailModal({
       setActionNote("")
       toast.success("Kru berhasil di-check-in ke kapal.")
       onUpdated?.()
-    } catch (err: any) {
-      toast.error(
-        err?.response?.data?.message || "Gagal melakukan check-in kru."
-      )
+    } catch (err: unknown) {
+      const errMsg = isAxiosError(err) ? err.response?.data?.message : undefined
+      toast.error(errMsg || "Gagal melakukan check-in kru.")
     } finally {
       setProcessingCrewId(null)
     }
@@ -275,7 +275,7 @@ export default function VesselArrivalDetailModal({
     if (!detail || crewIds.length === 0) return
     setProcessingCrewId(crewIds[0])
     try {
-      const payload: Record<string, any> = {
+      const payload: Record<string, unknown> = {
         crew_ids: crewIds,
       }
       if (actionNote.trim()) {
@@ -289,10 +289,9 @@ export default function VesselArrivalDetailModal({
       setActionNote("")
       toast.success("Kru berhasil di-check-out dari kapal.")
       onUpdated?.()
-    } catch (err: any) {
-      toast.error(
-        err?.response?.data?.message || "Gagal melakukan check-out kru."
-      )
+    } catch (err: unknown) {
+      const errMsg = isAxiosError(err) ? err.response?.data?.message : undefined
+      toast.error(errMsg || "Gagal melakukan check-out kru.")
     } finally {
       setProcessingCrewId(null)
     }
@@ -302,7 +301,7 @@ export default function VesselArrivalDetailModal({
     if (!detail || !crewToDetach) return
     setDetaching(true)
     try {
-      const payload: Record<string, any> = {
+      const payload: Record<string, unknown> = {
         visitor_id: crewToDetach.id,
       }
       if (actionNote.trim()) {
@@ -322,9 +321,10 @@ export default function VesselArrivalDetailModal({
       setDetachDialogOpen(false)
       setCrewToDetach(null)
       onUpdated?.()
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg = isAxiosError(err) ? err.response?.data?.message : undefined
       toast.error(
-        err?.response?.data?.message ||
+        errMsg ||
           t("vesselArrivals.crew_detached_error", "Gagal melepas kru dari kapal.")
       )
     } finally {
@@ -511,7 +511,7 @@ export default function VesselArrivalDetailModal({
     if (!detail?.id) return
     setExportLogLoading(true)
     try {
-      const params: Record<string, any> = {}
+      const params: Record<string, string> = {}
       if (selectedCrewFilter) params.visitor_id = selectedCrewFilter
       if (selectedActionFilter) params.action = selectedActionFilter
 
@@ -535,7 +535,7 @@ export default function VesselArrivalDetailModal({
       window.URL.revokeObjectURL(url)
 
       toast.success(t("vesselArrivals.export_logs_success", "Log riwayat kru kapal berhasil diekspor."))
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
       toast.error(t("vesselArrivals.export_logs_error", "Gagal mengekspor riwayat log kru."))
     } finally {
@@ -562,7 +562,10 @@ export default function VesselArrivalDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-6xl md:max-w-7xl w-[96vw] max-h-[92vh] flex flex-col">
+      <DialogContent
+        data-tour="vessel-detail-modal-dialog"
+        className="sm:max-w-6xl md:max-w-7xl w-[96vw] max-h-[92vh] flex flex-col"
+      >
         <DialogHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pr-6">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">

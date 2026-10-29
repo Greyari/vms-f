@@ -232,7 +232,10 @@ export default function VehicleCards() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+      <div
+        data-tour="master-vehicle-cards-header"
+        className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center"
+      >
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{t("vehicleCards.title", "Master Kartu Kendaraan")}</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">

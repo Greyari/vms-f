@@ -259,7 +259,7 @@ export default function BlacklistedVisitors() {
             {t("blacklist.subtitle")}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" data-tour="master-blacklist-actions">
           <Button variant="outline" onClick={() => setImportModalOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> {t("blacklist.import_btn")}
           </Button>
@@ -280,7 +280,7 @@ export default function BlacklistedVisitors() {
         </div>
       </div>
 
-      <Tabs defaultValue="local" className="gap-4">
+      <Tabs defaultValue="local" className="gap-4" data-tour="master-blacklist-tabs">
         <TabsList>
           <TabsTrigger value="local">{t("blacklist.tab_local")}</TabsTrigger>
           <TabsTrigger value="global">{t("blacklist.tab_global")}</TabsTrigger>

@@ -56,6 +56,8 @@ describe("AppLayout RBAC Navigation", () => {
     expect(screen.getByText("Dashboard")).toBeInTheDocument()
     expect(screen.getByText("Add Visit")).toBeInTheDocument()
     expect(screen.getByText("Visit History")).toBeInTheDocument()
+    expect(screen.getByText("My Profile")).toBeInTheDocument()
+    expect(screen.getByText("App Overview")).toBeInTheDocument()
     expect(screen.queryByText("Active Visitors")).not.toBeInTheDocument()
     expect(screen.queryByText("Reprint Pass")).not.toBeInTheDocument()
 

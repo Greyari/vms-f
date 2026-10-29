@@ -231,7 +231,7 @@ export default function Visitors() {
             {t("visitors.subtitle", "Daftar induk seluruh pengunjung, kontraktor, dan kru kapal.")}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" data-tour="master-visitors-actions">
           <Button
             variant="outline"
             onClick={() => setExportModalOpen(true)}
@@ -261,7 +261,10 @@ export default function Visitors() {
       </div>
 
       {/* Filter Card */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+      <div
+        data-tour="master-visitors-table"
+        className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+      >
         <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
           <div className="relative">
             <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />

@@ -946,7 +946,7 @@ export function VisitFormFields({
       )}
     >
       {/* ===== 2. Tujuan & Staf yang Dikunjungi ===== */}
-      <section className={cn(CARD_CLASS, "min-w-0 space-y-4")}>
+      <section className={cn(CARD_CLASS, "min-w-0 space-y-4")} data-tour="visit-destination-host">
         <div className="flex items-center justify-between">
           <SectionTitle n={2} icon={Building2}>
             {t("create_visit.section2_title", "Tujuan & Staf yang Dikunjungi")}
@@ -1140,7 +1140,7 @@ export function VisitFormFields({
       </section>
 
       {/* ===== 3. Kartu & kendaraan ===== */}
-      <section className={cn(CARD_CLASS, "min-w-0 space-y-4")}>
+      <section className={cn(CARD_CLASS, "min-w-0 space-y-4")} data-tour="visit-cards-section">
         <SectionTitle n={3} icon={CreditCard}>
           {t("create_visit.section3_title", "Kartu Akses & Kendaraan")}
         </SectionTitle>

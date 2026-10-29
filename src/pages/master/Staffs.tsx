@@ -359,7 +359,10 @@ export default function Staffs() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+      <div
+        data-tour="master-staffs-header"
+        className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center"
+      >
         <div>
           <h1 className="text-2xl font-bold">{t("staffs.title", "Master Staf & Karyawan")}</h1>
           <p className="text-muted-foreground">
@@ -461,7 +464,10 @@ export default function Staffs() {
       </div>
 
       {/* Filter Card */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+      <div
+        data-tour="master-staffs-table"
+        className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+      >
         <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
           <div className="relative">
             <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-zinc-500" />
