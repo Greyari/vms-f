@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { AlertCircle, Loader2 } from "lucide-react"
 
 interface VisitorFormModalProps {
@@ -37,8 +36,6 @@ export default function VisitorFormModal({
     name: "",
     id_type: "ktp",
     id_number: "",
-    phone: "",
-    email: "",
     company: "",
     occupation: "",
     visitor_type: "visitor",
@@ -46,7 +43,6 @@ export default function VisitorFormModal({
     birth_date: "",
     gender: "",
     nationality: "Indonesia",
-    address: "",
     certificate_no: "",
     seaman_book_no: "",
   })
@@ -62,8 +58,6 @@ export default function VisitorFormModal({
         name: visitor.name || "",
         id_type: visitor.id_type || "ktp",
         id_number: visitor.id_number || "",
-        phone: visitor.phone || "",
-        email: visitor.email || "",
         company: visitor.company || "",
         occupation: visitor.occupation || "",
         visitor_type: visitor.visitor_type === "regular" ? "visitor" : visitor.visitor_type || "visitor",
@@ -71,7 +65,6 @@ export default function VisitorFormModal({
         birth_date: visitor.birth_date || visitor.dob || "",
         gender: visitor.gender ? (["M", "Male", "male", "L"].includes(visitor.gender) ? "M" : ["F", "Female", "female", "P"].includes(visitor.gender) ? "F" : visitor.gender) : "",
         nationality: visitor.nationality || "Indonesia",
-        address: visitor.address || "",
         certificate_no: visitor.certificate_no || "",
         seaman_book_no: visitor.seaman_book_no || "",
       })
@@ -91,8 +84,6 @@ export default function VisitorFormModal({
                     name: data.name ?? prev.name,
                     id_type: data.id_type ?? prev.id_type,
                     id_number: data.id_number ?? prev.id_number,
-                    phone: data.phone ?? prev.phone,
-                    email: data.email ?? prev.email,
                     company: data.company ?? prev.company,
                     occupation: data.occupation ?? prev.occupation,
                     visitor_type: data.visitor_type === "regular" ? "visitor" : (data.visitor_type || prev.visitor_type),
@@ -100,7 +91,6 @@ export default function VisitorFormModal({
                     birth_date: data.birth_date || data.dob || prev.birth_date,
                     gender: data.gender ?? prev.gender,
                     nationality: data.nationality ?? prev.nationality,
-                    address: data.address ?? prev.address,
                     certificate_no: data.certificate_no ?? prev.certificate_no,
                     seaman_book_no: data.seaman_book_no ?? prev.seaman_book_no,
                   }))
@@ -122,8 +112,6 @@ export default function VisitorFormModal({
         name: "",
         id_type: "ktp",
         id_number: "",
-        phone: "",
-        email: "",
         company: "",
         occupation: "",
         visitor_type: "visitor",
@@ -131,7 +119,6 @@ export default function VisitorFormModal({
         birth_date: "",
         gender: "",
         nationality: "Indonesia",
-        address: "",
         certificate_no: "",
         seaman_book_no: "",
       })
@@ -149,9 +136,6 @@ export default function VisitorFormModal({
       id_number: form.id_number.trim(),
       company: form.company.trim() || null,
       occupation: form.occupation.trim() || null,
-      phone: isCrew ? null : (form.phone.trim() || null),
-      email: isCrew ? null : (form.email.trim() || null),
-      address: isCrew ? null : (form.address.trim() || null),
       visitor_type: form.visitor_type === "regular" ? "visitor" : form.visitor_type,
       gender: form.gender || null,
       birth_place: form.birth_place.trim() || null,
@@ -341,45 +325,6 @@ export default function VisitorFormModal({
               />
             </div>
           </div>
-
-          {/* Section: Kontak & Alamat Domisili (Hanya untuk Pengunjung Non-Crew) */}
-          {form.visitor_type !== "crew" && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="vfm_phone">{t("visitors.field_phone", "Nomor Telepon")}</Label>
-                  <Input
-                    id="vfm_phone"
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    placeholder={t("visitors.field_phone_placeholder", "Contoh: 081234567890")}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="vfm_email">{t("visitors.field_email", "Email")}</Label>
-                  <Input
-                    id="vfm_email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    placeholder={t("visitors.field_email_placeholder", "nama@email.com")}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="vfm_address">{t("visitors.field_address", "Alamat Domisili")}</Label>
-                <Textarea
-                  id="vfm_address"
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  placeholder={t("visitors.field_address_placeholder", "Alamat tempat tinggal lengkap...")}
-                  rows={2}
-                />
-              </div>
-            </div>
-          )}
 
           {/* Section: Dokumen Crew Khusus */}
           {form.visitor_type === "crew" && (

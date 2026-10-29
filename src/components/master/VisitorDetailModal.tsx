@@ -25,9 +25,6 @@ import {
   History,
   Building,
   Anchor,
-  Phone,
-  Mail,
-  MapPin,
   ShieldAlert,
   ShieldCheck,
   CheckCircle2,
@@ -96,9 +93,6 @@ interface VisitorProfile {
   birth_date?: string
   gender?: string
   nationality?: string
-  phone?: string
-  email?: string
-  address?: string
   visitor_type?: string
   is_blacklisted: boolean
   blacklist_reason?: string
@@ -388,27 +382,6 @@ export default function VisitorDetailModal({
                     <div>
                       <p className="text-xs text-muted-foreground">{t("visitors.lbl_occupation", "Jabatan / Profesi")}</p>
                       <p className="text-sm">{visitor.occupation || "-"}</p>
-                    </div>
-                    <div>
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Phone className="h-3 w-3" />
-                        {t("visitors.lbl_phone", "Nomor Telepon")}
-                      </p>
-                      <p className="font-mono text-sm">{visitor.phone || "-"}</p>
-                    </div>
-                    <div>
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        {t("visitors.lbl_email", "Email")}
-                      </p>
-                      <p className="text-sm">{visitor.email || "-"}</p>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        {t("visitors.lbl_address", "Alamat Domisili")}
-                      </p>
-                      <p className="text-sm">{visitor.address || "-"}</p>
                     </div>
                   </div>
                 </div>

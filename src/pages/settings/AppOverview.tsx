@@ -8,7 +8,6 @@ import {
   APP_OVERVIEW_GROUPS,
   APP_OVERVIEW_GENERAL_TIPS,
   type OverviewPagePath,
-  type OverviewRoleKey,
 } from "@/config/appOverview"
 import OverviewSimulator from "@/components/OverviewSimulator"
 import { Badge } from "@/components/ui/badge"
@@ -20,7 +19,6 @@ import {
   Lock,
   ArrowUpRight,
   Sparkles,
-  Shield,
   ChevronDown,
   BookOpenCheck,
   Lightbulb,
@@ -29,12 +27,6 @@ import {
   Search,
   X,
 } from "lucide-react"
-
-const ROLE_LABEL_KEYS: Record<OverviewRoleKey, string> = {
-  administrator: "app_overview.roles.administrator",
-  supervisor: "app_overview.roles.supervisor",
-  security: "app_overview.roles.security",
-}
 
 export default function AppOverview() {
   const { hasPermission } = useAuth()
@@ -324,19 +316,6 @@ export default function AppOverview() {
                             </code>
                           </div>
                         </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1">
-                        {page.roles.map((roleKey) => (
-                          <Badge
-                            key={roleKey}
-                            variant="outline"
-                            className="px-1.5 py-0 text-[11px] font-normal text-zinc-600 dark:text-zinc-400"
-                          >
-                            <Shield className="mr-1 h-2.5 w-2.5" />
-                            {t(ROLE_LABEL_KEYS[roleKey])}
-                          </Badge>
-                        ))}
                       </div>
                     </header>
 

@@ -12,7 +12,7 @@ import type { User } from "@/types/auth"
 
 const mockDrive = vi.fn()
 const mockDestroy = vi.fn()
-const mockDriver = vi.fn(() => ({
+const mockDriver = vi.fn((_config?: any) => ({
   drive: mockDrive,
   destroy: mockDestroy,
   isActive: () => false,
@@ -308,7 +308,7 @@ describe("AppOverview Page", () => {
     ).not.toBeInTheDocument()
   })
 
-  it("(d) renders guide titles and workflow section titles in English when language mode is EN", () => {
+  it("(d) renders guide titles and simulator tabs in English when language mode is EN", () => {
     setupUser(["view_visits", "create_visits"])
 
     render(
@@ -319,14 +319,10 @@ describe("AppOverview Page", () => {
       </MemoryRouter>
     )
 
+    // FIX: the old level-4 simulator heading no longer exists.
+    // The simulator is now identified by its tabs in the window caption.
     expect(
-      screen.getByRole("heading", { level: 2, name: "Key Workflows" })
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole("heading", {
-        level: 4,
-        name: "Interactive Simulation & Visual Page Examples",
-      })
+      screen.getByRole("tab", { name: /1\. Registration & Print Pass/i })
     ).toBeInTheDocument()
 
     const addVisitHeading = screen.getByRole("heading", {
@@ -414,7 +410,7 @@ describe("AppOverview Page", () => {
     fireEvent.click(startBtn)
 
     expect(mockDriver).toHaveBeenCalledTimes(1)
-    const driverConfig = mockDriver.mock.calls[0][0] as {
+    const driverConfig = ((mockDriver.mock.calls as any)[0][0] ?? {}) as {
       steps: Array<{ element: string }>
     }
     const highlightedSelectors = driverConfig.steps.map((s) => s.element)
@@ -485,11 +481,10 @@ describe("AppOverview Page", () => {
       </MemoryRouter>
     )
 
+    // FIX: the old level-4 simulator heading no longer exists.
+    // The simulator is now identified by its first tab.
     expect(
-      screen.getByRole("heading", {
-        level: 4,
-        name: "Simulasi Interaktif & Contoh Visual Halaman",
-      })
+      screen.getByRole("tab", { name: /1\. Registrasi & Cetak Pass/i })
     ).toBeInTheDocument()
 
     // Tab 1: Click 'Simpan & Cetak Tiket (Simulasi)' and verify ½ A4 pass preview appears

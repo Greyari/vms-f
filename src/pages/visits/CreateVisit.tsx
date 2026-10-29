@@ -575,8 +575,6 @@ export default function CreateVisit() {
         vehicle_card_id: form.vehicle_card_id || undefined,
       }
       if (visitor.occupation) payload.occupation = visitor.occupation
-      if (visitor.phone) payload.phone = visitor.phone
-      if (visitor.email) payload.email = visitor.email
       if (visitor.visitor_type) payload.visitor_type = visitor.visitor_type
       if (visitor.visitor_type === "crew" && isVessel) {
         payload.vessel_id = form.location_id

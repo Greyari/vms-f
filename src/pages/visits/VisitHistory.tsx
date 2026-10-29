@@ -76,7 +76,6 @@ export interface VisitorRef {
   company?: string | null
   visitor_type?: string | null
   occupation?: string | null
-  phone?: string | null
   nationality?: string | null
   vessel_id?: string | null
 }

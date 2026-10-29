@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
-import { driver, type DriveStep, type Driver } from "driver.js"
+import { driver, type DriveStep, type Driver, type PopoverDOM, type HookOpts } from "driver.js"
 import "driver.js/dist/driver.css"
 import { useAuth } from "@/context/AuthContext"
 import { useTranslation } from "@/context/I18nContext"
@@ -361,7 +361,7 @@ export function useAppTour(options?: UseAppTourOptions): UseAppTourReturn {
           if (currentIdx <= 0) return
           void moveToIndex(currentIdx - 1, activeDriver)
         },
-        onPopoverRendered: (popover, { state, driver: activeDriver }) => {
+        onPopoverRender: (popover: PopoverDOM, { state, driver: activeDriver }: HookOpts) => {
           const isLastStep =
             state.activeIndex !== undefined &&
             state.activeIndex >= driveSteps.length - 1

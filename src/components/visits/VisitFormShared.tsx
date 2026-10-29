@@ -55,7 +55,6 @@ export interface VisitorSearchResult {
   name: string
   id_type?: string
   id_number?: string
-  phone?: string | null
   company?: string | null
   visitor_type?: string | null
   visits_count?: number

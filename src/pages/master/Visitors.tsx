@@ -58,9 +58,6 @@ export interface Visitor {
   company?: string
   occupation?: string
   visitor_type?: string
-  phone?: string
-  email?: string
-  address?: string
   birth_place?: string
   birth_date?: string
   gender?: string

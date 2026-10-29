@@ -17,9 +17,6 @@ const mockVisitorProfile = {
   dob: '1985-05-12',
   gender: 'M',
   nationality: 'Indonesia',
-  phone: '081234567890',
-  email: 'bambang@samudera.com',
-  address: 'Jl. Samudera No. 45, Batam',
   visitor_type: 'crew',
   is_blacklisted: true,
   blacklist_reason: 'Pelanggaran SOP keselamatan area dermaga',
@@ -78,8 +75,6 @@ describe('VisitorDetailModal Component', () => {
       expect(screen.getByText('3201012345678901')).toBeInTheDocument()
       expect(screen.getByText('PT Samudera Bahari')).toBeInTheDocument()
       expect(screen.getByText('Marine Engineer')).toBeInTheDocument()
-      expect(screen.getByText('081234567890')).toBeInTheDocument()
-      expect(screen.getByText('bambang@samudera.com')).toBeInTheDocument()
     })
   })
 

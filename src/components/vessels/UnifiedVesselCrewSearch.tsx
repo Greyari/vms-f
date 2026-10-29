@@ -40,7 +40,6 @@ export interface SearchCrewResult {
   id_number_masked: string
   company?: string | null
   occupation?: string | null
-  phone?: string | null
   is_blacklisted: boolean
   status: "expected" | "checked_in" | "checked_out" | string
   checked_in_at?: string | null

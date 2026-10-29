@@ -48,10 +48,6 @@ describe('VisitorFormModal Component', () => {
       target: { value: 'PT Duta Maritim' },
     })
 
-    fireEvent.change(screen.getByLabelText(/nomor telepon/i), {
-      target: { value: '081122334455' },
-    })
-
     const submitButton = screen.getByRole('button', { name: /simpan|daftar/i })
     fireEvent.click(submitButton)
 
@@ -61,7 +57,6 @@ describe('VisitorFormModal Component', () => {
         id_type: 'ktp',
         id_number: '2171012345678901',
         company: 'PT Duta Maritim',
-        phone: '081122334455',
       }))
       expect(handleSuccess).toHaveBeenCalled()
       expect(handleOpenChange).toHaveBeenCalledWith(false)
@@ -80,7 +75,6 @@ describe('VisitorFormModal Component', () => {
       id_type: 'ktp',
       id_number: '2171012345678901',
       company: 'PT Duta Maritim',
-      phone: '081122334455',
       is_blacklisted: false,
     }
 
@@ -146,7 +140,7 @@ describe('VisitorFormModal Component', () => {
     expect(screen.getByText(/nomor identitas pengunjung blacklist dikunci demi integritas keamanan/i)).toBeInTheDocument()
   })
 
-  it('shows crew fields and hides phone, email, and address when visitor_type is crew', async () => {
+  it('shows crew fields when visitor_type is crew', async () => {
     vi.mocked(api.post).mockResolvedValue({
       data: { id: 55, name: 'Sailor Moon' },
     })
@@ -167,9 +161,6 @@ describe('VisitorFormModal Component', () => {
     await waitFor(() => {
       expect(screen.getByLabelText(/nomor sertifikat/i)).toBeInTheDocument()
       expect(screen.getByLabelText(/buku pelaut/i)).toBeInTheDocument()
-      expect(screen.queryByLabelText(/nomor telepon/i)).not.toBeInTheDocument()
-      expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument()
-      expect(screen.queryByLabelText(/alamat domisili/i)).not.toBeInTheDocument()
     })
 
     fireEvent.change(screen.getByLabelText(/nama lengkap/i), {
@@ -186,9 +177,6 @@ describe('VisitorFormModal Component', () => {
       expect(api.post).toHaveBeenCalledWith('/visitors', expect.objectContaining({
         name: 'Sailor Moon',
         visitor_type: 'crew',
-        phone: null,
-        email: null,
-        address: null,
       }))
     })
   })

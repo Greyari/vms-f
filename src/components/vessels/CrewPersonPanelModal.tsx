@@ -46,7 +46,6 @@ export interface PersonPanelDetail {
     id_number: string
     company?: string | null
     occupation?: string | null
-    phone?: string | null
     gender?: string | null
     nationality?: string | null
     is_blacklisted: boolean
@@ -646,10 +645,6 @@ export default function CrewPersonPanelModal({
                 <div>
                   <span className="text-muted-foreground block">{t("visitor.nationality", "Kebangsaan")}</span>
                   <span className="font-semibold text-foreground">{visitor.nationality || "-"}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block">{t("visitor.phone", "No. Telepon")}</span>
-                  <span className="font-semibold text-foreground">{visitor.phone || "-"}</span>
                 </div>
               </div>
             </div>

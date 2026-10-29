@@ -343,9 +343,6 @@ export default function CrewSelectionDialog({
         certificate_no: newCrewForm.certificate_no.trim() || null,
         visitor_type: "crew",
         vessel_id: locationId || null,
-        phone: null,
-        email: null,
-        address: null,
       }
 
       const res = await api.post("/visitors", payload)

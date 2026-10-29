@@ -1,6 +1,6 @@
 import type { OverviewPagePath, OverviewRoleKey } from "@/config/appOverview"
 
-export type TourSide = "top" | "right" | "bottom" | "left" | "over"
+export type TourSide = "top" | "right" | "bottom" | "left"
 
 export interface TourStep {
   id: string

@@ -13,7 +13,7 @@ import {
   LogOut,
   FileSpreadsheet,
   Anchor,
-  Sparkles,
+  Users,
   QrCode,
   Car,
   Compass,
