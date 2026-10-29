@@ -576,14 +576,8 @@ describe("CreateVisit Page & Master Data", () => {
     })
   })
 
-  describe("Card selection flexibility (Visitor card vs Vehicle card)", () => {
-    it("allows submitting with only vehicle card when visitor card is not selected", async () => {
-      vi.mocked(api.post).mockResolvedValueOnce({
-        data: {
-          visit: { id: "visit-veh-1", ticket_number: "TK-2026-0002" },
-        },
-      })
-
+  describe("Card selection validation", () => {
+    it("rejects submitting when visitor card is not selected", async () => {
       render(
         <MemoryRouter>
           <CreateVisit />
@@ -623,7 +617,7 @@ describe("CreateVisit Page & Master Data", () => {
       })
       fireEvent.mouseDown(screen.getByText("Budi Santoso"))
 
-      // Do NOT select card_ids, select vehicle_card_id instead
+      // Select vehicle_card_id but leave card_ids empty
       const vehicleCardInput = document.getElementById("vehicle_card_id") as HTMLInputElement
       fireEvent.focus(vehicleCardInput)
       fireEvent.change(vehicleCardInput, { target: { value: "VEH" } })
@@ -638,15 +632,8 @@ describe("CreateVisit Page & Master Data", () => {
       })
       fireEvent.click(submitBtn)
 
-      await waitFor(() => {
-        expect(api.post).toHaveBeenCalledWith(
-          "/visits",
-          expect.objectContaining({
-            card_ids: [],
-            vehicle_card_id: "vc-1",
-          })
-        )
-      })
+      // API should not be called because visitor card is required
+      expect(api.post).not.toHaveBeenCalledWith("/visits", expect.anything())
     })
   })
 })

@@ -120,6 +120,13 @@ export default function VesselArrivalFormModal({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
 
+  const selectedVessel = vessels.find((v) => v.id === locationId) || arrivalToEdit?.vessel
+  const isStayingVessel =
+    selectedVessel?.type === "tug_boat" ||
+    selectedVessel?.type === "barge" ||
+    (selectedVessel as any)?.vessel_type === "tug_boat" ||
+    (selectedVessel as any)?.vessel_type === "barge"
+
   // Load vessels
   useEffect(() => {
     if (!open) return
@@ -230,8 +237,6 @@ export default function VesselArrivalFormModal({
     }
   }, [open, arrivalToEdit])
 
-  const selectedVessel = vessels.find((v) => v.id === locationId) || null
-
   const handleSelectVessel = (newId: string) => {
     setLocationId(newId)
     const found = vessels.find((v) => v.id === newId)
@@ -313,7 +318,7 @@ export default function VesselArrivalFormModal({
       newErrors.sign_in_date = t("vesselArrivals.err_sign_in_required", "Tanggal kedatangan wajib diisi.")
     }
 
-    if (signOutDate && signInDate && signOutDate < signInDate) {
+    if (!isStayingVessel && signOutDate && signInDate && signOutDate < signInDate) {
       newErrors.sign_out_date = t(
         "vesselArrivals.err_sign_out_before_sign_in",
         "Tanggal keberangkatan tidak boleh mendahului tanggal kedatangan."
@@ -341,10 +346,10 @@ export default function VesselArrivalFormModal({
           location_id: locationId,
           sign_in_date: signInDate,
           sign_in_time: signInTime.trim() ? (signInTime.length === 5 ? `${signInTime}:00` : signInTime) : null,
-          sign_out_date: signOutDate || null,
-          sign_out_time: signOutTime.trim() ? (signOutTime.length === 5 ? `${signOutTime}:00` : signOutTime) : null,
+          sign_out_date: isStayingVessel ? null : (signOutDate || null),
+          sign_out_time: isStayingVessel ? null : (signOutTime.trim() ? (signOutTime.length === 5 ? `${signOutTime}:00` : signOutTime) : null),
           sign_in_port: signInPort.trim() || null,
-          sign_out_port: signOutPort.trim() || null,
+          sign_out_port: isStayingVessel ? null : (signOutPort.trim() || null),
           captain: captain.trim() || null,
           local_agent_company: localAgentCompany.trim() || null,
           local_agent_name: localAgentName.trim() || null,
@@ -695,51 +700,62 @@ export default function VesselArrivalFormModal({
                 {renderPortChips(signInPort, setSignInPort)}
               </div>
 
-              <div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <Label htmlFor="sign-out-date">{t("vesselArrivals.sign_out_date_label", "Tanggal Keberangkatan (Check-Out)")}</Label>
-                    <Input
-                      id="sign-out-date"
-                      type="date"
-                      aria-label={t("vesselArrivals.sign_out_date_aria", "Tanggal Keberangkatan")}
-                      value={signOutDate}
-                      onChange={(e) => setSignOutDate(e.target.value)}
-                      disabled={submitting}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="sign-out-time">{t("vesselArrivals.sign_out_time_label", "Jam Keberangkatan")}</Label>
-                    <Input
-                      id="sign-out-time"
-                      type="time"
-                      aria-label={t("vesselArrivals.sign_out_time_aria", "Jam Keberangkatan")}
-                      value={signOutTime}
-                      onChange={(e) => setSignOutTime(e.target.value)}
-                      disabled={submitting}
-                      className="mt-1"
-                    />
-                  </div>
+              {isStayingVessel ? (
+                <div className="rounded-md border border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/40 p-3 text-xs text-sky-800 dark:text-sky-300">
+                  <p className="font-semibold">{t("vesselArrivals.staying_vessel_banner_title", "Kapal Operasional Menetap (Stay)")}</p>
+                  <p className="mt-0.5 text-sky-700 dark:text-sky-400">
+                    {t("vesselArrivals.staying_vessel_banner_desc", "Kapal tipe Tugboat dan Barge beroperasi menetap di galangan dan tidak memiliki tanggal check-out keberangkatan.")}
+                  </p>
                 </div>
-                {errors.sign_out_date && (
-                  <p className="text-xs text-red-500 mt-1">{errors.sign_out_date}</p>
-                )}
-              </div>
+              ) : (
+                <>
+                  <div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <Label htmlFor="sign-out-date">{t("vesselArrivals.sign_out_date_label", "Tanggal Keberangkatan (Check-Out)")}</Label>
+                        <Input
+                          id="sign-out-date"
+                          type="date"
+                          aria-label={t("vesselArrivals.sign_out_date_aria", "Tanggal Keberangkatan")}
+                          value={signOutDate}
+                          onChange={(e) => setSignOutDate(e.target.value)}
+                          disabled={submitting}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="sign-out-time">{t("vesselArrivals.sign_out_time_label", "Jam Keberangkatan")}</Label>
+                        <Input
+                          id="sign-out-time"
+                          type="time"
+                          aria-label={t("vesselArrivals.sign_out_time_aria", "Jam Keberangkatan")}
+                          value={signOutTime}
+                          onChange={(e) => setSignOutTime(e.target.value)}
+                          disabled={submitting}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    {errors.sign_out_date && (
+                      <p className="text-xs text-red-500 mt-1">{errors.sign_out_date}</p>
+                    )}
+                  </div>
 
-              <div>
-                <Label htmlFor="sign-out-port">{t("vesselArrivals.sign_out_port_label", "Pelabuhan Tujuan")}</Label>
-                <Input
-                  id="sign-out-port"
-                  aria-label={t("vesselArrivals.sign_out_port_aria", "Pelabuhan Tujuan")}
-                  value={signOutPort}
-                  onChange={(e) => setSignOutPort(e.target.value)}
-                  placeholder={t("vesselArrivals.port_placeholder_out", "Misal: JAKARTA / JURONG")}
-                  disabled={submitting}
-                  className="mt-1"
-                />
-                {renderPortChips(signOutPort, setSignOutPort)}
-              </div>
+                  <div>
+                    <Label htmlFor="sign-out-port">{t("vesselArrivals.sign_out_port_label", "Pelabuhan Tujuan")}</Label>
+                    <Input
+                      id="sign-out-port"
+                      aria-label={t("vesselArrivals.sign_out_port_aria", "Pelabuhan Tujuan")}
+                      value={signOutPort}
+                      onChange={(e) => setSignOutPort(e.target.value)}
+                      placeholder={t("vesselArrivals.port_placeholder_out", "Misal: JAKARTA / JURONG")}
+                      disabled={submitting}
+                      className="mt-1"
+                    />
+                    {renderPortChips(signOutPort, setSignOutPort)}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

@@ -525,13 +525,10 @@ export default function CreateVisit() {
       )
     }
 
-    // Kartu akses wajib: minimal pilih salah satu (kartu pengunjung atau kartu kendaraan)
-    if (form.card_ids.length === 0 && !form.vehicle_card_id) {
+    // Kartu pengunjung wajib dipilih sebelum request ke backend.
+    if (form.card_ids.length === 0) {
       return toast.error(
-        t(
-          "create_visit.toast_select_card",
-          "Pilih minimal satu kartu akses (kartu pengunjung atau kartu kendaraan)."
-        )
+        t("create_visit.toast_select_card", "Pilih kartu akses dulu.")
       )
     }
 

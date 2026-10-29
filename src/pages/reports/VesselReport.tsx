@@ -76,7 +76,7 @@ const ALL = "all"
 
 export default function VesselReport() {
   const { t } = useTranslation()
-  const [mode, setMode] = useState<"list_ships" | "list_ships_with_crew">("list_ships")
+  const [mode, setMode] = useState<"list_ships_with_crew" | "list_ships">("list_ships_with_crew")
   const [loading, setLoading] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
   const [exportPdfLoading, setExportPdfLoading] = useState(false)
@@ -291,20 +291,7 @@ export default function VesselReport() {
       </div>
 
       {/* Mode Switcher Tabs */}
-      <div className="flex items-center gap-2 border-b border-zinc-200 pb-3 dark:border-zinc-800">
-        <Button
-          type="button"
-          variant={mode === "list_ships" ? "default" : "outline"}
-          size="sm"
-          className="gap-2"
-          onClick={() => {
-            setMode("list_ships")
-            setPage(1)
-          }}
-        >
-          <Ship className="h-4 w-4" />
-          {t("vessel_report.tab_list_ships", "Ringkasan Kapal (List Ships)")}
-        </Button>
+      <div className="flex items-center gap-2">
         <Button
           type="button"
           variant={mode === "list_ships_with_crew" ? "default" : "outline"}
@@ -317,6 +304,19 @@ export default function VesselReport() {
         >
           <Users className="h-4 w-4" />
           {t("vessel_report.tab_list_ships_crew", "Rincian Bersama Kru (List Ships With Crew)")}
+        </Button>
+        <Button
+          type="button"
+          variant={mode === "list_ships" ? "default" : "outline"}
+          size="sm"
+          className="gap-2"
+          onClick={() => {
+            setMode("list_ships")
+            setPage(1)
+          }}
+        >
+          <Ship className="h-4 w-4" />
+          {t("vessel_report.tab_list_ships", "Ringkasan Kapal (List Ships)")}
         </Button>
       </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTranslation } from "@/context/I18nContext"
 import { toast } from "sonner"
 import api from "@/lib/axios"
@@ -108,7 +108,7 @@ const getSourceLabel = (source?: string | null, t?: (key: string, fallback: stri
 
 export default function CrewReport() {
   const { t } = useTranslation()
-  const [mode, setMode] = useState<"placements" | "history">("placements")
+  const [mode, setMode] = useState<"history" | "placements">("history")
   const [loading, setLoading] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
   const [exportPdfLoading, setExportPdfLoading] = useState(false)
@@ -308,28 +308,6 @@ export default function CrewReport() {
     }
   }
 
-  // Summary counts
-  const stats = useMemo(() => {
-    let checkedIn = 0
-    let checkedOut = 0
-    let expected = 0
-    let logCheckIn = 0
-    let logCheckOut = 0
-
-    records.forEach((r) => {
-      if (mode === "history") {
-        if (r.action === "check_in") logCheckIn++
-        else if (r.action === "check_out") logCheckOut++
-      } else {
-        if (r.status === "checked_in") checkedIn++
-        else if (r.status === "checked_out") checkedOut++
-        else if (r.status === "expected") expected++
-      }
-    })
-
-    return { checkedIn, checkedOut, expected, logCheckIn, logCheckOut }
-  }, [records, mode])
-
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -379,20 +357,7 @@ export default function CrewReport() {
       </div>
 
       {/* Mode Switcher Tabs */}
-      <div className="flex items-center gap-2 border-b border-zinc-200 pb-3 dark:border-zinc-800">
-        <Button
-          type="button"
-          variant={mode === "placements" ? "default" : "outline"}
-          size="sm"
-          className="gap-2"
-          onClick={() => {
-            setMode("placements")
-            setPage(1)
-          }}
-        >
-          <Users className="w-3.5 h-3.5" />
-          {t("crew_report.mode_placements", "Penempatan Kru Kapal")}
-        </Button>
+      <div className="flex items-center gap-2">
         <Button
           type="button"
           variant={mode === "history" ? "default" : "outline"}
@@ -406,42 +371,19 @@ export default function CrewReport() {
           <History className="w-3.5 h-3.5" />
           {t("crew_report.mode_history", "Riwayat Lengkap Log & Aktivitas Kru")}
         </Button>
-      </div>
-
-      {/* Quick Summary Pill Bar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Badge variant="outline" className="text-xs px-3 py-1 font-semibold border-zinc-200 dark:border-zinc-700">
-          {mode === "history"
-            ? t("crew_report.total_logs_shown", "Total Log Aktivitas")
-            : t("crew_report.total_crew_shown", "Total Data")}: <strong>{total}</strong>
-        </Badge>
-        {mode === "history" ? (
-          <>
-            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs px-3 py-1">
-              <LogIn className="h-3.5 w-3.5 mr-1" />
-              {t("crew_report.log_checkin_count", "Aktivitas Check-In (Halaman ini)")}: <strong>{stats.logCheckIn}</strong>
-            </Badge>
-            <Badge variant="secondary" className="text-xs px-3 py-1 text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300">
-              <LogOut className="h-3.5 w-3.5 mr-1" />
-              {t("crew_report.log_checkout_count", "Aktivitas Check-Out (Halaman ini)")}: <strong>{stats.logCheckOut}</strong>
-            </Badge>
-          </>
-        ) : (
-          <>
-            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs px-3 py-1">
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-              {t("crew_report.active_onboard", "Di Kapal (Halaman ini)")}: <strong>{stats.checkedIn}</strong>
-            </Badge>
-            <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-300 text-xs px-3 py-1">
-              <Clock className="h-3.5 w-3.5 mr-1" />
-              {t("crew_report.expected_count", "Belum Check-In")}: <strong>{stats.expected}</strong>
-            </Badge>
-            <Badge variant="secondary" className="text-xs px-3 py-1 text-zinc-500">
-              <LogOut className="h-3.5 w-3.5 mr-1" />
-              {t("crew_report.checked_out_count", "Sudah Turun")}: <strong>{stats.checkedOut}</strong>
-            </Badge>
-          </>
-        )}
+        <Button
+          type="button"
+          variant={mode === "placements" ? "default" : "outline"}
+          size="sm"
+          className="gap-2"
+          onClick={() => {
+            setMode("placements")
+            setPage(1)
+          }}
+        >
+          <Users className="w-3.5 h-3.5" />
+          {t("crew_report.mode_placements", "Penempatan Kru Kapal")}
+        </Button>
       </div>
 
       {/* Filter Box */}

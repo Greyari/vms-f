@@ -81,6 +81,8 @@ export interface VesselArrivalItem {
     code?: string | null
     type: string
     vessel_type?: string | null
+    call_sign?: string | null
+    flag?: string | null
     captain?: string | null
     pic?: string | null
   } | null
@@ -359,6 +361,11 @@ export default function VesselArrivals() {
               ) : (
                 arrivals.map((arrival, index) => {
                   const isInPort = !arrival.sign_out_date
+                  const isStayingVessel =
+                    arrival.vessel?.type === "tug_boat" ||
+                    arrival.vessel?.type === "barge" ||
+                    arrival.vessel?.vessel_type === "tug_boat" ||
+                    arrival.vessel?.vessel_type === "barge"
                   return (
                     <TableRow key={arrival.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-700/50">
                       <TableCell className="text-center font-medium text-zinc-500 text-xs">
@@ -466,7 +473,7 @@ export default function VesselArrivals() {
                               >
                                 <Pencil className="h-4 w-4 text-blue-600 hover:text-blue-800 dark:text-blue-400" />
                               </Button>
-                              {isInPort && (
+                              {isInPort && !isStayingVessel && (
                                 <Button
                                   variant="ghost"
                                   size="icon"

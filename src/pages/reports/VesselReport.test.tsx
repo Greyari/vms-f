@@ -105,7 +105,7 @@ describe('VesselReport Page', () => {
     })
   })
 
-  it('renders mode List Ships from API GET /reports/vessels?mode=list_ships', async () => {
+  it('renders mode List Ships With Crew by default from API GET /reports/vessels', async () => {
     render(
       <MemoryRouter>
         <VesselReport />
@@ -116,14 +116,13 @@ describe('VesselReport Page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('MV Samudera Pasifik')).toBeInTheDocument()
-      expect(screen.getByText('IMO-9876543')).toBeInTheDocument()
-      expect(screen.getByText('Capt. Haddock')).toBeInTheDocument()
-      expect(screen.getByText(/4 (Hari|Days)/i)).toBeInTheDocument()
-      expect(screen.getByText('IN PORT')).toBeInTheDocument()
+      expect(screen.getByText('John Silver')).toBeInTheDocument()
+      expect(screen.getByText('Chief Engineer')).toBeInTheDocument()
+      expect(screen.getByText('SB-998877')).toBeInTheDocument()
     })
   })
 
-  it('switches to List Ships With Crew mode and renders crew manifest', async () => {
+  it('switches to List Ships mode and renders vessel summary', async () => {
     render(
       <MemoryRouter>
         <VesselReport />
@@ -134,24 +133,25 @@ describe('VesselReport Page', () => {
       expect(screen.getByText('MV Samudera Pasifik')).toBeInTheDocument()
     })
 
-    const withCrewTab = screen.getByRole('button', { name: /Rincian Bersama Kru|Detailed With Crew/i })
-    fireEvent.click(withCrewTab)
+    const listShipsTab = screen.getByRole('button', { name: /Ringkasan Kapal|List Ships/i })
+    fireEvent.click(listShipsTab)
 
     await waitFor(() => {
       expect(api.get).toHaveBeenLastCalledWith(
         '/reports/vessels',
         expect.objectContaining({
           params: expect.objectContaining({
-            mode: 'list_ships_with_crew',
+            mode: 'list_ships',
           }),
         })
       )
     })
 
     await waitFor(() => {
-      expect(screen.getByText('John Silver')).toBeInTheDocument()
-      expect(screen.getByText('Chief Engineer')).toBeInTheDocument()
-      expect(screen.getByText('SB-998877')).toBeInTheDocument()
+      expect(screen.getByText('IMO-9876543')).toBeInTheDocument()
+      expect(screen.getByText('Capt. Haddock')).toBeInTheDocument()
+      expect(screen.getByText(/4 (Hari|Days)/i)).toBeInTheDocument()
+      expect(screen.getByText('IN PORT')).toBeInTheDocument()
     })
   })
 
@@ -204,7 +204,7 @@ describe('VesselReport Page', () => {
         expect.objectContaining({
           responseType: 'blob',
           params: expect.objectContaining({
-            mode: 'list_ships',
+            mode: 'list_ships_with_crew',
           }),
         })
       )
@@ -231,7 +231,7 @@ describe('VesselReport Page', () => {
         expect.objectContaining({
           responseType: 'blob',
           params: expect.objectContaining({
-            mode: 'list_ships',
+            mode: 'list_ships_with_crew',
           }),
         })
       )

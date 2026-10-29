@@ -1144,20 +1144,19 @@ export function VisitFormFields({
         <SectionTitle n={3} icon={CreditCard}>
           {t("create_visit.section3_title", "Kartu Akses & Kendaraan")}
         </SectionTitle>
-        <p className="text-[11px] text-zinc-500 -mt-2">
-          {t(
-            "create_visit.section3_subtitle",
-            "Pilih minimal salah satu: kartu pengunjung atau kartu kendaraan."
-          )}
-        </p>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="card_ids" className="text-xs font-semibold">
-              {t(
-                "create_visit.visitor_card_label",
-                "Kartu pengunjung (opsional)"
-              )}
+              {mode === "create"
+                ? t(
+                    "create_visit.visitor_card_label_required",
+                    "Kartu pengunjung *"
+                  )
+                : t(
+                    "create_visit.visitor_card_label",
+                    "Kartu pengunjung (opsional)"
+                  )}
             </Label>
             <div className="flex items-center gap-1.5">
               <Badge variant="outline" className="font-mono text-[11px]">

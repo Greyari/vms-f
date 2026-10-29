@@ -306,10 +306,9 @@
     "toast_option_locked": "{{item}} sedang dipakai. Pilih yang lain.",
     "visitor_card_label_required": "Kartu pengunjung *",
     "in_use_cards_count": "{{count}} dipakai",
-    "toast_select_card": "Pilih minimal satu kartu akses (kartu pengunjung atau kartu kendaraan).",
+    "toast_select_card": "Pilih kartu akses dulu.",
     "toast_card_in_use": "Ada kartu yang sedang dipakai. Pilih kartu lain.",
-    "toast_vehicle_card_in_use": "Kartu kendaraan yang dipilih sedang dipakai. Pilih kartu lain.",
-    "section3_subtitle": "Pilih minimal salah satu: kartu pengunjung atau kartu kendaraan."
+    "toast_vehicle_card_in_use": "Kartu kendaraan yang dipilih sedang dipakai. Pilih kartu lain."
   },
   "visitors": {
     "title": "Master Pengunjung (Visitors)",
@@ -816,6 +815,8 @@
     "sign_in_date_label": "Tanggal Kedatangan (Check-In)",
     "sign_in_time_label": "Jam Kedatangan",
     "sign_in_time_aria": "Jam Kedatangan",
+    "staying_vessel_banner_title": "Kapal Operasional Menetap (Stay)",
+    "staying_vessel_banner_desc": "Kapal tipe Tugboat dan Barge beroperasi menetap di galangan dan tidak memiliki tanggal check-out keberangkatan.",
     "sign_out_date_label": "Tanggal Keberangkatan (Check-Out)",
     "sign_out_time_label": "Jam Keberangkatan",
     "sign_out_time_aria": "Jam Keberangkatan",
@@ -873,8 +874,8 @@
   "vessel_report": {
     "title": "Laporan Kedatangan Kapal (Vessel Report)",
     "subtitle": "Rekapitulasi transaksi sandar kapal galangan, manifest kru on-board, dan perhitungan hari sandar.",
-    "tab_list_ships": "Ringkasan Kapal (List Ships)",
-    "tab_list_ships_crew": "Rincian Bersama Kru (List Ships With Crew)",
+    "tab_list_ships": "Ringkasan Kapal",
+    "tab_list_ships_crew": "Rincian Bersama Kru",
     "filter_box_title": "Filter Laporan Kapal",
     "total_filtered": "Total Hasil Filter",
     "vessels_count": "kapal",
@@ -1867,6 +1868,8 @@
     "sign_in_date_label": "Tanggal Kedatangan (Check-In)",
     "sign_in_time_label": "Jam Kedatangan",
     "sign_in_time_aria": "Jam Kedatangan",
+    "staying_vessel_banner_title": "Kapal Operasional Menetap (Stay)",
+    "staying_vessel_banner_desc": "Kapal tipe Tugboat dan Barge beroperasi menetap di galangan dan tidak memiliki tanggal check-out keberangkatan.",
     "sign_out_date_label": "Tanggal Keberangkatan (Check-Out)",
     "sign_out_time_label": "Jam Keberangkatan",
     "sign_out_time_aria": "Jam Keberangkatan",

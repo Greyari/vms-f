@@ -306,10 +306,9 @@
     "toast_option_locked": "{{item}} is currently in use. Please select another.",
     "visitor_card_label_required": "Visitor card *",
     "in_use_cards_count": "{{count}} in use",
-    "toast_select_card": "Please select at least one access card (visitor card or vehicle card).",
+    "toast_select_card": "Please select an access card first.",
     "toast_card_in_use": "A selected visitor card is currently in use. Please select another card.",
-    "toast_vehicle_card_in_use": "The selected vehicle card is currently in use. Please select another card.",
-    "section3_subtitle": "Select at least one: visitor card or vehicle card."
+    "toast_vehicle_card_in_use": "The selected vehicle card is currently in use. Please select another card."
   },
   "visitors": {
     "title": "Master Visitors",
@@ -816,6 +815,8 @@
     "sign_in_date_label": "Arrival Date (Check-In)",
     "sign_in_time_label": "Arrival Time",
     "sign_in_time_aria": "Arrival Time",
+    "staying_vessel_banner_title": "Staying Operational Vessel",
+    "staying_vessel_banner_desc": "Tugboats and Barges operate permanently within the shipyard and do not have a departure check-out date.",
     "sign_out_date_label": "Departure Date (Check-Out)",
     "sign_out_time_label": "Departure Time",
     "sign_out_time_aria": "Departure Time",
@@ -873,8 +874,8 @@
   "vessel_report": {
     "title": "Vessel Arrival Report",
     "subtitle": "Summary of shipyard berthing transactions, on-board crew manifests, and berthing duration.",
-    "tab_list_ships": "Vessel Summary (List Ships)",
-    "tab_list_ships_crew": "Detailed With Crew (List Ships With Crew)",
+    "tab_list_ships": "Vessel Summary",
+    "tab_list_ships_crew": "Detailed With Crew",
     "filter_box_title": "Filter Vessel Report",
     "total_filtered": "Total Filtered",
     "vessels_count": "vessels",
@@ -1867,6 +1868,8 @@
     "sign_in_date_label": "Arrival Date (Check-In)",
     "sign_in_time_label": "Arrival Time",
     "sign_in_time_aria": "Arrival Time",
+    "staying_vessel_banner_title": "Staying Operational Vessel",
+    "staying_vessel_banner_desc": "Tugboats and Barges operate permanently within the shipyard and do not have a departure check-out date.",
     "sign_out_date_label": "Departure Date (Check-Out)",
     "sign_out_time_label": "Departure Time",
     "sign_out_time_aria": "Departure Time",

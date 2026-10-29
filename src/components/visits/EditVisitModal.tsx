@@ -270,12 +270,9 @@ export default function EditVisitModal({
       return
     }
 
-    if (form.card_ids.length === 0 && !form.vehicle_card_id) {
+    if (form.card_ids.length === 0) {
       toast.error(
-        t(
-          "create_visit.toast_select_card",
-          "Pilih minimal satu kartu akses (kartu pengunjung atau kartu kendaraan)."
-        )
+        t("create_visit.toast_select_card", "Pilih kartu akses dulu.")
       )
       return
     }
