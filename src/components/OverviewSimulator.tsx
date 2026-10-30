@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { toast } from "sonner"
 import {
   UserCheck,
   AlertTriangle,
@@ -9,6 +10,7 @@ import {
   Printer,
   CheckCircle2,
   RotateCcw,
+  RefreshCw,
   Search,
   LogOut,
   FileSpreadsheet,
@@ -745,14 +747,37 @@ export default function OverviewSimulator({
 
             {/* Step 3: Pilih Kartu Akses Fisik & Kendaraan */}
             <div className="space-y-3 rounded-lg border border-zinc-200 p-3.5 dark:border-zinc-800">
-              <div className="flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-                  3
-                </span>
-                <CreditCard className="h-3.5 w-3.5 text-zinc-500" />
-                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                  {t("app_overview.simulator.visit_create.step3_heading")}
-                </span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+                    3
+                  </span>
+                  <CreditCard className="h-3.5 w-3.5 text-zinc-500" />
+                  <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                    {t("app_overview.simulator.visit_create.step3_heading")}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    toast.success(
+                      t(
+                        "create_visit.toast_cards_refreshed",
+                        "Status ketersediaan kartu berhasil diperbarui."
+                      )
+                    )
+                  }}
+                  className="h-6 gap-1 px-1.5 text-[11px] text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  title={t(
+                    "create_visit.btn_refresh_cards",
+                    "Segarkan status ketersediaan kartu"
+                  )}
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  {t("create_visit.btn_refresh_cards_short", "Segarkan")}
+                </Button>
               </div>
 
               <div className="space-y-2">
@@ -910,11 +935,6 @@ export default function OverviewSimulator({
           {/* Mock Browser Header */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
             <div className="flex items-center gap-2">
-              <span className="flex gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-              </span>
               <code className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                 /visits/history
               </code>
@@ -1161,11 +1181,6 @@ export default function OverviewSimulator({
           {/* Mock Browser Header */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
             <div className="flex items-center gap-2">
-              <span className="flex gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-              </span>
               <code className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                 /vessel-arrivals
               </code>

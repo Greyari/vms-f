@@ -295,6 +295,37 @@ describe("CreateVisit Page & Master Data", () => {
       expect(fieldset).not.toBeDisabled()
     })
 
+    it("refreshes cards without reloading page when Segarkan button in Step 3 is clicked", async () => {
+      render(
+        <MemoryRouter>
+          <CreateVisit />
+        </MemoryRouter>
+      )
+
+      const idInput = screen.getByPlaceholderText(/ketik nomor, tekan enter untuk cek/i)
+      fireEvent.change(idInput, { target: { value: "1234567890123456" } })
+
+      const checkBtn = screen.getByRole("button", { name: /cek nomor id/i })
+      fireEvent.click(checkBtn)
+
+      await waitFor(() => {
+        expect(screen.getByText("Ahmad Dahlan")).toBeInTheDocument()
+      })
+
+      const refreshBtn = screen.getByRole("button", { name: /segarkan/i })
+      expect(refreshBtn).toBeInTheDocument()
+
+      const getSpy = vi.mocked(api.get)
+      getSpy.mockClear()
+
+      fireEvent.click(refreshBtn)
+
+      await waitFor(() => {
+        expect(getSpy).toHaveBeenCalledWith("/cards", expect.anything())
+        expect(getSpy).toHaveBeenCalledWith("/vehicle-cards", expect.anything())
+      })
+    })
+
     it("blocks registration and shows blacklist warning if visitor is blacklisted", async () => {
       vi.mocked(api.get).mockImplementation((url: string) => {
         if (url.includes("/visitors/check-ktp/9990001112223334")) {

@@ -130,6 +130,8 @@ export default function EditVisitModal({
     cardList,
     vehicleList,
     purposes,
+    refreshCards,
+    refreshingCards,
   } = useVisitMasterData({
     enabled: isOpen && Boolean(visit),
     heldVisitorCards,
@@ -426,6 +428,8 @@ export default function EditVisitModal({
             mode="edit"
             form={form}
             onChangeField={setField}
+            onRefreshCards={() => void refreshCards(false)}
+            refreshingCards={refreshingCards}
             locations={locations}
             staffList={staffList}
             cardList={cardList}

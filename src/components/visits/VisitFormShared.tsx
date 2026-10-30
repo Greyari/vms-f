@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { toast } from "sonner"
 import api from "@/lib/axios"
 import { useTranslation } from "@/context/I18nContext"
@@ -13,6 +13,7 @@ import {
   CreditCard,
   Ship,
   RotateCcw,
+  RefreshCw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -295,6 +296,7 @@ export function useVisitMasterData(options?: {
   tRef.current = t
 
   const [loadingMaster, setLoadingMaster] = useState(true)
+  const [refreshingCards, setRefreshingCards] = useState(false)
   const [locations, setLocations] = useState<LocationItem[]>([])
   const [staffList, setStaffList] = useState<StaffItem[]>([])
   const [rawCards, setRawCards] = useState<CardItem[]>([])
@@ -304,20 +306,8 @@ export function useVisitMasterData(options?: {
   const heldVisitorKey = heldVisitorCards.map((c) => `${c.id}:${c.card_no}`).join(",")
   const heldVehicleKey = heldVehicleCard ? `${heldVehicleCard.id}:${heldVehicleCard.card_no}` : ""
 
-  useEffect(() => {
-    if (!enabled) return
-    let alive = true
-
-    if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
-      setLocations(cache.locations)
-      setStaffList(cache.staffList)
-      setPurposes(cache.purposes)
-      setLoadingMaster(false)
-    } else {
-      setLoadingMaster(true)
-    }
-
-    const fetchEndpoint = async (
+  const fetchEndpoint = useCallback(
+    async (
       url: string,
       params?: Record<string, unknown>
     ): Promise<{ ok: boolean; data: unknown[] }> => {
@@ -332,17 +322,67 @@ export function useVisitMasterData(options?: {
           status: statusCode,
           error: err,
         })
-        if (alive) {
-          toast.error(
+        toast.error(
+          tRef.current(
+            "create_visit.toast_master_load_failed",
+            "Gagal memuat data {{endpoint}} (status: {{status}}).",
+            { endpoint: url, status: statusCode }
+          )
+        )
+        return { ok: false, data: [] }
+      }
+    },
+    []
+  )
+
+  const refreshCards = useCallback(
+    async (silent = false): Promise<boolean> => {
+      setRefreshingCards(true)
+      try {
+        const [cardsRes, vehiclesRes] = await Promise.all([
+          fetchEndpoint("/cards", { per_page: 1000 }),
+          fetchEndpoint("/vehicle-cards", { per_page: 1000 }),
+        ])
+        if (cardsRes.ok) setRawCards(cardsRes.data as CardItem[])
+        if (vehiclesRes.ok) setRawVehicleCards(vehiclesRes.data as CardItem[])
+        if (!silent) {
+          toast.success(
             tRef.current(
-              "create_visit.toast_master_load_failed",
-              "Gagal memuat data {{endpoint}} (status: {{status}}).",
-              { endpoint: url, status: statusCode }
+              "create_visit.toast_cards_refreshed",
+              "Status ketersediaan kartu berhasil diperbarui."
             )
           )
         }
-        return { ok: false, data: [] }
+        return cardsRes.ok && vehiclesRes.ok
+      } catch (err) {
+        console.error("[VisitForm] Failed to refresh cards", err)
+        if (!silent) {
+          toast.error(
+            tRef.current(
+              "create_visit.toast_cards_refresh_failed",
+              "Gagal memperbarui status kartu."
+            )
+          )
+        }
+        return false
+      } finally {
+        setRefreshingCards(false)
       }
+    },
+    [fetchEndpoint]
+  )
+
+  useEffect(() => {
+    if (!enabled) return
+    let alive = true
+
+    if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
+      setLocations(cache.locations)
+      setStaffList(cache.staffList)
+      setPurposes(cache.purposes)
+      setLoadingMaster(false)
+    } else {
+      setLoadingMaster(true)
     }
 
     Promise.all([
@@ -387,7 +427,19 @@ export function useVisitMasterData(options?: {
     return () => {
       alive = false
     }
-  }, [enabled])
+  }, [enabled, fetchEndpoint])
+
+  // Window focus listener to silently refresh cards when user returns from another tab (e.g., after checkout)
+  useEffect(() => {
+    if (!enabled) return
+    const handleFocus = () => {
+      void refreshCards(true)
+    }
+    window.addEventListener("focus", handleFocus)
+    return () => {
+      window.removeEventListener("focus", handleFocus)
+    }
+  }, [enabled, refreshCards])
 
   // SEMUA kartu (yang dipakai ditandai merah di UI, tidak bisa dipilih)
   const cardList = useMemo(
@@ -425,6 +477,8 @@ export function useVisitMasterData(options?: {
     purposes,
     availableOnlyCardCount,
     availableOnlyVehicleCardCount,
+    refreshCards,
+    refreshingCards,
   }
 }
 
@@ -812,6 +866,8 @@ export interface VisitFormFieldsProps {
   purposeInputRef?: React.Ref<HTMLInputElement>
   heldVisitorCards?: Array<{ id: number | string; card_no: string }>
   onResetDestination?: () => void
+  onRefreshCards?: () => void
+  refreshingCards?: boolean
 }
 
 export function VisitFormFields({
@@ -829,6 +885,8 @@ export function VisitFormFields({
   purposeInputRef,
   heldVisitorCards = [],
   onResetDestination,
+  onRefreshCards,
+  refreshingCards = false,
 }: VisitFormFieldsProps) {
   const { t, formatNumber } = useTranslation()
 
@@ -1140,9 +1198,32 @@ export function VisitFormFields({
 
       {/* ===== 3. Kartu & kendaraan ===== */}
       <section className={cn(CARD_CLASS, "min-w-0 space-y-4")} data-tour="visit-cards-section">
-        <SectionTitle n={3} icon={CreditCard}>
-          {t("create_visit.section3_title", "Kartu Akses & Kendaraan")}
-        </SectionTitle>
+        <div className="flex items-center justify-between">
+          <SectionTitle n={3} icon={CreditCard}>
+            {t("create_visit.section3_title", "Kartu Akses & Kendaraan")}
+          </SectionTitle>
+          {onRefreshCards && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onRefreshCards}
+              disabled={loadingMaster || refreshingCards}
+              className="h-7 px-2 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+              title={t("create_visit.btn_refresh_cards", "Segarkan ketersediaan kartu akses")}
+            >
+              <RefreshCw
+                className={cn(
+                  "mr-1 h-3.5 w-3.5",
+                  (loadingMaster || refreshingCards) && "animate-spin"
+                )}
+              />
+              {refreshingCards
+                ? t("common.refreshing", "Memperbarui...")
+                : t("create_visit.btn_refresh_cards_short", "Segarkan")}
+            </Button>
+          )}
+        </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">

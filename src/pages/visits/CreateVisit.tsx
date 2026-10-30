@@ -277,6 +277,8 @@ export default function CreateVisit() {
     cardList,
     vehicleList,
     purposes,
+    refreshCards,
+    refreshingCards,
   } = useVisitMasterData({ enabled: true })
 
   // Langkah 1: cari pengunjung (hanya cek, tidak menambah)
@@ -1038,6 +1040,8 @@ export default function CreateVisit() {
           form={form}
           onChangeField={setField}
           onResetDestination={handleResetDestination}
+          onRefreshCards={() => void refreshCards(false)}
+          refreshingCards={refreshingCards}
           locations={locations}
           staffList={staffList}
           cardList={cardList}
