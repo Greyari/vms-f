@@ -96,10 +96,10 @@ export const MASTER_ENTITIES: Record<MasterEntityKey, MasterEntityConfig> = {
 
   blacklist: {
     key: "blacklist",
-    titleId: "Daftar Blacklist",
-    titleEn: "Blacklist",
-    descriptionId: "Kelola daftar pencekalan pengunjung bermasalah.",
-    descriptionEn: "Manage blacklisted visitors barred from entering the shipyard.",
+    titleId: "Temporary Blacklist",
+    titleEn: "Temporary Blacklist",
+    descriptionId: "Kelola daftar pencekalan sementara pengunjung bermasalah.",
+    descriptionEn: "Manage temporary blacklist of visitors barred from entering the shipyard.",
     templateEndpoint: "/visitors/blacklisted/template",
     templateFileName: "template_blacklist.xlsx",
     previewEndpoint: "/visitors/blacklisted/import-preview",

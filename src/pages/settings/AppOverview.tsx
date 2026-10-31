@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 import { useTranslation } from "@/context/I18nContext"
 import { useAppTour } from "@/hooks/useAppTour"
-import { permissionFor } from "@/lib/routePermissions"
+import { canAccessPath } from "@/lib/routePermissions"
 import {
   APP_OVERVIEW_GROUPS,
   APP_OVERVIEW_GENERAL_TIPS,
@@ -51,8 +51,7 @@ export default function AppOverview() {
     if (path === "/") {
       return hasPermission("view_visits")
     }
-    const permission = permissionFor(path)
-    return permission === undefined || hasPermission(permission)
+    return canAccessPath(path, hasPermission)
   }
 
   const togglePageGuides = (pageId: string, currentExpanded: boolean) => {

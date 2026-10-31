@@ -287,7 +287,6 @@ export default function CreateVisit() {
   const [idNumber, setIdNumber] = useState("")
   const [visitor, setVisitor] = useState<VisitorSearchResult | null>(null)
   const [status, setStatus] = useState<VisitorStatus>("idle")
-  const [blacklistReason, setBlacklistReason] = useState("")
   const [globalEntries, setGlobalEntries] = useState<GlobalBlacklistHit[]>([])
 
   // Caching Section 2 (Destination & Host) in sessionStorage
@@ -405,7 +404,6 @@ export default function CreateVisit() {
   const clearResult = () => {
     setVisitor(null)
     setStatus("idle")
-    setBlacklistReason("")
     setGlobalEntries([])
   }
 
@@ -413,7 +411,6 @@ export default function CreateVisit() {
     if (!v) {
       setVisitor(null)
       setStatus("notfound")
-      setBlacklistReason("")
       return
     }
     setVisitor(v)
@@ -423,24 +420,15 @@ export default function CreateVisit() {
     if (v.vessel_id) setField("location_id", String(v.vessel_id))
 
     if (v.is_blacklisted) {
-      const reason =
-        (v.blacklist_reason as string | undefined) ||
-        t(
-          "create_visit.default_blacklist_reason",
-          "Terdaftar di blacklist keamanan"
-        )
       setStatus("blacklisted")
-      setBlacklistReason(reason)
       toast.error(
         t(
           "create_visit.toast_visitor_blacklisted",
           "Pengunjung ini masuk blacklist."
-        ),
-        { description: reason }
+        )
       )
     } else {
       setStatus("registered")
-      setBlacklistReason("")
       requestAnimationFrame(() => {
         locationInputRef.current?.focus()
       })
@@ -706,13 +694,6 @@ export default function CreateVisit() {
               {t(
                 "create_visit.banner_blacklist_title",
                 "Pengunjung masuk blacklist"
-              )}
-            </p>
-            <p>
-              {t(
-                "create_visit.banner_blacklist_reason",
-                "Alasan: {{reason}}",
-                { reason: blacklistReason }
               )}
             </p>
             <p className="mt-1 text-xs">

@@ -85,7 +85,7 @@ describe("AppOverview Page", () => {
       "Kartu Pengunjung",
       "Kartu Kendaraan",
       "Daftar Pengunjung",
-      "Daftar Blacklist",
+      "Temporary Blacklist",
       "Laporan Kunjungan",
       "Laporan Kapal",
       "Laporan Kru Kapal",
@@ -151,7 +151,7 @@ describe("AppOverview Page", () => {
     fireEvent.change(searchInput, { target: { value: "Blacklist" } })
 
     expect(
-      screen.getByRole("heading", { level: 3, name: "Daftar Blacklist" })
+      screen.getByRole("heading", { level: 3, name: "Temporary Blacklist" })
     ).toBeInTheDocument()
     expect(
       screen.queryByRole("heading", { level: 3, name: "Staf Pegawai" })

@@ -27,7 +27,21 @@ export default function Login() {
         password: credentials.password,
       })
       login(res.data.access_token, res.data.user)
-      navigate('/visits/create')
+
+      const userPerms = (res.data.user?.permissions || []).map((p: any) =>
+        typeof p === "string" ? p : p.name
+      )
+      const has = (perm: string) => userPerms.includes(perm)
+
+      if (userPerms.length === 0 || has("create_visits")) {
+        navigate("/visits/create")
+      } else if (has("view_visits")) {
+        navigate("/")
+      } else if (has("manage_blacklist") || has("view_visitors")) {
+        navigate("/master/visitors/blacklist")
+      } else {
+        navigate("/")
+      }
     } catch (err: unknown) {
       const maybeAxios = err as {
         response?: { status?: number; data?: { message?: string } }

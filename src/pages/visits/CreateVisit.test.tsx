@@ -361,8 +361,8 @@ describe("CreateVisit Page & Master Data", () => {
           screen.getByText(/pengunjung diblacklist/i)
         ).toBeInTheDocument()
         expect(
-          screen.getByText(/merokok di area terlarang galangan/i)
-        ).toBeInTheDocument()
+          screen.queryByText(/merokok di area terlarang galangan/i)
+        ).not.toBeInTheDocument()
       })
 
       const submitBtn = screen.getByRole("button", {

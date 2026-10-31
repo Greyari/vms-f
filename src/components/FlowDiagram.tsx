@@ -9,7 +9,7 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { useTranslation } from "@/context/I18nContext"
-import { permissionFor } from "@/lib/routePermissions"
+import { canAccessPath } from "@/lib/routePermissions"
 import type { OverviewPagePath } from "@/config/appOverview"
 import { Button } from "@/components/ui/button"
 
@@ -44,8 +44,7 @@ export default function FlowDiagram({
     if (path === "/") {
       return hasPermission("view_visits")
     }
-    const permission = permissionFor(path)
-    return permission === undefined || hasPermission(permission)
+    return canAccessPath(path, hasPermission)
   }
 
   return (

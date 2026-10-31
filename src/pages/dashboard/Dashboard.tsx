@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import api from "@/lib/axios"
 import { useTranslation } from "@/context/I18nContext"
+import { useAuth } from "@/context/AuthContext"
 import {
   Users,
   ClipboardList,
@@ -107,11 +108,18 @@ interface DashboardData {
 export default function Dashboard() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { hasPermission } = useAuth()
+  const canViewVisits = hasPermission("view_visits")
+
   const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(canViewVisits)
   const [error, setError] = useState(false)
 
   const fetchData = useCallback(async () => {
+    if (!canViewVisits) {
+      setLoading(false)
+      return
+    }
     try {
       const res = await api.get("/dashboard")
       setData(res.data)
@@ -122,15 +130,38 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [canViewVisits])
 
   useEffect(() => {
+    if (!canViewVisits) {
+      setLoading(false)
+      return
+    }
     fetchData()
 
     // Auto refresh setiap 30 detik
     const interval = setInterval(fetchData, 30000)
     return () => clearInterval(interval)
-  }, [fetchData])
+  }, [fetchData, canViewVisits])
+
+  if (!canViewVisits) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
+        <div className="max-w-md space-y-4 rounded-xl border border-zinc-200 bg-zinc-50/60 p-8 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/40">
+          <Building2 className="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-500" />
+          <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+            {t("dashboard.welcome_title", "Selamat Datang di VMS")}
+          </h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+            {t(
+              "dashboard.no_visits_permission",
+              "Akun Anda tidak memiliki hak akses untuk melihat ringkasan operasional dashboard kunjungan. Silakan gunakan menu di navigasi sebelah kiri untuk mengakses modul Anda."
+            )}
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (

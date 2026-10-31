@@ -140,4 +140,31 @@ describe("AppLayout RBAC Navigation", () => {
     expect(screen.getByText("System Users")).toBeInTheDocument()
     expect(screen.getByText("Activity Logs")).toBeInTheDocument()
   })
+
+  it("renders Temporary Blacklist menu for user who only has manage_blacklist permission", () => {
+    setupUserWithPermissions({
+      id: 99,
+      name: "Supervisor Blacklist",
+      username: "SUPER_BL",
+      roles: ["supervisor"],
+      permissions: ["manage_blacklist"],
+    })
+
+    render(
+      <MemoryRouter>
+        <ThemeProvider>
+          <AppLayout />
+        </ThemeProvider>
+      </MemoryRouter>
+    )
+
+    // Temporary Blacklist menu is visible
+    expect(screen.getByText("Temporary Blacklist")).toBeInTheDocument()
+
+    // Other master data menus remain hidden
+    expect(screen.queryByText("Locations & Vessels")).not.toBeInTheDocument()
+    expect(screen.queryByText("Staffs")).not.toBeInTheDocument()
+    expect(screen.queryByText("Visitors")).not.toBeInTheDocument()
+    expect(screen.queryByText("Dashboard")).not.toBeInTheDocument()
+  })
 })

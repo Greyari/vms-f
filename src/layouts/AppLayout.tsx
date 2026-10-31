@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { useTheme } from "../context/ThemeContext"
 import { useTranslation } from "../context/I18nContext"
-import { permissionFor, type GuardedPath } from "../lib/routePermissions"
+import { canAccessPath, type GuardedPath } from "../lib/routePermissions"
 import SyncIndicator from "../components/sync/SyncIndicator"
 import {
   Users,
@@ -34,10 +34,7 @@ export default function AppLayout() {
   const [profileOpen, setProfileOpen] = useState(false)
 
   // Same matrix as the route guards in App.tsx (decision FE-2).
-  const can = (path: GuardedPath) => {
-    const permission = permissionFor(path)
-    return permission === undefined || hasPermission(permission)
-  }
+  const can = (path: GuardedPath) => canAccessPath(path, hasPermission)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -135,7 +132,7 @@ export default function AppLayout() {
         },
         {
           name: t("nav.blacklist"),
-          enName: "Blacklist",
+          enName: "Temporary Blacklist",
           path: "/master/visitors/blacklist",
           icon: ShieldOff,
           show: can("/master/visitors/blacklist"),

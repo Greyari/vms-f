@@ -2,7 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 interface ProtectedRouteProps {
-  requiredPermission?: string
+  requiredPermission?: string | readonly string[]
   requiredRole?: string
 }
 
@@ -24,8 +24,13 @@ export const ProtectedRoute = ({
     return <Navigate to="/login" replace />
   }
 
-  if (requiredPermission && !hasPermission(requiredPermission)) {
-    return <Navigate to="/" replace />
+  if (requiredPermission) {
+    const hasPerm = typeof requiredPermission === "string"
+      ? hasPermission(requiredPermission)
+      : requiredPermission.some((p) => hasPermission(p))
+    if (!hasPerm) {
+      return <Navigate to="/" replace />
+    }
   }
 
   if (requiredRole && !hasRole(requiredRole)) {

@@ -131,7 +131,7 @@
     "cards": "Kartu Pengunjung",
     "card_vehicles": "Kartu Kendaraan",
     "visitors": "Daftar Pengunjung",
-    "blacklist": "Daftar Blacklist",
+    "blacklist": "Temporary Blacklist",
     "reports": "Laporan",
     "visitor_report": "Laporan Kunjungan",
     "vessel_report": "Laporan Kapal",
@@ -322,7 +322,7 @@
     "add_visitor": "Tambah Pengunjung",
     "export_btn": "Ekspor Excel",
     "import_btn": "Import Excel",
-    "blacklist_list_btn": "Daftar Blacklist",
+    "blacklist_list_btn": "Temporary Blacklist",
     "search_placeholder": "Cari nama, perusahaan, atau nomor ID...",
     "search_placeholder_full": "Cari nama, KTP, atau perusahaan...",
     "filter_type": "Semua Tipe",
@@ -459,8 +459,11 @@
     "visits_history_title": "Riwayat Kunjungan"
   },
   "blacklist": {
-    "title": "Daftar Pengunjung Blacklist",
+    "title": "Temporary Blacklist",
     "subtitle": "Daftar individu yang dilarang memasuki kawasan galangan.",
+    "reason_restricted": "Akses Terbatas",
+    "reason_restricted_hint": "Hanya Administrator & Supervisor yang berwenang melihat detail alasan pencekalan.",
+    "reason_restricted_detail": "Rincian alasan pencekalan ini dirahasiakan dan hanya dapat diakses oleh Administrator & Supervisor.",
     "back_to_visitors": "Kembali ke Pengunjung",
     "tab_local": "Lokal",
     "tab_global": "Global",
@@ -972,6 +975,8 @@
     "open_badge": "OPEN"
   },
   "dashboard": {
+    "welcome_title": "Selamat Datang di VMS",
+    "no_visits_permission": "Akun Anda tidak memiliki hak akses untuk melihat ringkasan operasional dashboard kunjungan. Silakan gunakan menu di navigasi sebelah kiri untuk mengakses modul Anda.",
     "title": "Dashboard Operasional VMS",
     "live_monitoring": "Live Monitoring",
     "subtitle": "Pusat pemantauan kunjungan harian, kapal & kru di galangan, serta status kartu akses.",
@@ -2532,7 +2537,7 @@
         }
       },
       "blacklist": {
-        "title": "Daftar Blacklist",
+        "title": "Temporary Blacklist",
         "purpose": "Mengelola daftar cekal keamanan bagi pengunjung yang dilarang memasuki area galangan.",
         "features": {
           "block_management": "Pencatatan alasan pelanggaran cekal serta prosedur pemulihan akses (Unblacklist)",

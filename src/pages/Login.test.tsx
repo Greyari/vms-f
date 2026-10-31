@@ -82,6 +82,34 @@ describe('Login Page', () => {
     })
   })
 
+  it('redirects to /master/visitors/blacklist when user only has manage_blacklist permission', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: {
+        access_token: 'valid-jwt-token',
+        user: {
+          id: 2,
+          name: 'Blacklist Supervisor',
+          username: 'SUPER_BL',
+          permissions: ['manage_blacklist'],
+        },
+      },
+    })
+
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>
+    )
+
+    fireEvent.change(screen.getByLabelText(/username or email/i), { target: { value: 'super_bl' } })
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'password123' } })
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/master/visitors/blacklist')
+    })
+  })
+
   it('displays error message on invalid credentials (401)', async () => {
     vi.mocked(api.post).mockRejectedValueOnce({
       response: {

@@ -4,7 +4,7 @@ import { driver, type DriveStep, type Driver, type PopoverDOM, type HookOpts } f
 import "driver.js/dist/driver.css"
 import { useAuth } from "@/context/AuthContext"
 import { useTranslation } from "@/context/I18nContext"
-import { permissionFor } from "@/lib/routePermissions"
+import { canAccessPath } from "@/lib/routePermissions"
 import { APP_TOURS, type TourConfig, type TourStep } from "@/config/appTours"
 
 let activeDriverInstance: Driver | null = null
@@ -76,8 +76,7 @@ export function filterTourStepsByPermission(
       if (step.path === "/") {
         if (!hasPermission("view_visits")) return false
       } else {
-        const requiredPerm = permissionFor(step.path)
-        if (requiredPerm !== undefined && !hasPermission(requiredPerm)) {
+        if (!canAccessPath(step.path, hasPermission)) {
           return false
         }
       }

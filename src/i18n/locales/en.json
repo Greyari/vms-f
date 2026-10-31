@@ -131,7 +131,7 @@
     "cards": "Cards",
     "card_vehicles": "Vehicle Card",
     "visitors": "Visitors",
-    "blacklist": "Blacklist",
+    "blacklist": "Temporary Blacklist",
     "reports": "Reports",
     "visitor_report": "Visitor Report",
     "vessel_report": "Vessel Report",
@@ -322,7 +322,7 @@
     "add_visitor": "Add Visitor",
     "export_btn": "Export Excel",
     "import_btn": "Import Excel",
-    "blacklist_list_btn": "Blacklist Directory",
+    "blacklist_list_btn": "Temporary Blacklist",
     "search_placeholder": "Search name, company, or ID number...",
     "search_placeholder_full": "Search name, ID number, or company...",
     "filter_type": "All Types",
@@ -459,8 +459,11 @@
     "visits_history_title": "Visit History"
   },
   "blacklist": {
-    "title": "Blacklist Directory",
+    "title": "Temporary Blacklist",
     "subtitle": "List of individuals prohibited from entering the shipyard area.",
+    "reason_restricted": "Restricted Access",
+    "reason_restricted_hint": "Only Administrators & Supervisors are authorized to view full offence details.",
+    "reason_restricted_detail": "Blacklist offence details are confidential and accessible only to Administrators & Supervisors.",
     "back_to_visitors": "Back to Visitors",
     "tab_local": "Local",
     "tab_global": "Global",
@@ -972,6 +975,8 @@
     "open_badge": "OPEN"
   },
   "dashboard": {
+    "welcome_title": "Welcome to VMS",
+    "no_visits_permission": "Your account does not have permission to view visit operational dashboard summaries. Please use the sidebar navigation to access your assigned modules.",
     "title": "VMS Operational Dashboard",
     "live_monitoring": "Live Monitoring",
     "subtitle": "Daily monitoring hub for visits, vessels & yard crew, and card status.",
@@ -1060,7 +1065,7 @@
     "cards": "Cards",
     "card_vehicles": "Vehicle Card",
     "visitors": "Visitors",
-    "blacklist": "Blacklist",
+    "blacklist": "Temporary Blacklist",
     "reports": "Reports",
     "visitor_report": "Visitor Report",
     "vessel_report": "Vessel Report",
@@ -2532,7 +2537,7 @@
         }
       },
       "blacklist": {
-        "title": "Blacklist",
+        "title": "Temporary Blacklist",
         "purpose": "Manage the security blocklist of visitors prohibited from entering the shipyard.",
         "features": {
           "block_management": "Record violation reasons for blacklisting and restore access (Unblacklist) when authorized",

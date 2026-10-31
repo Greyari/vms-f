@@ -4,6 +4,14 @@ import { BrowserRouter } from "react-router-dom"
 import BlacklistedVisitors from "./BlacklistedVisitors"
 import api from "@/lib/axios"
 
+const mockHasPermission = vi.fn((_perm: string) => true)
+vi.mock("@/context/AuthContext", () => ({
+  useAuth: () => ({
+    hasPermission: (perm: string) => mockHasPermission(perm),
+    user: { id: 1, name: "Test User" },
+  }),
+}))
+
 vi.mock("@/lib/axios")
 
 const mockBlacklistData = [
@@ -23,6 +31,7 @@ const mockBlacklistData = [
 describe("BlacklistedVisitors Master Page", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockHasPermission.mockReturnValue(true)
     window.URL.createObjectURL = vi.fn().mockReturnValue("blob:mock-url")
     vi.mocked(api.get).mockImplementation((url: string) => {
       if (url.includes("/export-count") || url.includes("/export/count")) {
@@ -312,6 +321,28 @@ describe("BlacklistedVisitors Master Page", () => {
       expect(screen.getByText("PT Import Jaya")).toBeInTheDocument()
     })
     expect(container).toBeTruthy()
+  })
+
+  it("displays offences reason directly and hides manage buttons when user lacks manage_blacklist permission", async () => {
+    mockHasPermission.mockImplementation((perm: string) => perm !== "manage_blacklist")
+
+    render(
+      <BrowserRouter>
+        <BlacklistedVisitors />
+      </BrowserRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("Doni Kusuma")).toBeInTheDocument()
+      expect(screen.getByText("2171019999990001")).toBeInTheDocument()
+      // Offence reason is displayed directly without column masking
+      expect(screen.getByText("Melanggar SOP dermaga barat")).toBeInTheDocument()
+    })
+
+    // Action buttons requiring manage_blacklist are hidden
+    expect(screen.queryByRole("button", { name: /tambah blacklist/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /cabut blacklist/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /naikkan ke global/i })).not.toBeInTheDocument()
   })
 })
 

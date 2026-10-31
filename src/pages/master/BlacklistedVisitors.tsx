@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import api from "@/lib/axios"
 import { useTranslation } from "@/context/I18nContext"
+import { useAuth } from "@/context/AuthContext"
 
 import {
   Table,
@@ -85,6 +86,13 @@ const ITEMS_PER_PAGE = 100
 export default function BlacklistedVisitors() {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  let canManageBlacklist = true
+  try {
+    const auth = useAuth()
+    canManageBlacklist = auth.hasPermission("manage_blacklist")
+  } catch {
+    canManageBlacklist = true
+  }
   const [visitors, setVisitors] = useState<BlacklistedVisitor[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -259,25 +267,27 @@ export default function BlacklistedVisitors() {
             {t("blacklist.subtitle")}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2" data-tour="master-blacklist-actions">
-          <Button variant="outline" onClick={() => setImportModalOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" /> {t("blacklist.import_btn")}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setExportModalOpen(true)}
-          >
-            <FileDown className="mr-2 h-4 w-4" />
-            {t("blacklist.export_btn")}
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={openCreateModal}
-            aria-label="Tambah Blacklist"
-          >
-            <Plus className="mr-2 h-4 w-4" /> {t("blacklist.add_blacklist")}
-          </Button>
-        </div>
+        {canManageBlacklist && (
+          <div className="flex flex-wrap gap-2" data-tour="master-blacklist-actions">
+            <Button variant="outline" onClick={() => setImportModalOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" /> {t("blacklist.import_btn")}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setExportModalOpen(true)}
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              {t("blacklist.export_btn")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={openCreateModal}
+              aria-label="Tambah Blacklist"
+            >
+              <Plus className="mr-2 h-4 w-4" /> {t("blacklist.add_blacklist")}
+            </Button>
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="local" className="gap-4" data-tour="master-blacklist-tabs">
@@ -444,36 +454,40 @@ export default function BlacklistedVisitors() {
                                 <Eye className="mr-1 h-3.5 w-3.5" />
                                 {t("blacklist.btn_detail")}
                               </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openEditModal(visitor)}
-                                title={t("blacklist.btn_edit")}
-                              >
-                                <Pencil className="mr-1 h-3.5 w-3.5" />
-                                {t("blacklist.btn_edit")}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openPromote(visitor)}
-                                aria-label="Naikkan ke global"
-                                title="Naikkan ke global"
-                              >
-                                <Globe className="mr-1 h-3.5 w-3.5" />
-                                {t("blacklist.btn_global")}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => confirmUnblacklist(visitor.id)}
-                                aria-label="Cabut Blacklist"
-                                title="Cabut Blacklist"
-                                className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/40"
-                              >
-                                <ShieldCheck className="mr-1 h-3.5 w-3.5" />
-                                {t("blacklist.btn_unblacklist")}
-                              </Button>
+                              {canManageBlacklist && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openEditModal(visitor)}
+                                    title={t("blacklist.btn_edit")}
+                                  >
+                                    <Pencil className="mr-1 h-3.5 w-3.5" />
+                                    {t("blacklist.btn_edit")}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openPromote(visitor)}
+                                    aria-label="Naikkan ke global"
+                                    title="Naikkan ke global"
+                                  >
+                                    <Globe className="mr-1 h-3.5 w-3.5" />
+                                    {t("blacklist.btn_global")}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => confirmUnblacklist(visitor.id)}
+                                    aria-label="Cabut Blacklist"
+                                    title="Cabut Blacklist"
+                                    className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/40"
+                                  >
+                                    <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                                    {t("blacklist.btn_unblacklist")}
+                                  </Button>
+                                </>
+                              )}
                             </TableCell>
                           </TableRow>
                         )
