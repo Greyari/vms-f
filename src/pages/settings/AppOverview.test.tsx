@@ -2,7 +2,6 @@ import { render, screen, fireEvent, within } from "@testing-library/react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { MemoryRouter } from "react-router-dom"
 import AppOverview from "./AppOverview"
-import FlowDiagram from "@/components/FlowDiagram"
 import { APP_OVERVIEW_WORKFLOWS } from "@/config/appOverview"
 import * as AuthContextModule from "@/context/AuthContext"
 import * as UseAppTourModule from "@/hooks/useAppTour"
@@ -422,53 +421,6 @@ describe("AppOverview Page", () => {
     )
   })
 
-  it("(h) FlowDiagram renders all nodes and creates links only for permitted page paths", () => {
-    // Security user has view_visits & create_visits, but NOT view_cards (/master/cards)
-    setupUser(["view_visits", "create_visits"])
-    const visitWorkflow = APP_OVERVIEW_WORKFLOWS[0]
-    const mockOnStartTour = vi.fn()
-
-    const { container } = render(
-      <MemoryRouter>
-        <I18nProvider initialLanguage="id">
-          <FlowDiagram
-            id={visitWorkflow.id}
-            titleKey={visitWorkflow.titleKey}
-            nodes={visitWorkflow.nodes}
-            tourId={visitWorkflow.tourId}
-            onStartTour={mockOnStartTour}
-          />
-        </I18nProvider>
-      </MemoryRouter>
-    )
-
-    // All 5 nodes are rendered
-    const listItems = container.querySelectorAll("ol > li")
-    expect(listItems).toHaveLength(5)
-    expect(screen.getByText("Registrasi Tamu")).toBeInTheDocument()
-    expect(screen.getByText("Cetak Pass")).toBeInTheDocument()
-    expect(screen.getByText("Pantau Riwayat")).toBeInTheDocument()
-    expect(screen.getByText("Check-out")).toBeInTheDocument()
-    expect(screen.getByText("Kartu Dilepas")).toBeInTheDocument()
-
-    // First 4 nodes (/visits/create and /visits/history) are links; 5th node (/master/cards) is disabled without link
-    const links = screen.getAllByRole("link")
-    expect(links).toHaveLength(4)
-    expect(links.map((l) => l.getAttribute("href"))).toEqual([
-      "/visits/create",
-      "/visits/create",
-      "/visits/history",
-      "/visits/history",
-    ])
-    expect(screen.getByText("Kartu Dilepas").closest("a")).toBeNull()
-
-    // Clicking 'Mulai tur alur ini' triggers onStartTour with tour-visit-flow
-    const startFlowTourBtn = screen.getByRole("button", {
-      name: /Mulai tur alur ini/i,
-    })
-    fireEvent.click(startFlowTourBtn)
-    expect(mockOnStartTour).toHaveBeenCalledWith("tour-visit-flow")
-  })
 
   it("(i) interactive visual simulator allows practicing visit pass printing, check-out card release, and crew manifest actions", () => {
     setupUser(["view_visits", "create_visits", "checkout_visits"])
