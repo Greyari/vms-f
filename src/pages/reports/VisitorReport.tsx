@@ -88,7 +88,7 @@ export interface VisitReportItem {
   vehicle_card?: { id: string; card_no: string } | null
 }
 
-export function formatDateTimeFull(
+function formatDateTimeFull(
   dateStr?: string | null,
   timeStr?: string | null,
   fullTimestamp?: string | null

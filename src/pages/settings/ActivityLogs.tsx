@@ -55,7 +55,7 @@ export interface LogRow {
   created_at: string
 }
 
-export function formatLogDateTime(raw?: string | null): string {
+function formatLogDateTime(raw?: string | null): string {
   if (!raw) return "-"
   try {
     const parsed = new Date(raw.includes("T") ? raw : raw.replace(" ", "T"))
@@ -74,7 +74,7 @@ export function formatLogDateTime(raw?: string | null): string {
   return raw
 }
 
-export function getRelativeTime(raw?: string | null, isIndo = true): string {
+function getRelativeTime(raw?: string | null, isIndo = true): string {
   if (!raw) return ""
   try {
     const parsed = new Date(raw.includes("T") ? raw : raw.replace(" ", "T"))

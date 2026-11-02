@@ -55,13 +55,13 @@ export type StaffColumnKey =
   | "company"
   | "status"
 
-export const DEFAULT_VISIBLE_COLUMNS: StaffColumnKey[] = [
+const DEFAULT_VISIBLE_COLUMNS: StaffColumnKey[] = [
   "occupation",
   "company",
   "status",
 ]
 
-export const ALL_OPTIONAL_COLUMNS: StaffColumnKey[] = [
+const ALL_OPTIONAL_COLUMNS: StaffColumnKey[] = [
   "occupation",
   "staff_id",
   "department",

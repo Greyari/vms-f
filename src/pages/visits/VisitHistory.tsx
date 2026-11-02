@@ -153,7 +153,7 @@ export type OptionalColumnKey =
   | "duration"
   | "created_by"
 
-export const DEFAULT_VISIBLE_COLUMNS: OptionalColumnKey[] = [
+const DEFAULT_VISIBLE_COLUMNS: OptionalColumnKey[] = [
   "check_in_time",
   "visitor_name",
   "card_no",
@@ -162,7 +162,7 @@ export const DEFAULT_VISIBLE_COLUMNS: OptionalColumnKey[] = [
   "purpose",
 ]
 
-export const ALL_OPTIONAL_COLUMNS: OptionalColumnKey[] = [
+const ALL_OPTIONAL_COLUMNS: OptionalColumnKey[] = [
   "check_in_time",
   "visitor_name",
   "id_number",
@@ -188,7 +188,7 @@ function formatLocalDate(d: Date): string {
   return `${year}-${month}-${day}`
 }
 
-export function formatDateTimeFull(
+function formatDateTimeFull(
   dateStr?: string | null,
   timeStr?: string | null,
   fullTimestamp?: string | null
@@ -245,7 +245,7 @@ function escapeRegExp(str: string): string {
  * Highlights matching search text, including tolerant plate matching
  * (ignoring spaces and hyphens when matching against plate numbers).
  */
-export function HighlightText({
+function HighlightText({
   text,
   query,
   isPlate = false,

@@ -144,7 +144,7 @@ export function resetCreateVisitCache() {
   cache = null
 }
 
-export function upperKeepCaret(e: React.ChangeEvent<HTMLInputElement>): string {
+function upperKeepCaret(e: React.ChangeEvent<HTMLInputElement>): string {
   const el = e.target
   const { selectionStart, selectionEnd } = el
   const next = el.value.toUpperCase()
@@ -158,7 +158,7 @@ export function upperKeepCaret(e: React.ChangeEvent<HTMLInputElement>): string {
   return next
 }
 
-export function focusNextField(from: HTMLElement) {
+function focusNextField(from: HTMLElement) {
   const form = from.closest("form")
   if (!form) return
   const focusables = Array.from(
@@ -170,7 +170,7 @@ export function focusNextField(from: HTMLElement) {
   if (i >= 0) focusables[i + 1]?.focus()
 }
 
-export function filterOptions(options: Opt[], q: string): Opt[] {
+function filterOptions(options: Opt[], q: string): Opt[] {
   const full = q.trim().toLowerCase()
   const tokens = full.split(/\s+/).filter(Boolean)
   if (!tokens.length) return options
@@ -192,7 +192,7 @@ export function filterOptions(options: Opt[], q: string): Opt[] {
  * dipakai, supaya tetap bisa dipilih / dilepas / ditukar.
  * ID selalu dibandingkan sebagai string agar UUID aman.
  */
-export function isCardInUse(
+function isCardInUse(
   card: CardItem,
   heldIds?: Set<string>
 ): boolean {
@@ -200,7 +200,7 @@ export function isCardInUse(
   return card.status !== "available"
 }
 
-export function cardStatusBadge(status: string): string {
+function cardStatusBadge(status: string): string {
   if (!status || status === "in_use") return "IN USE"
   return status.replace(/_/g, " ").toUpperCase()
 }
@@ -209,7 +209,7 @@ export function cardStatusBadge(status: string): string {
  * Filter lama (hanya kartu available + kartu yang dipegang kunjungan ini).
  * Dipertahankan supaya import/test lama tetap jalan.
  */
-export function filterAvailableCards(
+function filterAvailableCards(
   allCards: CardItem[],
   heldCards: Array<{ id: number | string; card_no: string }> = []
 ): CardItem[] {
@@ -248,7 +248,7 @@ export function filterAvailableCards(
  * ditandai merah di dropdown. Kartu yang dipegang kunjungan ini dimasukkan
  * walau tidak ada di halaman pertama /cards.
  */
-export function withHeldCards(
+function withHeldCards(
   allCards: CardItem[],
   heldCards: Array<{ id: number | string; card_no: string }> = []
 ): CardItem[] {
@@ -512,12 +512,12 @@ export const ROW_BASE = "flex cursor-pointer items-center gap-2 border-l-4 px-3 
 export const ROW_ACTIVE =
   "border-emerald-500 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-950/40"
 export const ROW_IDLE = "border-transparent"
-export const ROW_LOCKED =
+const ROW_LOCKED =
   "cursor-not-allowed border-red-500 bg-red-50 text-red-700 dark:border-red-600 dark:bg-red-950/40 dark:text-red-300"
 export const DROPDOWN =
   "absolute z-40 mt-1 w-full overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
 
-export function SearchSelect({
+function SearchSelect({
   id,
   inputRef,
   options,
