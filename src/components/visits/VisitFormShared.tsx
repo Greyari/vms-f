@@ -192,7 +192,7 @@ function filterOptions(options: Opt[], q: string): Opt[] {
  * dipakai, supaya tetap bisa dipilih / dilepas / ditukar.
  * ID selalu dibandingkan sebagai string agar UUID aman.
  */
-function isCardInUse(
+export function isCardInUse(
   card: CardItem,
   heldIds?: Set<string>
 ): boolean {
@@ -209,7 +209,7 @@ function cardStatusBadge(status: string): string {
  * Filter lama (hanya kartu available + kartu yang dipegang kunjungan ini).
  * Dipertahankan supaya import/test lama tetap jalan.
  */
-function filterAvailableCards(
+export function filterAvailableCards(
   allCards: CardItem[],
   heldCards: Array<{ id: number | string; card_no: string }> = []
 ): CardItem[] {

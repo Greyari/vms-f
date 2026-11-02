@@ -56,6 +56,18 @@
     --card-foreground: oklch(0.141 0.005 285.823);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.141 0.005 285.823);
+    /*
+     * ============================================================================
+     * WARNA AKSEN UTAMA APLIKASI (THEME BRAND COLOR)
+     * Ganti nilai di bawah ini jika ingin mengubah warna tema aplikasi secara global:
+     * - Hijau Emerald (Default) : oklch(0.508 0.118 165.612) atau #059669
+     * - Biru Profesional        : #2563eb
+     * - Biru Navy               : #1e3a8a
+     * - Slate / Abu Netral      : #0f172a
+     * - Teal                    : #0d9488
+     * - Indigo                  : #4f46e5
+     * ============================================================================
+     */
     --primary: oklch(0.508 0.118 165.612);
     --primary-foreground: oklch(0.979 0.021 166.113);
     --secondary: oklch(0.967 0.001 286.375);
