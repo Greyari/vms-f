@@ -397,7 +397,7 @@ export default function UnifiedVesselCrewSearch({
                 <div className="p-2">
                   <div className="flex items-center justify-between px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <span className="flex items-center gap-1.5">
-                      <User className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                      <User className="h-3.5 w-3.5 text-zinc-500" />
                       {t("vessel.group_crew", "Kru / Crew")} ({results.crew.length})
                     </span>
                   </div>
@@ -431,7 +431,7 @@ export default function UnifiedVesselCrewSearch({
                               className={`p-2 rounded-full shrink-0 ${
                                 isCheckedOut
                                   ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-500"
-                                  : "bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400"
+                                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                               }`}
                             >
                               <User className="h-4 w-4" />

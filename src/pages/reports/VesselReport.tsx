@@ -605,7 +605,7 @@ export default function VesselReport() {
                         <div>
                           {t("vessel_arrivals.col_captain", "Kapten")}: <strong>{item.captain || "-"}</strong>
                         </div>
-                        <Badge variant="outline" className="text-blue-600 border-blue-200 dark:text-blue-400 text-[10px]">
+                        <Badge variant="outline" className="text-zinc-600 border-zinc-200 dark:text-zinc-400 dark:border-zinc-800 text-[10px]">
                           {crewList.length} {t("vessel_arrivals.crew_count_label", "Kru")}
                         </Badge>
                       </div>

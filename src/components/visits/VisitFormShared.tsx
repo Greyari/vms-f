@@ -1181,8 +1181,8 @@ export function VisitFormFields({
             emptyText={t("create_visit.staff_empty", "Staf tidak ditemukan.")}
           />
           {selectedStaff && (selectedStaff.occupation || selectedStaff.department) && (
-            <div className="flex items-center gap-1.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
-              <span className="rounded bg-blue-50 px-1.5 py-0.5 dark:bg-blue-950/40">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <span className="rounded bg-zinc-100 px-1.5 py-0.5 dark:bg-zinc-800">
                 {[selectedStaff.occupation, selectedStaff.department].filter(Boolean).join(" · ")}
               </span>
             </div>

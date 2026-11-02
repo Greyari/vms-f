@@ -141,9 +141,9 @@ export default function Profile() {
                   <Badge
                     key={roleKey}
                     variant="outline"
-                    className="border-blue-200 bg-blue-50 text-blue-700 capitalize dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-400"
+                    className="border-zinc-300 bg-zinc-50 text-zinc-700 capitalize dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
                   >
-                    <Shield className="mr-1 h-3 w-3" />
+                    <Shield className="mr-1 h-3 w-3 text-zinc-400" />
                     {roleName}
                   </Badge>
                 )

@@ -102,7 +102,7 @@ export default function SignOutVesselModal({
         {/* Ringkasan Kapal */}
         <div className="p-3 bg-zinc-50 dark:bg-zinc-800/60 rounded-lg border border-zinc-200 dark:border-zinc-700 space-y-1.5 text-xs text-zinc-600 dark:text-zinc-400">
           <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-            <Ship className="h-4 w-4 text-blue-500" />
+            <Ship className="h-4 w-4 text-zinc-500" />
             {arrival.vessel_name}
           </div>
           <div className="flex items-center gap-1">

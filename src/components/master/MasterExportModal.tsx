@@ -351,8 +351,8 @@ export default function MasterExportModal({
 
         <div className="space-y-4 py-2 text-sm">
           {/* Active Table Filters Notice */}
-          <div className="flex items-center gap-2 rounded-lg border border-blue-200/60 bg-blue-50/70 p-3 text-xs text-blue-900 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-200">
-            <Filter className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+          <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+            <Filter className="h-4 w-4 shrink-0 text-zinc-500" />
             <span>
               {isEn
                 ? "Export will apply currently active table filters."

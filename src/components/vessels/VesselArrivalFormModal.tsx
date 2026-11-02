@@ -643,7 +643,7 @@ export default function VesselArrivalFormModal({
               </div>
 
               {selectedVessel && (
-                <div className="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-900/60 dark:bg-blue-950/20 p-3 text-xs grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="md:col-span-2 rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/60 p-3 text-xs grid grid-cols-2 sm:grid-cols-5 gap-2">
                   <div>
                     <span className="text-zinc-500 block">IMO / Kode</span>
                     <span className="font-mono font-semibold text-zinc-900 dark:text-zinc-100">
@@ -877,10 +877,10 @@ export default function VesselArrivalFormModal({
           </div>
 
           {/* Bagian 3: Ringkasan Manifest Kru */}
-          <div className="space-y-3 p-3 bg-blue-50/70 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-900">
+          <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-900/60 rounded-lg border border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-blue-900 dark:text-blue-200">
-                <Users className="h-4 w-4 text-blue-600" />
+              <div className="flex items-center gap-2 text-sm text-zinc-900 dark:text-zinc-100">
+                <Users className="h-4 w-4 text-zinc-500" />
                 <span>
                   {t("vesselArrivals.manifest_title", "Manifest Kru Kapal:")}{" "}
                   <strong>{t("vesselArrivals.selected_crew_count", "{{count}} Kru Terpilih", { count: selectedCrewIds.length })}</strong>
@@ -905,7 +905,7 @@ export default function VesselArrivalFormModal({
             </div>
 
             {selectedCrewIds.length > 0 ? (
-              <div className="space-y-1.5 pt-2 border-t border-blue-200/60 dark:border-blue-800/60">
+              <div className="space-y-1.5 pt-2 border-t border-zinc-200 dark:border-zinc-800">
                 <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
                   {t("vesselArrivals.assigned_crew_list", "Daftar Kru yang Ditugaskan:")}
                 </span>
@@ -975,7 +975,7 @@ export default function VesselArrivalFormModal({
               type="submit"
               data-tour="vessel-form-submit-btn"
               disabled={submitting}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {submitting ? (
                 <>

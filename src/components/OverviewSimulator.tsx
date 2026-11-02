@@ -1153,7 +1153,7 @@ export default function OverviewSimulator({
           </div>
 
           {reprintedVisit && (
-            <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50/70 p-3 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200">
+            <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-100 p-3 text-xs text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
               <span>
                 <strong>Reprint Pass ({reprintedVisit.id}):</strong>{" "}
                 {reprintedVisit.visitorName} — {reprintedVisit.destination} (
@@ -1202,25 +1202,25 @@ export default function OverviewSimulator({
           </div>
 
           {/* Prerequisite Flow Steps Banner */}
-          <div className="grid gap-2.5 rounded-lg border border-blue-200 bg-blue-50/50 p-3 text-xs sm:grid-cols-3 dark:border-blue-900/50 dark:bg-blue-950/20">
-            <div className="space-y-1 rounded border border-blue-100 bg-white p-2.5 dark:border-blue-900/40 dark:bg-zinc-900">
-              <span className="font-semibold text-blue-900 dark:text-blue-200">
+          <div className="grid gap-2.5 rounded-lg border border-zinc-200 bg-zinc-50/50 p-3 text-xs sm:grid-cols-3 dark:border-zinc-800 dark:bg-zinc-900/30">
+            <div className="space-y-1 rounded border border-zinc-200 bg-white p-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                 {t("app_overview.simulator.vessel_crew.prereq_step1_title")}
               </span>
               <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
                 {t("app_overview.simulator.vessel_crew.prereq_step1_desc")}
               </p>
             </div>
-            <div className="space-y-1 rounded border border-blue-100 bg-white p-2.5 dark:border-blue-900/40 dark:bg-zinc-900">
-              <span className="font-semibold text-blue-900 dark:text-blue-200">
+            <div className="space-y-1 rounded border border-zinc-200 bg-white p-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                 {t("app_overview.simulator.vessel_crew.prereq_step2_title")}
               </span>
               <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
                 {t("app_overview.simulator.vessel_crew.prereq_step2_desc")}
               </p>
             </div>
-            <div className="space-y-1 rounded border border-blue-100 bg-white p-2.5 dark:border-blue-900/40 dark:bg-zinc-900">
-              <span className="font-semibold text-blue-900 dark:text-blue-200">
+            <div className="space-y-1 rounded border border-zinc-200 bg-white p-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                 {t("app_overview.simulator.vessel_crew.prereq_step3_title")}
               </span>
               <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
@@ -1261,7 +1261,7 @@ export default function OverviewSimulator({
                   onClick={() => handleOpenCrewModalFor("repair")}
                   className="h-8 gap-1.5 text-xs"
                 >
-                  <Eye className="h-3.5 w-3.5 text-blue-600" />
+                  <Eye className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-400" />
                   {t("app_overview.simulator.vessel_crew.open_crew_modal_btn")}
                 </Button>
               </div>
@@ -1301,21 +1301,14 @@ export default function OverviewSimulator({
                     className={cn(
                       "flex flex-col justify-between rounded-lg border p-3 text-left text-xs transition-all",
                       isSelected
-                        ? isStay
-                          ? "border-emerald-500 bg-emerald-50/50 dark:border-emerald-700 dark:bg-emerald-950/30"
-                          : "border-blue-500 bg-blue-50/50 dark:border-blue-700 dark:bg-blue-950/30"
+                        ? "border-emerald-500 bg-emerald-50/50 dark:border-emerald-700 dark:bg-emerald-950/30"
                         : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
                     )}
                   >
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5 font-bold text-zinc-900 dark:text-zinc-100">
-                          <VesselIcon
-                            className={cn(
-                              "h-4 w-4",
-                              isStay ? "text-emerald-600" : "text-blue-600"
-                            )}
-                          />
+                          <VesselIcon className="h-4 w-4 text-emerald-600" />
                           {v.name}
                         </span>
                         {isStay ? (
@@ -1476,7 +1469,7 @@ export default function OverviewSimulator({
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-                          <Users className="h-3.5 w-3.5 text-blue-600" />
+                          <Users className="h-3.5 w-3.5 text-zinc-500" />
                           {t(
                             "app_overview.simulator.vessel_crew.form_crew_label"
                           )}
@@ -1577,7 +1570,7 @@ export default function OverviewSimulator({
                       id="sim-crew-select-title"
                       className="flex items-center gap-2 text-base font-bold text-zinc-900 dark:text-zinc-100"
                     >
-                      <Users className="h-4 w-4 text-blue-600" />
+                      <Users className="h-4 w-4 text-zinc-500" />
                       {t(
                         "app_overview.simulator.vessel_crew.crew_select_dialog_title"
                       )}
@@ -1613,7 +1606,7 @@ export default function OverviewSimulator({
                         className={cn(
                           "flex items-center gap-2.5 rounded-lg border p-2.5 text-xs transition-colors cursor-pointer",
                           isChecked
-                            ? "border-blue-500 bg-blue-50/60 dark:border-blue-700 dark:bg-blue-950/40"
+                            ? "border-emerald-500 bg-emerald-50/60 dark:border-emerald-700 dark:bg-emerald-950/40"
                             : "border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900"
                         )}
                       >
@@ -1632,7 +1625,7 @@ export default function OverviewSimulator({
                               )
                             }
                           }}
-                          className="rounded border-zinc-300"
+                          className="rounded border-zinc-300 accent-emerald-600 text-emerald-600 focus:ring-emerald-500"
                         />
                         <div className="flex-1">
                           <span className="font-semibold text-zinc-900 dark:text-zinc-100">
@@ -1647,7 +1640,7 @@ export default function OverviewSimulator({
                           className={cn(
                             "text-[10px]",
                             crew.linkedToVessel
-                              ? "text-blue-600 border-blue-200 dark:border-blue-800"
+                              ? "text-zinc-600 border-zinc-200 dark:border-zinc-800 dark:text-zinc-400"
                               : "text-emerald-600 border-emerald-200 dark:border-emerald-800"
                           )}
                         >
@@ -1676,7 +1669,7 @@ export default function OverviewSimulator({
                     size="sm"
                     data-tour="vessel-crew-dialog-apply-btn"
                     onClick={() => setCrewSelectSubModalOpen(false)}
-                    className="h-8 gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                    className="h-8 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     {t(
@@ -1710,7 +1703,7 @@ export default function OverviewSimulator({
                       id="sim-crew-modal-title"
                       className="flex items-center gap-2 text-base font-bold text-zinc-900 dark:text-zinc-100"
                     >
-                      <Ship className="h-4 w-4 text-blue-600" />
+                      <Ship className="h-4 w-4 text-emerald-600" />
                       {t("app_overview.simulator.vessel_crew.modal_title")}
                     </span>
                     <p className="text-xs text-zinc-500">
@@ -1731,8 +1724,8 @@ export default function OverviewSimulator({
                 </div>
 
                 {/* LANGKAH 1 DI DALAM MODAL: PILIH / KONFIRMASI KAPAL */}
-                <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50/50 p-3.5 dark:border-blue-900/50 dark:bg-blue-950/20">
-                  <span className="block text-xs font-semibold text-blue-950 dark:text-blue-200">
+                <div className="space-y-2 rounded-lg border border-zinc-200 bg-zinc-50/50 p-3.5 dark:border-zinc-800 dark:bg-zinc-900/30">
+                  <span className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                     {t(
                       "app_overview.simulator.vessel_crew.step1_select_vessel"
                     )}
@@ -1745,15 +1738,15 @@ export default function OverviewSimulator({
                       className={cn(
                         "flex items-center justify-between rounded-md border p-2 text-left text-xs transition-colors",
                         vesselMode === "repair"
-                          ? "border-blue-600 bg-white font-bold text-blue-950 shadow-xs dark:border-blue-500 dark:bg-zinc-900 dark:text-blue-100"
+                          ? "border-emerald-600 bg-white font-bold text-zinc-950 shadow-xs dark:border-emerald-500 dark:bg-zinc-900 dark:text-zinc-100"
                           : "border-zinc-200 bg-white/70 text-zinc-700 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-zinc-300"
                       )}
                     >
                       <span className="flex items-center gap-1.5 truncate">
-                        <Ship className="h-3.5 w-3.5 text-blue-600" />
+                        <Ship className="h-3.5 w-3.5 text-zinc-500" />
                         MV. OCEAN STAR (IMO 9412830)
                       </span>
-                      <Badge className="text-[10px] bg-blue-600 text-white">
+                      <Badge variant="outline" className="text-[10px] bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
                         Repair Vessel
                       </Badge>
                     </button>
@@ -1764,21 +1757,21 @@ export default function OverviewSimulator({
                       className={cn(
                         "flex items-center justify-between rounded-md border p-2 text-left text-xs transition-colors",
                         vesselMode === "tugboat"
-                          ? "border-emerald-600 bg-white font-bold text-emerald-950 shadow-xs dark:border-emerald-500 dark:bg-zinc-900 dark:text-emerald-100"
+                          ? "border-emerald-600 bg-white font-bold text-zinc-950 shadow-xs dark:border-emerald-500 dark:bg-zinc-900 dark:text-zinc-100"
                           : "border-zinc-200 bg-white/70 text-zinc-700 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-zinc-300"
                       )}
                     >
                       <span className="flex items-center gap-1.5 truncate">
-                        <Anchor className="h-3.5 w-3.5 text-emerald-600" />
+                        <Anchor className="h-3.5 w-3.5 text-zinc-500" />
                         TB. ASL BEACON (IMO 9104521)
                       </span>
-                      <Badge className="text-[10px] bg-emerald-600 text-white">
+                      <Badge variant="outline" className="text-[10px] bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
                         Stay
                       </Badge>
                     </button>
                   </div>
 
-                  <div className="rounded border border-blue-100 bg-white p-2.5 text-[11px] text-zinc-600 sm:flex sm:items-center sm:justify-between dark:border-blue-900/30 dark:bg-zinc-900 dark:text-zinc-300">
+                  <div className="rounded border border-zinc-200 bg-white p-2.5 text-[11px] text-zinc-600 sm:flex sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
                     <div>
                       <strong>Kapal Terpilih: </strong>
                       {vesselMode === "repair"

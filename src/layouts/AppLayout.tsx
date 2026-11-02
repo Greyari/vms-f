@@ -259,9 +259,9 @@ export default function AppLayout() {
                       <Link
                         key={j}
                         to={item.path}
-                        className={`flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-colors ${
+                        className={`flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-colors ${
                           isActive
-                            ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
+                            ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 font-semibold"
                             : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
                         }`}
                       >

@@ -525,7 +525,7 @@ export default function VisitorReport() {
                 type="checkbox"
                 checked={openOnly}
                 onChange={(e) => setOpenOnly(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-700"
+                className="h-4 w-4 rounded border-zinc-300 accent-emerald-600 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-700"
               />
               <Label htmlFor="open-only-checkbox" className="text-sm font-medium cursor-pointer">
                 {t("visitor_report.only_open_label", "Hanya Kunjungan Aktif (Open Only / Belum Checkout)")}
@@ -620,7 +620,7 @@ export default function VisitorReport() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-mono font-semibold text-blue-600 dark:text-blue-400">
+                        <div className="font-mono font-semibold text-zinc-900 dark:text-zinc-100">
                           {item.ticket_number || item.legacy_registration_no || "-"}
                         </div>
                         {item.legacy_registration_no && item.ticket_number && (
@@ -645,7 +645,7 @@ export default function VisitorReport() {
                           {item.host_name || item.staff?.name || "-"}
                         </div>
                         {(item.host_occupation || item.staff?.occupation) && (
-                          <div className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
+                          <div className="text-[11px] text-zinc-500">
                             {item.host_occupation || item.staff?.occupation}
                           </div>
                         )}

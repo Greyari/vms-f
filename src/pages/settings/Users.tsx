@@ -352,15 +352,9 @@ export default function Users() {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={
-                            roleName === "administrator"
-                              ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400"
-                              : roleName === "supervisor"
-                                ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400"
-                                : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-400"
-                          }
+                          className="border-zinc-300 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
                         >
-                          <Shield className="mr-1 h-3 w-3" />
+                          <Shield className="mr-1 h-3 w-3 text-zinc-400" />
                           {roleName}
                         </Badge>
                       </TableCell>
@@ -550,7 +544,7 @@ export default function Users() {
                 type="checkbox"
                 checked={form.is_active}
                 onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-                className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-700"
+                className="h-4 w-4 rounded border-zinc-300 accent-emerald-600 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-700"
               />
               <Label htmlFor="user-active-checkbox" className="text-sm font-medium cursor-pointer">
                 {t("users.account_active_label", "Akun Pengguna Aktif")}

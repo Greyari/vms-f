@@ -31,6 +31,7 @@ const Dashboard = lazy(() => import("./pages/dashboard/Dashboard"))
 const Roles = lazy(() => import("./pages/settings/Roles"))
 const AppOverview = lazy(() => import("./pages/settings/AppOverview"))
 const NotFound = lazy(() => import("./pages/NotFound"))
+const StyleGuide = lazy(() => import("./pages/dev/StyleGuide"))
 
 function PageLoading() {
   return (
@@ -65,6 +66,7 @@ function App() {
               <Suspense fallback={<PageLoading />}>
                 <Routes>
                   <Route path="/login" element={<Login />} />
+                  <Route path="/dev/style-guide" element={<StyleGuide />} />
 
                   {/* Print page is separated from the sidebar layout */}
                   <Route
