@@ -261,7 +261,7 @@ export default function AppLayout() {
                         to={item.path}
                         className={`flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-colors ${
                           isActive
-                            ? "bg-primary/10 text-primary font-semibold"
+                            ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50 font-semibold"
                             : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
                         }`}
                       >
