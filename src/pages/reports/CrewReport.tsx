@@ -634,7 +634,7 @@ export default function CrewReport() {
                           }}
                           className="text-left group cursor-pointer"
                         >
-                          <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-emerald-600 transition-colors underline-offset-2 group-hover:underline">
+                          <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 transition-colors underline-offset-2 group-hover:underline">
                             {crew?.name || "-"}
                           </div>
                           <div className="text-xs text-zinc-500">
@@ -654,7 +654,7 @@ export default function CrewReport() {
                       </TableCell>
                       <TableCell>
                         <div className="font-semibold text-sm flex items-center gap-1.5 text-zinc-900 dark:text-zinc-100">
-                          <Ship className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                          <Ship className="h-3.5 w-3.5 text-blue-500 shrink-0" />
                           {arrival?.vessel_name || "-"}
                         </div>
                         <div className="text-xs text-zinc-500">
@@ -717,7 +717,7 @@ export default function CrewReport() {
                           }}
                           className="text-left group cursor-pointer"
                         >
-                          <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-emerald-600 transition-colors underline-offset-2 group-hover:underline">
+                          <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 transition-colors underline-offset-2 group-hover:underline">
                             {crew?.name || "-"}
                           </div>
                           <div className="text-xs text-zinc-500">
@@ -748,7 +748,7 @@ export default function CrewReport() {
                       </TableCell>
                       <TableCell>
                         <div className="font-semibold text-sm flex items-center gap-1.5 text-zinc-900 dark:text-zinc-100">
-                          <Ship className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                          <Ship className="h-3.5 w-3.5 text-blue-500 shrink-0" />
                           {arrival?.vessel_name || "-"}
                         </div>
                         <div className="text-xs text-zinc-500">

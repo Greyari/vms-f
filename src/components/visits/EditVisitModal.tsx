@@ -346,7 +346,7 @@ export default function EditVisitModal({
       <DialogContent className="sm:max-w-4xl md:max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <Pencil className="h-4 w-4 text-zinc-500" />
+            <Pencil className="h-4 w-4 text-blue-600" />
             {t("visit_history.edit_modal_title", "Edit Kunjungan Terbuka")}
             <Badge variant="outline" className="ml-2 font-mono text-xs">
               {ticketDisplay}

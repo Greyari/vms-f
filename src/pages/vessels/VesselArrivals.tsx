@@ -383,7 +383,7 @@ export default function VesselArrivals() {
                       </TableCell>
                       <TableCell>
                         <div className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                          <Ship className="h-4 w-4 text-zinc-500 shrink-0" />
+                          <Ship className="h-4 w-4 text-blue-500 shrink-0" />
                           {arrival.vessel_name}
                         </div>
                         {arrival.vessel?.code && (
@@ -434,7 +434,7 @@ export default function VesselArrivals() {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-col items-center gap-1">
-                          <Badge variant="outline" className="flex items-center gap-1 mx-auto w-fit text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800">
+                          <Badge variant="outline" className="flex items-center gap-1 mx-auto w-fit text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800">
                             <Users className="h-3 w-3" />
                             {t(
                               "vessel_arrivals.crew_active_completed_counter",
@@ -482,7 +482,7 @@ export default function VesselArrivals() {
                                   setFormModalOpen(true)
                                 }}
                               >
-                                <Pencil className="h-4 w-4 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400" />
+                                <Pencil className="h-4 w-4 text-blue-600 hover:text-blue-800 dark:text-blue-400" />
                               </Button>
                               {isInPort && !isStayingVessel && (
                                 <Button

@@ -401,7 +401,7 @@ export default function CrewSelectionDialog({
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-              <Users className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
+              <Users className="h-5 w-5 text-blue-600" />
               {t("vesselArrivals.crew_dialog_title", "Pilih Manifest Kru Kapal")}
             </DialogTitle>
             <DialogDescription>
@@ -429,7 +429,7 @@ export default function CrewSelectionDialog({
                 onClick={handleSelectAll}
                 className="text-xs"
               >
-                <CheckSquare className="h-3.5 w-3.5 mr-1 text-emerald-600" />
+                <CheckSquare className="h-3.5 w-3.5 mr-1 text-blue-600" />
                 {t("vesselArrivals.btn_select_all", "Pilih Semua")}
               </Button>
               <Button
@@ -682,7 +682,7 @@ export default function CrewSelectionDialog({
                   <TableRow>
                     <TableCell colSpan={5} className="h-40 text-center">
                       <div className="flex items-center justify-center gap-2 text-zinc-500">
-                        <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
+                        <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
                         {t("vesselArrivals.loading_crew_candidates", "Memuat kandidat kru kapal...")}
                       </div>
                     </TableCell>
@@ -715,7 +715,7 @@ export default function CrewSelectionDialog({
                           isBlacklisted
                             ? "bg-red-50/70 dark:bg-red-950/20 text-zinc-400"
                             : isSelected
-                            ? "bg-emerald-50/40 dark:bg-emerald-950/20"
+                            ? "bg-blue-50/50 dark:bg-blue-950/20"
                             : "hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50"
                         }
                       >
@@ -726,14 +726,14 @@ export default function CrewSelectionDialog({
                             checked={isSelected}
                             disabled={isBlacklisted}
                             onChange={() => handleToggleCrew(candidate)}
-                            className="h-4 w-4 rounded border-zinc-300 accent-emerald-600 text-emerald-600 focus:ring-emerald-500 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                            className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
                           />
                         </TableCell>
                         <TableCell>
                           <div className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                             {candidate.name}
                             {isSelected && (
-                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 inline shrink-0" />
+                              <CheckCircle2 className="h-3.5 w-3.5 text-blue-600 inline shrink-0" />
                             )}
                           </div>
                           <div className="text-xs text-zinc-500">
@@ -774,8 +774,8 @@ export default function CrewSelectionDialog({
                               </p>
                             </div>
                           ) : isSelected ? (
-                            <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300 flex items-center gap-1 w-fit text-xs font-medium">
-                              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                            <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-300 flex items-center gap-1 w-fit text-xs font-medium">
+                              <CheckCircle2 className="h-3 w-3 text-blue-600" />
                               {t("vesselArrivals.selected_badge", "Terpilih")}
                             </Badge>
                           ) : candidate.active_placement && candidate.active_placement.vessel_arrival_id !== arrivalId ? (
@@ -810,7 +810,7 @@ export default function CrewSelectionDialog({
               type="button"
               data-tour="vessel-crew-dialog-apply-btn"
               onClick={handleApply}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {t("vesselArrivals.btn_apply_crew", "Terapkan Kru ({{count}} Terpilih)", { count: selectedIds.size })}
             </Button>
@@ -841,7 +841,7 @@ export default function CrewSelectionDialog({
             <AlertDialogAction
               onClick={handleConfirmTransfer}
               disabled={transferring}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {transferring ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
               {t("vesselArrivals.transfer_btn", "Pindahkan Kru")}

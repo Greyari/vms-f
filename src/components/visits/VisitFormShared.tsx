@@ -144,7 +144,7 @@ export function resetCreateVisitCache() {
   cache = null
 }
 
-function upperKeepCaret(e: React.ChangeEvent<HTMLInputElement>): string {
+export function upperKeepCaret(e: React.ChangeEvent<HTMLInputElement>): string {
   const el = e.target
   const { selectionStart, selectionEnd } = el
   const next = el.value.toUpperCase()
@@ -158,7 +158,7 @@ function upperKeepCaret(e: React.ChangeEvent<HTMLInputElement>): string {
   return next
 }
 
-function focusNextField(from: HTMLElement) {
+export function focusNextField(from: HTMLElement) {
   const form = from.closest("form")
   if (!form) return
   const focusables = Array.from(
@@ -170,7 +170,7 @@ function focusNextField(from: HTMLElement) {
   if (i >= 0) focusables[i + 1]?.focus()
 }
 
-function filterOptions(options: Opt[], q: string): Opt[] {
+export function filterOptions(options: Opt[], q: string): Opt[] {
   const full = q.trim().toLowerCase()
   const tokens = full.split(/\s+/).filter(Boolean)
   if (!tokens.length) return options
@@ -200,7 +200,7 @@ export function isCardInUse(
   return card.status !== "available"
 }
 
-function cardStatusBadge(status: string): string {
+export function cardStatusBadge(status: string): string {
   if (!status || status === "in_use") return "IN USE"
   return status.replace(/_/g, " ").toUpperCase()
 }
@@ -248,7 +248,7 @@ export function filterAvailableCards(
  * ditandai merah di dropdown. Kartu yang dipegang kunjungan ini dimasukkan
  * walau tidak ada di halaman pertama /cards.
  */
-function withHeldCards(
+export function withHeldCards(
   allCards: CardItem[],
   heldCards: Array<{ id: number | string; card_no: string }> = []
 ): CardItem[] {
@@ -512,12 +512,12 @@ export const ROW_BASE = "flex cursor-pointer items-center gap-2 border-l-4 px-3 
 export const ROW_ACTIVE =
   "border-emerald-500 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-950/40"
 export const ROW_IDLE = "border-transparent"
-const ROW_LOCKED =
+export const ROW_LOCKED =
   "cursor-not-allowed border-red-500 bg-red-50 text-red-700 dark:border-red-600 dark:bg-red-950/40 dark:text-red-300"
 export const DROPDOWN =
   "absolute z-40 mt-1 w-full overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
 
-function SearchSelect({
+export function SearchSelect({
   id,
   inputRef,
   options,
@@ -1181,8 +1181,8 @@ export function VisitFormFields({
             emptyText={t("create_visit.staff_empty", "Staf tidak ditemukan.")}
           />
           {selectedStaff && (selectedStaff.occupation || selectedStaff.department) && (
-            <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
-              <span className="rounded bg-zinc-100 px-1.5 py-0.5 dark:bg-zinc-800">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
+              <span className="rounded bg-blue-50 px-1.5 py-0.5 dark:bg-blue-950/40">
                 {[selectedStaff.occupation, selectedStaff.department].filter(Boolean).join(" · ")}
               </span>
             </div>

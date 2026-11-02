@@ -287,7 +287,7 @@ export default function MasterImportDialog({
       <DialogContent className="max-h-[92vh] sm:max-w-6xl md:max-w-7xl w-[96vw] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-zinc-500" />
+            <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             {effectiveTitle}
           </DialogTitle>
           <DialogDescription>
@@ -299,7 +299,7 @@ export default function MasterImportDialog({
         <div className="flex items-center justify-between border-b pb-3 text-xs font-medium text-zinc-500 dark:border-zinc-800">
           <div
             className={`flex items-center gap-1.5 ${
-              step === "select" ? "text-emerald-700 font-semibold dark:text-emerald-400" : ""
+              step === "select" ? "text-blue-600 font-semibold dark:text-blue-400" : ""
             }`}
           >
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-[11px]">
@@ -310,7 +310,7 @@ export default function MasterImportDialog({
           <ArrowRight className="h-3.5 w-3.5 text-zinc-400" />
           <div
             className={`flex items-center gap-1.5 ${
-              step === "preview" ? "text-emerald-700 font-semibold dark:text-emerald-400" : ""
+              step === "preview" ? "text-blue-600 font-semibold dark:text-blue-400" : ""
             }`}
           >
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-[11px]">
@@ -321,7 +321,7 @@ export default function MasterImportDialog({
           <ArrowRight className="h-3.5 w-3.5 text-zinc-400" />
           <div
             className={`flex items-center gap-1.5 ${
-              step === "summary" ? "text-emerald-700 font-semibold dark:text-emerald-400" : ""
+              step === "summary" ? "text-blue-600 font-semibold dark:text-blue-400" : ""
             }`}
           >
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-[11px]">
@@ -334,13 +334,13 @@ export default function MasterImportDialog({
         {/* STEP 1: SELECT FILE */}
         {step === "select" && (
           <div className="space-y-5 py-2">
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/60">
+            <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-950 dark:bg-blue-950/20">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
-                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-300">
                     {t("master_import.template_title")}
                   </h4>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                  <p className="text-xs text-blue-700/80 dark:text-blue-400/80">
                     {t("master_import.template_desc")}
                   </p>
                 </div>
@@ -475,8 +475,8 @@ export default function MasterImportDialog({
                       <label
                         className={`flex items-start gap-2.5 rounded-md border p-2.5 cursor-pointer transition-colors ${
                           duplicateAction === "update"
-                            ? "border-emerald-500 bg-white ring-2 ring-emerald-500/20 dark:bg-zinc-900"
-                            : "border-zinc-200 bg-zinc-50 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/50"
+                            ? "border-blue-500 bg-white ring-2 ring-blue-500/20 dark:bg-zinc-900"
+                            : "border-amber-200 bg-amber-100/40 hover:bg-white dark:border-amber-800/50 dark:bg-zinc-900/50"
                         }`}
                       >
                         <input
@@ -485,7 +485,7 @@ export default function MasterImportDialog({
                           value="update"
                           checked={duplicateAction === "update"}
                           onChange={() => setDuplicateAction("update")}
-                          className="mt-0.5 accent-emerald-600 text-emerald-600 focus:ring-emerald-500"
+                          className="mt-0.5 text-blue-600 focus:ring-blue-500"
                         />
                         <div>
                           <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
@@ -500,8 +500,8 @@ export default function MasterImportDialog({
                       <label
                         className={`flex items-start gap-2.5 rounded-md border p-2.5 cursor-pointer transition-colors ${
                           duplicateAction === "replace"
-                            ? "border-emerald-500 bg-white ring-2 ring-emerald-500/20 dark:bg-zinc-900"
-                            : "border-zinc-200 bg-zinc-50 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/50"
+                            ? "border-blue-500 bg-white ring-2 ring-blue-500/20 dark:bg-zinc-900"
+                            : "border-amber-200 bg-amber-100/40 hover:bg-white dark:border-amber-800/50 dark:bg-zinc-900/50"
                         }`}
                       >
                         <input
@@ -510,7 +510,7 @@ export default function MasterImportDialog({
                           value="replace"
                           checked={duplicateAction === "replace"}
                           onChange={() => setDuplicateAction("replace")}
-                          className="mt-0.5 accent-emerald-600 text-emerald-600 focus:ring-emerald-500"
+                          className="mt-0.5 text-blue-600 focus:ring-blue-500"
                         />
                         <div>
                           <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
@@ -634,7 +634,7 @@ export default function MasterImportDialog({
                 type="button"
                 onClick={handleExecuteImport}
                 disabled={loadingImport || previewData.total_rows === 0}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {loadingImport ? (
                   <>

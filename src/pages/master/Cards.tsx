@@ -244,7 +244,7 @@ export default function Cards() {
         )
       case "in_use":
         return (
-          <Badge className="bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700">
+          <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-300 dark:border-blue-800">
             {t("cards.status_in_use", "In Use")}
           </Badge>
         )
@@ -442,7 +442,7 @@ export default function Cards() {
                         {(currentPage - 1) * perPage + index + 1}
                       </TableCell>
                       <TableCell className="font-mono font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                        <CreditCard className="h-4 w-4 text-blue-500 flex-shrink-0" />
                         <span>{card.card_no}</span>
                       </TableCell>
                       <TableCell className="font-mono text-sm text-zinc-700 dark:text-zinc-300">
@@ -665,7 +665,7 @@ export default function Cards() {
                     </span>
                   )}
                   {formStatus === "damaged" && (
-                    <span className="ml-1 text-red-600 font-normal">
+                    <span className="ml-1 text-rose-600 font-normal">
                       {t("cards.damaged_hint", "(Disarankan: catat rincian kerusakan kartu fisik)")}
                     </span>
                   )}

@@ -6,17 +6,22 @@ import { useAuth } from "@/context/AuthContext"
 import {
   Users,
   ClipboardList,
-  ShieldAlert,
+  CreditCard,
+  Car,
+  ShieldOff,
   UserCheck,
   AlertTriangle,
   RefreshCw,
   Ship,
   Anchor,
-  Plus,
+  PlusCircle,
   Printer,
   Clock,
   ArrowUpRight,
+  Compass,
   CheckCircle2,
+  LogIn,
+  LogOut,
   Building2,
 } from "lucide-react"
 import {
@@ -28,8 +33,8 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { StatusBadge } from "@/components/common/StatusBadge"
 
 interface DashboardData {
   stats: {
@@ -134,25 +139,20 @@ export default function Dashboard() {
     }
     fetchData()
 
-    // Polling cerdas: hanya refresh bila tab aktif
-    const interval = setInterval(() => {
-      if (!document.hidden) {
-        fetchData()
-      }
-    }, 30000)
-
+    // Auto refresh setiap 30 detik
+    const interval = setInterval(fetchData, 30000)
     return () => clearInterval(interval)
   }, [fetchData, canViewVisits])
 
   if (!canViewVisits) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
-        <div className="max-w-md space-y-3 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-          <Building2 className="mx-auto h-10 w-10 text-zinc-400" />
-          <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+        <div className="max-w-md space-y-4 rounded-xl border border-zinc-200 bg-zinc-50/60 p-8 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/40">
+          <Building2 className="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-500" />
+          <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
             {t("dashboard.welcome_title", "Selamat Datang di VMS")}
           </h2>
-          <p className="text-xs text-zinc-500 leading-relaxed dark:text-zinc-400">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
             {t(
               "dashboard.no_visits_permission",
               "Akun Anda tidak memiliki hak akses untuk melihat ringkasan operasional dashboard kunjungan. Silakan gunakan menu di navigasi sebelah kiri untuk mengakses modul Anda."
@@ -166,8 +166,8 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-3">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
-        <p className="text-xs text-zinc-500">{t("dashboard.loading", "Memuat data operasional dashboard...")}</p>
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-zinc-900 dark:border-zinc-100" />
+        <p className="text-sm font-medium text-zinc-500">{t("dashboard.loading", "Memuat data operasional dashboard...")}</p>
       </div>
     )
   }
@@ -175,17 +175,16 @@ export default function Dashboard() {
   if (!data) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-3 text-center">
-        <AlertTriangle className="h-6 w-6 text-amber-500" />
-        <p className="text-xs text-zinc-500">{t("dashboard.error_load", "Gagal memuat data dashboard.")}</p>
+        <AlertTriangle className="h-8 w-8 text-amber-500" />
+        <p className="text-sm text-zinc-500">{t("dashboard.error_load", "Gagal memuat data dashboard.")}</p>
         <Button
           onClick={() => {
             setLoading(true)
             fetchData()
           }}
-          size="sm"
-          className="gap-1.5"
+          className="inline-flex items-center gap-2"
         >
-          <RefreshCw className="h-3.5 w-3.5" />
+          <RefreshCw className="h-4 w-4" />
           {t("dashboard.retry", "Coba Lagi")}
         </Button>
       </div>
@@ -198,7 +197,9 @@ export default function Dashboard() {
       value: data.stats.active_visits,
       sub: t("dashboard.stat_active_yard_sub", `Hari ini: +${data.stats.today_visits || 0} masuk · ${data.stats.today_checkouts || 0} keluar`).replace("{{today}}", String(data.stats.today_visits || 0)).replace("{{out}}", String(data.stats.today_checkouts || 0)),
       icon: UserCheck,
-      isAccent: true,
+      color: "text-emerald-600 dark:text-emerald-400",
+      bg: "bg-emerald-50/70 dark:bg-emerald-950/20",
+      border: "border-emerald-200 dark:border-emerald-900/60",
       onClick: () => navigate("/visits/history"),
     },
     {
@@ -206,35 +207,49 @@ export default function Dashboard() {
       value: data.crew?.active_onboard ?? data.stats.active_crew ?? 0,
       sub: t("dashboard.stat_crew_onboard_sub", `Dari ${data.stats.total_crew || 0} total kru terdaftar`).replace("{{total}}", String(data.stats.total_crew || 0)),
       icon: Anchor,
-      onClick: () => navigate("/vessel-arrivals"),
+      color: "text-blue-600 dark:text-blue-400",
+      bg: "bg-blue-50/70 dark:bg-blue-950/20",
+      border: "border-blue-200 dark:border-blue-900/60",
+      onClick: () => navigate("/vessels/arrivals"),
     },
     {
       label: t("dashboard.stat_vessels_in_yard", "Kapal Bersandar di Galangan"),
       value: data.vessels?.active_in_yard ?? data.stats.active_vessels ?? 0,
       sub: t("dashboard.stat_vessels_in_yard_sub", `Dari ${data.stats.total_vessels || 0} total kapal di master data`).replace("{{total}}", String(data.stats.total_vessels || 0)),
       icon: Ship,
-      onClick: () => navigate("/vessel-arrivals"),
+      color: "text-cyan-600 dark:text-cyan-400",
+      bg: "bg-cyan-50/70 dark:bg-cyan-950/20",
+      border: "border-cyan-200 dark:border-cyan-900/60",
+      onClick: () => navigate("/vessels/arrivals"),
     },
     {
       label: t("dashboard.stat_month_visits", "Kunjungan Bulan Ini"),
       value: data.stats.month_visits,
       sub: t("dashboard.stat_month_visits_sub", "Laporan rekapitulasi bulan berjalan"),
       icon: ClipboardList,
-      onClick: () => navigate("/reports/visits"),
+      color: "text-purple-600 dark:text-purple-400",
+      bg: "bg-purple-50/70 dark:bg-purple-950/20",
+      border: "border-purple-200 dark:border-purple-900/60",
+      onClick: () => navigate("/reports/visitors"),
     },
     {
       label: t("dashboard.stat_total_visitors", "Database Pengunjung Master"),
       value: data.stats.total_visitors,
       sub: t("dashboard.stat_total_visitors_sub", "Tamu, vendor & kontraktor terdaftar"),
       icon: Users,
+      color: "text-zinc-600 dark:text-zinc-400",
+      bg: "bg-zinc-50 dark:bg-zinc-900/50",
+      border: "border-zinc-200 dark:border-zinc-800",
       onClick: () => navigate("/master/visitors"),
     },
     {
       label: t("dashboard.stat_blacklist", "Data Blacklist Terpantau"),
       value: data.stats.active_blacklists_count ?? data.stats.blacklisted_visitors ?? 0,
       sub: t("dashboard.stat_blacklist_sub", "Daftar cekal keamanan aktif"),
-      icon: ShieldAlert,
-      isDanger: (data.stats.active_blacklists_count ?? data.stats.blacklisted_visitors ?? 0) > 0,
+      icon: ShieldOff,
+      color: "text-rose-600 dark:text-rose-400",
+      bg: "bg-rose-50/70 dark:bg-rose-950/20",
+      border: "border-rose-200 dark:border-rose-900/60",
       onClick: () => navigate("/master/visitors/blacklist"),
     },
   ]
@@ -243,47 +258,49 @@ export default function Dashboard() {
   const recentCrewLogs = data.crew?.recent_logs || []
 
   return (
-    <div className="space-y-6 pb-8">
-      {/* Top Header & Actions */}
-      <div className="flex flex-col gap-4 border-b border-zinc-200 pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
+    <div className="space-y-6 pb-12">
+      {/* Top Header & Quick Action Hub */}
+      <div className="flex flex-col items-start justify-between gap-4 border-b border-zinc-200 pb-5 md:flex-row md:items-center dark:border-zinc-800">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-              {t("dashboard.title", "Ringkasan Operasional")}
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+              {t("dashboard.title", "Dashboard Operasional VMS")}
             </h1>
-            <StatusBadge variant="success" dot>
+            <Badge variant="outline" className="text-xs font-mono">
               {t("dashboard.live_monitoring", "Live Monitoring")}
-            </StatusBadge>
+            </Badge>
           </div>
-          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1 text-xs text-zinc-500 sm:text-sm dark:text-zinc-400">
             {t("dashboard.subtitle", "Pusat pemantauan kunjungan harian, kapal & kru di galangan, serta status kartu akses.")}
           </p>
         </div>
 
-        {/* Quick Actions: Primary Emerald + Clean Outlines */}
+        {/* Quick Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
             onClick={() => navigate("/visits/create")}
-            className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium"
+            className="h-9 gap-1.5 bg-zinc-900 text-xs font-semibold text-white shadow-sm hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
-            <Plus className="h-4 w-4" />
-            {t("dashboard.add_visit", "Tambah Kunjungan")}
+            <PlusCircle className="h-4 w-4" />
+            {t("dashboard.add_visit", "+ Tambah Kunjungan")}
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate("/visits/history")}
-            className="h-8 text-xs font-medium"
+            className="h-9 gap-1.5 text-xs"
           >
+            <UserCheck className="h-4 w-4 text-emerald-600" />
             {t("dashboard.visit_history", "Riwayat Kunjungan")}
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate("/vessel-arrivals")}
-            className="h-8 text-xs font-medium"
+            className="h-9 gap-1.5 text-xs"
           >
+            <Ship className="h-4 w-4 text-blue-600" />
             {t("dashboard.vessel_arrivals", "Kedatangan Kapal / Kru")}
           </Button>
         </div>
@@ -291,7 +308,7 @@ export default function Dashboard() {
 
       {/* Live-refresh failure warning */}
       {error && (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400">
           <span className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
             {t("dashboard.connection_interrupted", "Koneksi auto-refresh terganggu — menampilkan data terakhir yang berhasil dimuat.")}
@@ -300,44 +317,36 @@ export default function Dashboard() {
             variant="outline"
             size="sm"
             onClick={() => fetchData()}
-            className="h-6 text-xs px-2"
+            className="h-7 text-xs"
           >
-            <RefreshCw className="mr-1 h-3 w-3" />
+            <RefreshCw className="mr-1 h-3.5 w-3.5" />
             {t("dashboard.reload", "Muat Ulang")}
           </Button>
         </div>
       )}
 
-      {/* Stat Metric Cards Grid: Clean Neutral Cards with Single Emerald Accent */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      {/* Stat Metric Cards Grid */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {statCards.map((card, i) => (
           <div
             key={i}
             onClick={card.onClick}
-            className={`group relative cursor-pointer rounded-lg border border-zinc-200 bg-white p-3.5 shadow-2xs transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 ${
-              card.isAccent ? "border-l-4 border-l-emerald-600" : ""
-            } ${card.isDanger ? "border-l-4 border-l-red-600" : ""}`}
+            className={`group relative cursor-pointer rounded-xl border ${card.border} ${card.bg} p-4 transition-all hover:scale-[1.02] hover:shadow-md`}
           >
-            <div className="flex items-center justify-between text-zinc-400">
-              <card.icon className="h-4 w-4" />
-              <ArrowUpRight className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="flex items-center justify-between">
+              <div className={`${card.color} rounded-lg p-2 bg-white/80 dark:bg-zinc-900/80 shadow-xs`}>
+                <card.icon className="h-5 w-5" />
+              </div>
+              <ArrowUpRight className="h-4 w-4 text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
-            <div className="mt-2.5">
-              <p
-                className={`text-2xl font-semibold tracking-tight ${
-                  card.isDanger
-                    ? "text-red-600 dark:text-red-400"
-                    : card.isAccent
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-zinc-900 dark:text-zinc-100"
-                }`}
-              >
+            <div className="mt-3">
+              <p className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
                 {card.value}
               </p>
-              <p className="mt-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+              <p className="mt-0.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200">
                 {card.label}
               </p>
-              <p className="mt-0.5 text-[11px] text-zinc-400 dark:text-zinc-500 truncate">
+              <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
                 {card.sub}
               </p>
             </div>
@@ -346,30 +355,30 @@ export default function Dashboard() {
       </div>
 
       {/* Main Grid: Chart & Vessels on Left, Inventory & Crew Logs on Right */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Kolom Kiri (2 Span) */}
-        <div className="space-y-4 lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Kolom Kiri & Tengah (2 Span) */}
+        <div className="space-y-6 lg:col-span-2">
           {/* Trend Kunjungan Mingguan */}
-          <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="mb-3 flex items-center justify-between">
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                   {t("dashboard.chart_title", "Tren Kunjungan 7 Hari Terakhir")}
                 </h2>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="text-xs text-zinc-500">
                   {t("dashboard.chart_subtitle", "Volume kunjungan masuk per hari di area galangan")}
                 </p>
               </div>
-              <span className="text-[11px] font-mono text-zinc-400">
+              <Badge variant="secondary" className="text-xs font-mono font-medium">
                 {t("dashboard.chart_badge", "7 Hari Terakhir")}
-              </span>
+              </Badge>
             </div>
-            <div className="h-56 w-full">
+            <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.chart} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
+                <BarChart data={data.chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#71717a" }} axisLine={{ stroke: "#e4e4e7" }} />
-                  <YAxis tick={{ fontSize: 11, fill: "#71717a" }} allowDecimals={false} axisLine={{ stroke: "#e4e4e7" }} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "#18181b",
@@ -380,69 +389,73 @@ export default function Dashboard() {
                     }}
                     labelStyle={{ color: "#a1a1aa", fontWeight: "bold" }}
                   />
-                  <Bar dataKey="total" name={t("dashboard.chart_series", "Kunjungan")} fill="#059669" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="total" name={t("dashboard.chart_series", "Kunjungan")} fill="#18181b" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Kapal yang Sedang Berada di Galangan */}
-          <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {t("dashboard.vessels_title", "Kapal Sedang Bersandar di Galangan")}
-                </h2>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {t("dashboard.vessels_subtitle", "Daftar kapal aktif dengan personil kru yang sedang on-board")}
-                </p>
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Ship className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div>
+                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    {t("dashboard.vessels_title", "Kapal Sedang Bersandar di Galangan")}
+                  </h2>
+                  <p className="text-xs text-zinc-500">
+                    {t("dashboard.vessels_subtitle", "Daftar kapal aktif dengan personil kru yang sedang on-board")}
+                  </p>
+                </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate("/vessel-arrivals")}
-                className="h-7 text-xs font-medium gap-1 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                onClick={() => navigate("/vessels/arrivals")}
+                className="h-8 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
               >
                 {t("dashboard.view_all", "Lihat Semua")} ({data.vessels?.active_in_yard || 0})
-                <ArrowUpRight className="h-3 w-3" />
+                <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
               </Button>
             </div>
 
             {activeVessels.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-zinc-200 p-5 text-center dark:border-zinc-800">
-                <Ship className="h-6 w-6 text-zinc-300 dark:text-zinc-700" />
-                <p className="mt-1 text-xs text-zinc-500">
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 p-6 text-center dark:border-zinc-800">
+                <Ship className="h-8 w-8 text-zinc-300 dark:text-zinc-700" />
+                <p className="mt-2 text-xs font-medium text-zinc-500">
                   {t("dashboard.no_active_vessels", "Tidak ada kedatangan kapal yang tercatat aktif saat ini.")}
                 </p>
               </div>
             ) : (
               <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
                 {activeVessels.map((v) => (
-                  <div key={v.id} className="flex flex-col justify-between gap-1.5 py-2.5 sm:flex-row sm:items-center">
-                    <div className="space-y-0.5">
+                  <div key={v.id} className="flex flex-col justify-between gap-2 py-3 sm:flex-row sm:items-center">
+                    <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-xs text-zinc-900 dark:text-zinc-100">
+                        <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
                           {v.vessel_name}
                         </span>
                         {v.imo && v.imo !== "-" && (
-                          <span className="rounded bg-zinc-100 px-1 py-0.2 font-mono text-[10px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                          <Badge variant="outline" className="font-mono text-[10px]">
                             IMO: {v.imo}
-                          </span>
+                          </Badge>
                         )}
                         {v.flag && v.flag !== "-" && (
                           <span className="text-[11px] text-zinc-500">
-                            · {v.flag}
+                            • {v.flag}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-zinc-500">
-                        {t("dashboard.captain", "Nakhoda")}: <span className="font-medium text-zinc-700 dark:text-zinc-300">{v.captain || "-"}</span> · {t("dashboard.sign_in", "Masuk")}: {v.sign_in_date}
+                      <p className="text-xs text-zinc-500">
+                        {t("dashboard.captain", "Nakhoda")}: <strong className="font-medium text-zinc-700 dark:text-zinc-300">{v.captain || "-"}</strong> · {t("dashboard.sign_in", "Masuk")}: {v.sign_in_date}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge variant="neutral">
+                    <div className="flex items-center gap-3">
+                      <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900 font-medium text-xs">
+                        <Anchor className="mr-1 h-3 w-3" />
                         {v.active_crew_count} {t("dashboard.crew_onboard", "Kru On-Board")}
-                      </StatusBadge>
+                      </Badge>
                     </div>
                   </div>
                 ))}
@@ -452,42 +465,45 @@ export default function Dashboard() {
         </div>
 
         {/* Kolom Kanan (1 Span): Inventory Kartu & Recent Crew Activity */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Status Kartu Visitor */}
-          <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="mb-2.5 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                {t("dashboard.visitor_cards", "Kartu Akses Pengunjung")}
-              </h2>
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {t("dashboard.visitor_cards", "Kartu Akses Pengunjung")}
+                </h2>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/master/cards")}
-                className="h-6 px-1.5 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                className="h-7 px-2 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
               >
                 {t("dashboard.manage", "Kelola")}
               </Button>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">{t("dashboard.available", "Tersedia")}</span>
-                <span className="font-semibold font-mono text-emerald-600 dark:text-emerald-400">
+                <span className="text-zinc-500">{t("dashboard.available", "Tersedia (Available)")}</span>
+                <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
                   {data.cards.available} {t("dashboard.cards_unit", "kartu")}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">{t("dashboard.in_use", "Sedang Digunakan")}</span>
-                <span className="font-semibold font-mono text-zinc-700 dark:text-zinc-300">
+                <span className="text-zinc-500">{t("dashboard.in_use", "Sedang Digunakan (In Use)")}</span>
+                <span className="font-bold font-mono text-amber-600 dark:text-amber-400">
                   {data.cards.in_use} {t("dashboard.cards_unit", "kartu")}
                 </span>
               </div>
-              <div className="flex justify-between border-t border-zinc-100 pt-1.5 text-xs font-medium dark:border-zinc-800">
+              <div className="flex justify-between border-t border-zinc-100 pt-2 text-xs font-semibold dark:border-zinc-800">
                 <span className="text-zinc-600 dark:text-zinc-400">{t("dashboard.total_cards", "Total Kartu Fisik")}</span>
                 <span className="font-mono text-zinc-900 dark:text-zinc-100">{data.cards.total} {t("dashboard.cards_unit", "kartu")}</span>
               </div>
-              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+              <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                 <div
-                  className="h-1.5 rounded-full bg-emerald-600 transition-all"
+                  className="h-2 rounded-full bg-emerald-500 transition-all"
                   style={{
                     width: `${data.cards.total > 0 ? (data.cards.in_use / data.cards.total) * 100 : 0}%`,
                   }}
@@ -497,40 +513,43 @@ export default function Dashboard() {
           </div>
 
           {/* Status Kartu Kendaraan */}
-          <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="mb-2.5 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                {t("dashboard.vehicle_cards", "Kartu Akses Kendaraan")}
-              </h2>
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Car className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {t("dashboard.vehicle_cards", "Kartu Akses Kendaraan")}
+                </h2>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/master/vehicle-cards")}
-                className="h-6 px-1.5 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                className="h-7 px-2 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
               >
                 {t("dashboard.manage", "Kelola")}
               </Button>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">{t("dashboard.available", "Tersedia")}</span>
-                <span className="font-semibold font-mono text-emerald-600 dark:text-emerald-400">
+                <span className="text-zinc-500">{t("dashboard.available", "Tersedia (Available)")}</span>
+                <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
                   {data.vehicle_cards.available} {t("dashboard.cards_unit", "kartu")}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">{t("dashboard.in_use", "Sedang Digunakan")}</span>
-                <span className="font-semibold font-mono text-zinc-700 dark:text-zinc-300">
+                <span className="text-zinc-500">{t("dashboard.in_use", "Sedang Digunakan (In Use)")}</span>
+                <span className="font-bold font-mono text-amber-600 dark:text-amber-400">
                   {data.vehicle_cards.in_use} {t("dashboard.cards_unit", "kartu")}
                 </span>
               </div>
-              <div className="flex justify-between border-t border-zinc-100 pt-1.5 text-xs font-medium dark:border-zinc-800">
+              <div className="flex justify-between border-t border-zinc-100 pt-2 text-xs font-semibold dark:border-zinc-800">
                 <span className="text-zinc-600 dark:text-zinc-400">{t("dashboard.total_vehicle_cards", "Total Kartu Kendaraan")}</span>
                 <span className="font-mono text-zinc-900 dark:text-zinc-100">{data.vehicle_cards.total} {t("dashboard.cards_unit", "kartu")}</span>
               </div>
-              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+              <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                 <div
-                  className="h-1.5 rounded-full bg-zinc-700 dark:bg-zinc-300 transition-all"
+                  className="h-2 rounded-full bg-blue-500 transition-all"
                   style={{
                     width: `${data.vehicle_cards.total > 0 ? (data.vehicle_cards.in_use / data.vehicle_cards.total) * 100 : 0}%`,
                   }}
@@ -540,46 +559,55 @@ export default function Dashboard() {
           </div>
 
           {/* Aktivitas Kru Kapal Terkini */}
-          <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="mb-2.5 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                {t("dashboard.recent_crew_activity", "Aktivitas Kru Terkini")}
-              </h2>
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Compass className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {t("dashboard.recent_crew_activity", "Aktivitas Kru Terkini")}
+                </h2>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate("/vessel-arrivals")}
-                className="h-6 px-1.5 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                onClick={() => navigate("/vessels/arrivals")}
+                className="h-7 px-2 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
               >
                 {t("dashboard.full_log", "Log Lengkap")}
               </Button>
             </div>
 
             {recentCrewLogs.length === 0 ? (
-              <p className="py-3 text-center text-xs text-zinc-500">
+              <p className="py-4 text-center text-xs text-zinc-500">
                 {t("dashboard.no_recent_crew_activity", "Belum ada aktivitas kru tercatat baru-baru ini.")}
               </p>
             ) : (
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {recentCrewLogs.map((log) => (
-                  <div key={log.id} className="flex items-start justify-between gap-2 border-b border-zinc-100 pb-2 last:border-0 dark:border-zinc-800/60">
+                  <div key={log.id} className="flex items-start justify-between gap-2 border-b border-zinc-50 pb-2.5 last:border-0 dark:border-zinc-900">
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                        <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                           {log.crew_name}
                         </span>
-                        <span className="text-[10px] text-zinc-400">
+                        <span className="text-[10px] text-zinc-500">
                           ({log.occupation})
                         </span>
                       </div>
-                      <p className="text-[11px] text-zinc-500 truncate max-w-[180px]">
+                      <p className="text-[11px] text-zinc-500 truncate max-w-[200px]">
                         {t("dashboard.vessel", "Kapal")}: {log.vessel_name}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <StatusBadge variant={log.action === "check_in" ? "success" : "neutral"}>
-                        {log.action === "check_in" ? t("dashboard.on_board", "On Board") : t("dashboard.sign_off", "Sign Off")}
-                      </StatusBadge>
+                      {log.action === "check_in" ? (
+                        <Badge variant="outline" className="bg-emerald-50 text-[10px] text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300">
+                          <LogIn className="mr-0.5 h-2.5 w-2.5" /> {t("dashboard.on_board", "On Board")}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-amber-50 text-[10px] text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300">
+                          <LogOut className="mr-0.5 h-2.5 w-2.5" /> {t("dashboard.sign_off", "Sign Off")}
+                        </Badge>
+                      )}
                       <p className="mt-0.5 font-mono text-[10px] text-zinc-400">
                         {log.time}
                       </p>
@@ -593,18 +621,18 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom Section: Currently Active Visitors Table */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mb-3 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+      <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
                 {t("dashboard.active_visitors_table_title", "Pengunjung & Kru yang Sedang Aktif di Yard")}
               </h2>
-              <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              <Badge className="bg-zinc-900 text-xs text-white dark:bg-zinc-100 dark:text-zinc-900">
                 {data.recent_visits.length} {t("dashboard.latest", "Terbaru")}
-              </span>
+              </Badge>
             </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-zinc-500">
               {t("dashboard.active_visitors_table_subtitle", "Daftar tamu dan kru kapal yang masih berstatus kunjungan terbuka (belum check-out)")}
             </p>
           </div>
@@ -612,7 +640,7 @@ export default function Dashboard() {
             variant="outline"
             size="sm"
             onClick={() => navigate("/visits/history")}
-            className="h-7 text-xs font-medium gap-1"
+            className="h-8 gap-1 text-xs"
           >
             {t("dashboard.view_all_active", "Lihat Semua Kunjungan Aktif")}
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -620,56 +648,69 @@ export default function Dashboard() {
         </div>
 
         {data.recent_visits.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-6 text-center">
-            <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-            <p className="mt-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+          <div className="flex flex-col items-center justify-center p-8 text-center">
+            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+            <p className="mt-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
               {t("dashboard.no_active_visitors", "Tidak ada tamu aktif di area galangan saat ini.")}
             </p>
-            <p className="text-[11px] text-zinc-400">
+            <p className="text-xs text-zinc-500">
               {t("dashboard.all_checked_out", "Semua pengunjung telah melakukan check-out.")}
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-md border border-zinc-200 dark:border-zinc-800">
+          <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-zinc-200 bg-zinc-50/70 text-[11px] font-medium text-zinc-500 uppercase dark:border-zinc-800 dark:bg-zinc-800/40 dark:text-zinc-400">
+              <thead className="border-b border-zinc-200 bg-zinc-50/70 text-[11px] font-semibold text-zinc-600 uppercase dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400">
                 <tr>
-                  <th className="py-2 px-3">{t("dashboard.th_ticket", "No. Tiket")}</th>
-                  <th className="py-2 px-3">{t("dashboard.th_visitor", "Nama Pengunjung & Instansi")}</th>
-                  <th className="py-2 px-3">{t("dashboard.th_type", "Tipe")}</th>
-                  <th className="py-2 px-3">{t("dashboard.th_destination", "Tujuan (Lokasi / Kapal)")}</th>
-                  <th className="py-2 px-3">{t("dashboard.th_host", "Staf yang Dikunjungi / Nakhoda")}</th>
-                  <th className="py-2 px-3">{t("dashboard.th_card", "Kartu Akses")}</th>
-                  <th className="py-2 px-3">{t("dashboard.th_time_in", "Jam Masuk")}</th>
-                  <th className="py-2 px-3 text-right">{t("dashboard.th_action", "Aksi")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_ticket", "No. Tiket")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_visitor", "Nama Pengunjung & Instansi")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_type", "Tipe")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_destination", "Tujuan (Lokasi / Kapal)")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_host", "Staf yang Dikunjungi / Nakhoda")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_card", "Kartu Akses")}</th>
+                  <th className="py-2.5 px-3">{t("dashboard.th_time_in", "Jam Masuk")}</th>
+                  <th className="py-2.5 px-3 text-right">{t("dashboard.th_action", "Aksi")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                 {data.recent_visits.map((visit) => (
-                  <tr key={visit.id} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
-                    <td className="py-2.5 px-3 font-mono font-medium text-zinc-900 dark:text-zinc-100">
+                  <tr key={visit.id} className="hover:bg-zinc-50/80 dark:hover:bg-zinc-900/50 transition-colors">
+                    <td className="py-3 px-3 font-mono font-medium text-zinc-900 dark:text-zinc-100">
                       {visit.ticket_number}
                     </td>
-                    <td className="py-2.5 px-3">
-                      <div className="font-medium text-zinc-900 dark:text-zinc-100">
+                    <td className="py-3 px-3">
+                      <div className="font-semibold text-zinc-900 dark:text-zinc-100">
                         {visit.visitor_name}
                       </div>
                       <div className="text-[11px] text-zinc-500">
                         {visit.company || "-"} · {visit.purpose}
                       </div>
                     </td>
-                    <td className="py-2.5 px-3">
-                      <StatusBadge variant="neutral">
-                        {visit.visitor_type === "crew" ? t("dashboard.crew_badge", "Kru Kapal") : t("dashboard.guest_badge", "Tamu")}
-                      </StatusBadge>
+                    <td className="py-3 px-3">
+                      {visit.visitor_type === "crew" ? (
+                        <Badge variant="outline" className="bg-blue-50 text-[10px] text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300">
+                          <Anchor className="mr-0.5 h-2.5 w-2.5" /> {t("dashboard.crew_badge", "Kru Kapal")}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-zinc-50 text-[10px] text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300">
+                          {t("dashboard.guest_badge", "Tamu")}
+                        </Badge>
+                      )}
                     </td>
-                    <td className="py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
-                      <span>{visit.location_name || "-"}</span>
+                    <td className="py-3 px-3">
+                      <div className="flex items-center gap-1.5 font-medium text-zinc-800 dark:text-zinc-200">
+                        {visit.is_vessel ? (
+                          <Ship className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                        ) : (
+                          <Building2 className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                        )}
+                        <span>{visit.location_name || "-"}</span>
+                      </div>
                     </td>
-                    <td className="py-2.5 px-3 text-zinc-600 dark:text-zinc-400">
+                    <td className="py-3 px-3 text-zinc-600 dark:text-zinc-400">
                       {visit.staff_name || "-"}
                     </td>
-                    <td className="py-2.5 px-3">
+                    <td className="py-3 px-3">
                       <div className="flex flex-wrap items-center gap-1">
                         {visit.card_no && visit.card_no !== "-" && (
                           <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
@@ -677,7 +718,7 @@ export default function Dashboard() {
                           </span>
                         )}
                         {visit.vehicle_no && visit.vehicle_no !== "-" && (
-                          <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                          <span className="rounded bg-blue-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
                             {visit.vehicle_no}
                           </span>
                         )}
@@ -686,13 +727,13 @@ export default function Dashboard() {
                         )}
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 font-mono text-zinc-600 dark:text-zinc-400">
+                    <td className="py-3 px-3 font-mono text-zinc-600 dark:text-zinc-400">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3 text-zinc-400" />
                         {visit.time_in}
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 text-right">
+                    <td className="py-3 px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <Button
                           variant="ghost"

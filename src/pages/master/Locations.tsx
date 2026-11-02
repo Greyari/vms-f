@@ -424,9 +424,9 @@ export default function Locations() {
                       <TableCell className="font-semibold text-zinc-900 dark:text-zinc-100">
                         <div className="flex items-center gap-2">
                           {isPlace ? (
-                            <Building2 className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                            <Building2 className="h-4 w-4 text-blue-500 flex-shrink-0" />
                           ) : (
-                            <Ship className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                            <Ship className="h-4 w-4 text-emerald-500 flex-shrink-0" />
                           )}
                           <span>{item.name}</span>
                         </div>

@@ -55,7 +55,7 @@ export interface LogRow {
   created_at: string
 }
 
-function formatLogDateTime(raw?: string | null): string {
+export function formatLogDateTime(raw?: string | null): string {
   if (!raw) return "-"
   try {
     const parsed = new Date(raw.includes("T") ? raw : raw.replace(" ", "T"))
@@ -74,7 +74,7 @@ function formatLogDateTime(raw?: string | null): string {
   return raw
 }
 
-function getRelativeTime(raw?: string | null, isIndo = true): string {
+export function getRelativeTime(raw?: string | null, isIndo = true): string {
   if (!raw) return ""
   try {
     const parsed = new Date(raw.includes("T") ? raw : raw.replace(" ", "T"))
@@ -245,16 +245,19 @@ export default function ActivityLogs() {
       case "created":
       case "checked_in":
         return "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+      case "updated":
+        return "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
       case "deleted":
       case "login_failed":
       case "blacklisted":
-        return "bg-red-50 text-red-700 border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800"
+        return "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
       case "restored":
       case "unblacklisted":
         return "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-      case "updated":
       case "reprinted":
+        return "bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
       case "checked_out":
+        return "bg-orange-50 text-orange-700 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800"
       case "login":
       case "logout":
       default:
@@ -573,7 +576,7 @@ export default function ActivityLogs() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
-              <ShieldAlert className="h-5 w-5 text-zinc-500" />
+              <ShieldAlert className="h-5 w-5 text-blue-600" />
               {t("logs.detail_title", "Detail Log Aktivitas")}
             </DialogTitle>
             <DialogDescription>
@@ -623,7 +626,7 @@ export default function ActivityLogs() {
                   <span className="text-[11px] font-medium text-zinc-500">{t("logs.subject_label", "Subjek Data:")}</span>
                   <div className="font-semibold text-zinc-900 dark:text-zinc-100">
                     {selectedLog.subject_type && (
-                      <span className="font-mono text-zinc-500 mr-1.5">[{selectedLog.subject_type}]</span>
+                      <span className="font-mono text-blue-600 dark:text-blue-400 mr-1.5">[{selectedLog.subject_type}]</span>
                     )}
                     {selectedLog.subject_label || selectedLog.subject_id || "-"}
                   </div>

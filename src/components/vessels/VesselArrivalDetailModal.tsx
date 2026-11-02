@@ -603,7 +603,7 @@ export default function VesselArrivalDetailModal({
             <div className="p-4 bg-zinc-50 dark:bg-zinc-900/60 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-2">
                 <div className="font-semibold text-zinc-900 dark:text-zinc-100 flex flex-wrap items-center gap-2">
-                  <Ship className="h-4 w-4 text-zinc-500" />
+                  <Ship className="h-4 w-4 text-blue-500" />
                   <span>{detail.vessel_name}</span>
                   {detail.vessel?.code && (
                     <Badge variant="outline" className="font-mono text-xs">
@@ -682,7 +682,7 @@ export default function VesselArrivalDetailModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-2">
                 <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                  <Building className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
+                  <Building className="h-3.5 w-3.5 text-blue-500" />
                   {t("vesselArrivals.local_agent_title", "Agen Lokal (Indonesia)")}
                 </div>
                 <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -701,7 +701,7 @@ export default function VesselArrivalDetailModal({
 
               <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-2">
                 <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                  <Building className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
+                  <Building className="h-3.5 w-3.5 text-blue-500" />
                   {t("vesselArrivals.foreign_agent_title", "Agen Luar Negeri (Foreign)")}
                 </div>
                 <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -728,7 +728,7 @@ export default function VesselArrivalDetailModal({
                     onClick={() => setActiveTab("manifest")}
                     className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
                       activeTab === "manifest"
-                        ? "bg-emerald-600 text-white shadow-xs"
+                        ? "bg-blue-600 text-white shadow-xs"
                         : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300"
                     }`}
                   >
@@ -744,7 +744,7 @@ export default function VesselArrivalDetailModal({
                     onClick={() => setActiveTab("logs")}
                     className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
                       activeTab === "logs"
-                        ? "bg-emerald-600 text-white shadow-xs"
+                        ? "bg-blue-600 text-white shadow-xs"
                         : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300"
                     }`}
                   >
@@ -792,7 +792,7 @@ export default function VesselArrivalDetailModal({
                       type="button"
                       size="sm"
                       onClick={() => setAddCrewOpen(true)}
-                      className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                      className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       <UserPlus className="h-3.5 w-3.5 mr-1" />
                       {t("vesselArrivals.btn_checkin_add_crew", "Check-In / Tambah Kru")}
@@ -803,8 +803,8 @@ export default function VesselArrivalDetailModal({
 
               {/* Bulk Actions Bar if items selected */}
               {selectedCrewIds.size > 0 && (
-                <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs">
-                  <div className="font-medium text-zinc-900 dark:text-zinc-100">
+                <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-lg text-xs">
+                  <div className="font-medium text-blue-900 dark:text-blue-200">
                     {t("vesselArrivals.selected_crew_bar", "Terpilih {{count}} kru", { count: selectedCrewIds.size })}
                   </div>
                   <div className="flex items-center gap-2">
@@ -906,14 +906,14 @@ export default function VesselArrivalDetailModal({
                             <button
                               type="button"
                               onClick={toggleSelectAll}
-                              className="p-1 hover:text-emerald-600 transition-colors"
+                              className="p-1 hover:text-blue-600 transition-colors"
                               title={t("vesselArrivals.select_all_title", "Pilih semua")}
                             >
                               {filteredCrew &&
                               filteredCrew.length > 0 &&
                               selectedCrewIds.size === filteredCrew.length &&
                               selectedCrewIds.size > 0 ? (
-                                <CheckSquare className="h-4 w-4 text-emerald-600" />
+                                <CheckSquare className="h-4 w-4 text-blue-600" />
                               ) : (
                                 <Square className="h-4 w-4 text-zinc-400" />
                               )}
@@ -967,10 +967,10 @@ export default function VesselArrivalDetailModal({
                                 <button
                                   type="button"
                                   onClick={() => toggleSelectCrew(member.id)}
-                                  className="p-1 hover:text-emerald-600 cursor-pointer transition-colors"
+                                  className="p-1 hover:text-blue-600 cursor-pointer transition-colors"
                                 >
                                   {isSelected ? (
-                                    <CheckSquare className="h-4 w-4 text-emerald-600" />
+                                    <CheckSquare className="h-4 w-4 text-blue-600" />
                                   ) : (
                                     <Square className="h-4 w-4 text-zinc-400" />
                                   )}
@@ -988,7 +988,7 @@ export default function VesselArrivalDetailModal({
                                   }}
                                   className="text-left group cursor-pointer"
                                 >
-                                  <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-emerald-600 transition-colors underline-offset-2 group-hover:underline">
+                                  <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 transition-colors underline-offset-2 group-hover:underline">
                                     {member.name}
                                   </div>
                                   <div className="text-xs text-zinc-500">
@@ -1107,7 +1107,7 @@ export default function VesselArrivalDetailModal({
                                   size="sm"
                                   onClick={() => handleOpenCrewLog(member.id)}
                                   title={`${t("vesselArrivals.view_crew_log_title", "Lihat Riwayat Log")} ${member.name}`}
-                                  className="h-7 px-2 text-xs text-zinc-600 hover:text-emerald-600 dark:text-zinc-400"
+                                  className="h-7 px-2 text-xs text-zinc-600 hover:text-blue-600 dark:text-zinc-400"
                                 >
                                   <History className="h-3 w-3 mr-1" />
                                   {t("vesselArrivals.btn_log", "Log")} ({memberLogCount})

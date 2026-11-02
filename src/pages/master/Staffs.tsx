@@ -55,13 +55,13 @@ export type StaffColumnKey =
   | "company"
   | "status"
 
-const DEFAULT_VISIBLE_COLUMNS: StaffColumnKey[] = [
+export const DEFAULT_VISIBLE_COLUMNS: StaffColumnKey[] = [
   "occupation",
   "company",
   "status",
 ]
 
-const ALL_OPTIONAL_COLUMNS: StaffColumnKey[] = [
+export const ALL_OPTIONAL_COLUMNS: StaffColumnKey[] = [
   "occupation",
   "staff_id",
   "department",
@@ -399,7 +399,7 @@ export default function Staffs() {
                   <button
                     type="button"
                     onClick={resetColumnsToDefault}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 hover:underline dark:text-emerald-400 cursor-pointer"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline dark:text-blue-400 cursor-pointer"
                   >
                     <RotateCcw className="h-3 w-3" />
                     {t("staffs.columns_reset", "Reset ke default")}
@@ -573,7 +573,7 @@ export default function Staffs() {
                       {staff.name}
                     </TableCell>
                     {isColVisible("occupation") && (
-                      <TableCell className="font-medium text-zinc-700 dark:text-zinc-300">
+                      <TableCell className="font-medium text-blue-600 dark:text-blue-400">
                         {staff.occupation || "-"}
                       </TableCell>
                     )}
