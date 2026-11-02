@@ -2,7 +2,7 @@ import { render, screen, fireEvent, within } from "@testing-library/react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { MemoryRouter } from "react-router-dom"
 import AppOverview from "./AppOverview"
-import { APP_OVERVIEW_WORKFLOWS } from "@/config/appOverview"
+
 import * as AuthContextModule from "@/context/AuthContext"
 import * as UseAppTourModule from "@/hooks/useAppTour"
 import { APP_TOURS } from "@/config/appTours"
